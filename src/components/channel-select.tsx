@@ -18,7 +18,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectSeparator,
   SelectTrigger,
   SelectValue,
@@ -29,7 +31,7 @@ import { createChannel } from "@/app/actions/channel";
 export const CHANNEL_NONE = "none";
 const CREATE = "__create__";
 
-export type Channel = { id: string; name: string };
+export type Channel = { id: string; name: string; parentId?: string | null };
 
 /**
  * A Discord channel picker built on the shadcn Select, with a built-in
@@ -69,10 +71,10 @@ export function ChannelSelect({
 
   // Merge base channels with any created this session (dedup by id).
   const all = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const c of channels) map.set(c.id, c.name);
-    for (const c of created) map.set(c.id, c.name);
-    return [...map].map(([cid, name]) => ({ id: cid, name }));
+    const map = new Map<string, Channel>();
+    for (const c of channels) map.set(c.id, c);
+    for (const c of created) map.set(c.id, c);
+    return [...map.values()];
   }, [channels, created]);
 
   // value -> label map so the trigger shows the channel name, not the id.
@@ -81,6 +83,18 @@ export function ChannelSelect({
     ...Object.fromEntries(all.map((c) => [c.id, `${prefix}${c.name}`])),
     [CREATE]: "Create new channel",
   };
+
+  // For text channels, group by their parent category in the dropdown.
+  const categoryIds = new Set(categories.map((c) => c.id));
+  const uncategorized = all.filter(
+    (c) => !c.parentId || !categoryIds.has(c.parentId),
+  );
+  const renderItem = (c: Channel) => (
+    <SelectItem key={c.id} value={c.id}>
+      {prefix}
+      {c.name}
+    </SelectItem>
+  );
 
   return (
     <>
@@ -101,13 +115,33 @@ export function ChannelSelect({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {allowNone && <SelectItem value={CHANNEL_NONE}>{noneLabel}</SelectItem>}
-          {all.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {prefix}
-              {c.name}
-            </SelectItem>
-          ))}
+          {allowNone && (
+            <SelectItem value={CHANNEL_NONE}>{noneLabel}</SelectItem>
+          )}
+
+          {kind === "text" ? (
+            <>
+              {categories.map((cat) => {
+                const inCat = all.filter((c) => c.parentId === cat.id);
+                if (inCat.length === 0) return null;
+                return (
+                  <SelectGroup key={cat.id}>
+                    <SelectLabel>{cat.name}</SelectLabel>
+                    {inCat.map(renderItem)}
+                  </SelectGroup>
+                );
+              })}
+              {uncategorized.length > 0 && (
+                <SelectGroup>
+                  {categories.length > 0 && <SelectLabel>No category</SelectLabel>}
+                  {uncategorized.map(renderItem)}
+                </SelectGroup>
+              )}
+            </>
+          ) : (
+            all.map(renderItem)
+          )}
+
           <SelectSeparator />
           <SelectItem value={CREATE}>
             <Plus /> Create new channel

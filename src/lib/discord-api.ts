@@ -92,7 +92,12 @@ const CHANNEL_TYPE_CATEGORY = 4;
 /** Discord permission flag: MANAGE_GUILD (a.k.a. "Manage Server"). */
 const PERMISSION_MANAGE_GUILD = 1 << 5;
 
-export type DiscordChannel = { id: string; name: string };
+export type DiscordChannel = {
+  id: string;
+  name: string;
+  /** Parent category id (text channels only); null if uncategorized. */
+  parentId?: string | null;
+};
 export type GuildChannels = {
   categories: DiscordChannel[];
   text: DiscordChannel[];
@@ -128,14 +133,24 @@ export const fetchGuildChannels = cache(
         id: string;
         name: string;
         type: number;
+        parent_id: string | null;
+        position: number;
       }[];
+      const byPosition = (a: { position: number }, b: { position: number }) =>
+        a.position - b.position;
       const result: GuildChannels = {
         categories: channels
           .filter((c) => c.type === CHANNEL_TYPE_CATEGORY)
+          .sort(byPosition)
           .map(({ id, name }) => ({ id, name })),
         text: channels
           .filter((c) => c.type === CHANNEL_TYPE_TEXT)
-          .map(({ id, name }) => ({ id, name })),
+          .sort(byPosition)
+          .map(({ id, name, parent_id }) => ({
+            id,
+            name,
+            parentId: parent_id,
+          })),
       };
       guildChannelsCache.set(guildId, result);
       return result;
@@ -201,8 +216,12 @@ export async function createGuildChannel(
     );
   }
   invalidateGuildChannels(guildId);
-  const ch = (await res.json()) as { id: string; name: string };
-  return { id: ch.id, name: ch.name };
+  const ch = (await res.json()) as {
+    id: string;
+    name: string;
+    parent_id: string | null;
+  };
+  return { id: ch.id, name: ch.name, parentId: ch.parent_id };
 }
 
 const BUTTON_STYLES: Record<string, number> = {
