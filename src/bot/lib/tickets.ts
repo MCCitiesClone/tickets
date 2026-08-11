@@ -8,6 +8,7 @@ import {
   ChannelType,
   EmbedBuilder,
   type Guild as DiscordGuild,
+  type GuildMember,
   type GuildTextBasedChannel,
   MessageFlags,
   ModalBuilder,
@@ -18,9 +19,9 @@ import {
   TextInputStyle,
 } from "discord.js";
 
-import type { Guild, Panel, Ticket } from "@/db/schema";
+import type { AccessRule, Guild, Panel, Ticket } from "@/db/schema";
 import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
-import { getPanel } from "@/lib/queries/panels";
+import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
 import {
   countOpenTicketsForUser,
   createTicket,
@@ -85,31 +86,98 @@ function canManageTicket(
   return interaction.user.id === ticket.openerId || isStaff(interaction, config);
 }
 
-/** Buttons shown on the ticket's opening message, reflecting claim state. */
+type ButtonVisibility = {
+  hideClaim: boolean;
+  hideClose: boolean;
+  hideCloseWithReason: boolean;
+};
+
+/** Button-visibility flags for a ticket's panel (all shown if no panel). */
+function buttonVisibility(panel: Panel | null): ButtonVisibility {
+  return {
+    hideClaim: panel?.hideClaim ?? false,
+    hideClose: panel?.hideClose ?? false,
+    hideCloseWithReason: panel?.hideCloseWithReason ?? false,
+  };
+}
+
+/**
+ * Buttons shown on the ticket's opening message, reflecting claim state and the
+ * panel's button-visibility settings. Returns an empty array if all are hidden.
+ */
 function buildControls(
+  vis: ButtonVisibility,
   ticketId: string,
   claimedBy: string | null,
-): ActionRowBuilder<ButtonBuilder> {
-  const claimButton = claimedBy
-    ? new ButtonBuilder()
-        .setCustomId(`unclaim_ticket:${ticketId}`)
-        .setLabel("Release")
-        .setEmoji("🙌")
-        .setStyle(ButtonStyle.Secondary)
-    : new ButtonBuilder()
-        .setCustomId(`claim_ticket:${ticketId}`)
-        .setLabel("Claim")
-        .setEmoji("🙋")
-        .setStyle(ButtonStyle.Success);
+): ActionRowBuilder<ButtonBuilder>[] {
+  const buttons: ButtonBuilder[] = [];
 
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    claimButton,
-    new ButtonBuilder()
-      .setCustomId(`close_ticket:${ticketId}`)
-      .setLabel("Close")
-      .setEmoji("🔒")
-      .setStyle(ButtonStyle.Danger),
-  );
+  if (!vis.hideClaim) {
+    buttons.push(
+      claimedBy
+        ? new ButtonBuilder()
+            .setCustomId(`unclaim_ticket:${ticketId}`)
+            .setLabel("Release")
+            .setEmoji("🙌")
+            .setStyle(ButtonStyle.Secondary)
+        : new ButtonBuilder()
+            .setCustomId(`claim_ticket:${ticketId}`)
+            .setLabel("Claim")
+            .setEmoji("🙋")
+            .setStyle(ButtonStyle.Success),
+    );
+  }
+  if (!vis.hideClose) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(`close_ticket:${ticketId}`)
+        .setLabel("Close")
+        .setEmoji("🔒")
+        .setStyle(ButtonStyle.Danger),
+    );
+  }
+  if (!vis.hideCloseWithReason) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(`close_reason:${ticketId}`)
+        .setLabel("Close with reason")
+        .setEmoji("📝")
+        .setStyle(ButtonStyle.Danger),
+    );
+  }
+
+  if (buttons.length === 0) return [];
+  return [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)];
+}
+
+/**
+ * Evaluate a panel's access-control rules against a member's roles,
+ * top-to-bottom, first match wins. With no rules, everyone may open. If there
+ * are `allow` rules but none match, it's treated as a whitelist and denied.
+ */
+function checkAccess(member: GuildMember, rules: AccessRule[]): boolean {
+  if (rules.length === 0) return true;
+  for (const rule of rules) {
+    if (member.roles.cache.has(rule.roleId)) return rule.action === "allow";
+  }
+  return !rules.some((r) => r.action === "allow");
+}
+
+/** Build the "close with reason" modal. */
+export function buildCloseReasonModal(ticketId: string): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(`close_reason_modal:${ticketId}`)
+    .setTitle("Close ticket")
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("reason")
+          .setLabel("Reason")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
+          .setMaxLength(1000),
+      ),
+    );
 }
 
 /** Post an audit line to the configured log channel, if any (no pings). */
@@ -129,25 +197,58 @@ async function logAction(
   }
 }
 
+type OpenContext = {
+  config: Guild;
+  categoryId: string;
+  staffRoleIds: string[];
+  openerIsStaff: boolean;
+};
+
 /**
- * Validate that a ticket can be opened (configured + under the per-user limit).
- * Replies with an error and returns null if not.
+ * Validate that a ticket can be opened from this panel and resolve the effective
+ * settings (category, staff roles). Applies: panel disabled, configured, access
+ * control, per-user limit, and per-panel cooldown (staff exempt). Replies with
+ * an error and returns null if blocked.
  */
 async function precheckOpen(
   interaction: OpenInteraction,
-  guildId: string,
-  userId: string,
-): Promise<Guild | null> {
+  panel: Panel,
+): Promise<OpenContext | null> {
+  if (!interaction.inCachedGuild()) return null;
+  const { guildId, user, member } = interaction;
+
+  if (panel.disabled) {
+    await replyError(interaction, "This panel is currently disabled.");
+    return null;
+  }
+
   const config = await getGuild(guildId);
-  if (!config?.ticketCategoryId) {
+  const categoryId = panel.categoryId ?? config?.ticketCategoryId ?? null;
+  if (!config || !categoryId) {
     await replyError(
       interaction,
       "Tickets aren't fully configured on this server yet. Ask an admin to set a ticket category in the dashboard.",
     );
     return null;
   }
+
+  if (!checkAccess(member, panel.accessControl)) {
+    await replyError(
+      interaction,
+      "You don't have permission to open a ticket from this panel.",
+    );
+    return null;
+  }
+
+  const staffRoleIds = panel.supportRoleIds.length
+    ? panel.supportRoleIds
+    : config.staffRoleIds;
+  const openerIsStaff =
+    member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+    staffRoleIds.some((r) => member.roles.cache.has(r));
+
   if (config.ticketLimit > 0) {
-    const open = await countOpenTicketsForUser(guildId, userId);
+    const open = await countOpenTicketsForUser(guildId, user.id);
     if (open >= config.ticketLimit) {
       await replyError(
         interaction,
@@ -156,7 +257,18 @@ async function precheckOpen(
       return null;
     }
   }
-  return config;
+
+  if (!openerIsStaff && panel.cooldownSeconds > 0) {
+    if (await isOnCooldown(panel.id, user.id)) {
+      await replyError(
+        interaction,
+        "You're opening tickets too quickly — please wait a moment before trying again.",
+      );
+      return null;
+    }
+  }
+
+  return { config, categoryId, staffRoleIds, openerIsStaff };
 }
 
 /** Build the Discord modal (form) for a panel's questions. */
@@ -191,20 +303,21 @@ export async function openTicketFromPanel(
 ): Promise<void> {
   if (!interaction.inCachedGuild()) return;
 
-  const config = await precheckOpen(
-    interaction,
-    interaction.guildId,
-    interaction.user.id,
-  );
-  if (!config) return;
-
   const panel = await getPanel(panelId);
-  if (panel && panel.questions.length > 0) {
+  if (!panel) {
+    await replyError(interaction, "This panel no longer exists.");
+    return;
+  }
+
+  const ctx = await precheckOpen(interaction, panel);
+  if (!ctx) return;
+
+  if (panel.questions.length > 0) {
     await interaction.showModal(buildTicketModal(panel));
     return;
   }
 
-  await openTicket(interaction, panelId, [], config);
+  await openTicket(interaction, panel, [], ctx);
 }
 
 /** Handle a submitted ticket form modal: collect answers, then open the ticket. */
@@ -213,30 +326,35 @@ export async function submitTicketForm(
   panelId: string,
 ): Promise<void> {
   const panel = await getPanel(panelId);
-  const answers: FormAnswer[] = (panel?.questions ?? []).map((q) => ({
+  if (!panel) {
+    await replyError(interaction, "This panel no longer exists.");
+    return;
+  }
+  const answers: FormAnswer[] = panel.questions.map((q) => ({
     question: q.label,
     answer: interaction.fields.getTextInputValue(q.id) || "—",
   }));
-  await openTicket(interaction, panelId, answers);
+  await openTicket(interaction, panel, answers);
 }
 
 /**
- * Create a ticket: a private channel under the configured category with
- * per-user/staff overwrites, persist it (with any form answers), and post a
- * welcome message with Claim + Close buttons plus the answers.
+ * Create a ticket: a private channel under the (panel or server) category with
+ * per-user/staff overwrites, persist it (with any form answers), post a welcome
+ * message honoring the panel's overrides (mentions, welcome text, colour,
+ * images, buttons), and start the panel cooldown.
  */
 export async function openTicket(
   interaction: OpenInteraction,
-  panelId: string,
+  panel: Panel,
   answers: FormAnswer[],
-  preloadedConfig?: Guild,
+  preresolved?: OpenContext,
 ): Promise<void> {
   if (!interaction.inCachedGuild()) return;
   const { guild, guildId, user } = interaction;
 
-  const config =
-    preloadedConfig ?? (await precheckOpen(interaction, guildId, user.id));
-  if (!config) return;
+  const ctx = preresolved ?? (await precheckOpen(interaction, panel));
+  if (!ctx) return;
+  const { config, categoryId, staffRoleIds, openerIsStaff } = ctx;
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -245,18 +363,20 @@ export async function openTicket(
   const overwrites: OverwriteResolvable[] = [
     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
     { id: user.id, allow: TICKET_MEMBER_PERMS },
-    ...config.staffRoleIds.map((roleId) => ({
+    ...staffRoleIds.map((roleId) => ({
       id: roleId,
       allow: TICKET_MEMBER_PERMS,
     })),
   ];
 
+  const scheme = panel.namingScheme || config.namingScheme;
+
   let channel;
   try {
     channel = await guild.channels.create({
-      name: channelName(config.namingScheme, number, user.username),
+      name: channelName(scheme, number, user.username),
       type: ChannelType.GuildText,
-      parent: config.ticketCategoryId,
+      parent: categoryId,
       permissionOverwrites: overwrites,
       topic: `Ticket #${number} · opened by ${user.tag} (${user.id})`,
     });
@@ -274,26 +394,31 @@ export async function openTicket(
     number,
     channelId: channel.id,
     openerId: user.id,
-    panelId,
+    panelId: panel.id,
     formResponses: answers,
   });
 
+  if (!openerIsStaff && panel.cooldownSeconds > 0) {
+    await startCooldown(panel.id, user.id, panel.cooldownSeconds);
+  }
+
   // Respond to the opener as soon as the channel exists so the button doesn't
-  // sit on "thinking…". The welcome message and audit log are best-effort and
-  // must not block or fail the reply.
+  // sit on "thinking…". The welcome message and audit log are best-effort.
   await interaction.editReply({
     content: `Your ticket is ready: <#${channel.id}>`,
   });
 
   const mentions = [
     `<@${user.id}>`,
-    ...config.staffRoleIds.map((r) => `<@&${r}>`),
+    ...panel.mentionRoleIds.map((r) => `<@&${r}>`),
   ].join(" ");
 
   const embed = new EmbedBuilder()
     .setTitle(`Ticket #${number}`)
-    .setDescription(config.welcomeMessage)
-    .setColor(0x5865f2);
+    .setDescription(panel.welcomeMessage || config.welcomeMessage)
+    .setColor(panel.color);
+  if (panel.largeImageUrl) embed.setImage(panel.largeImageUrl);
+  if (panel.smallImageUrl) embed.setThumbnail(panel.smallImageUrl);
 
   // Include the form answers, if any, as embed fields.
   if (answers.length > 0) {
@@ -309,7 +434,7 @@ export async function openTicket(
     await channel.send({
       content: mentions,
       embeds: [embed],
-      components: [buildControls(ticket.id, null)],
+      components: buildControls(buttonVisibility(panel), ticket.id, null),
     });
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
@@ -392,8 +517,15 @@ async function setClaim(
 
   // Update the opening message's buttons when acting via them; otherwise post.
   if (interaction.isButton()) {
+    const panel = ticket.panelId ? await getPanel(ticket.panelId) : null;
     await interaction
-      .update({ components: [buildControls(ticket.id, claim ? userId : null)] })
+      .update({
+        components: buildControls(
+          buttonVisibility(panel),
+          ticket.id,
+          claim ? userId : null,
+        ),
+      })
       .catch(() => {});
     if (interaction.channel?.isSendable()) {
       await interaction.channel.send(notice).catch(() => {});
@@ -492,7 +624,7 @@ async function buildTranscript(
  * channel, mark it closed in the DB, log it, and delete the ticket channel.
  */
 export async function closeTicket(
-  interaction: ButtonInteraction | ChatInputCommandInteraction,
+  interaction: Interaction,
   ticketId?: string,
   reason?: string,
 ): Promise<void> {

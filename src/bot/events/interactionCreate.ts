@@ -7,6 +7,7 @@ import {
 
 import { commandMap } from "../commands";
 import {
+  buildCloseReasonModal,
   claimTicket,
   closeTicket,
   openTicketFromPanel,
@@ -67,6 +68,8 @@ export async function onInteractionCreate(
         await openTicketFromPanel(interaction, id);
       } else if (action === "close_ticket") {
         await closeTicket(interaction, id);
+      } else if (action === "close_reason") {
+        await interaction.showModal(buildCloseReasonModal(id));
       } else if (action === "claim_ticket") {
         await claimTicket(interaction, id);
       } else if (action === "unclaim_ticket") {
@@ -83,6 +86,10 @@ export async function onInteractionCreate(
     try {
       if (action === "ticket_form") {
         await submitTicketForm(interaction, id);
+      } else if (action === "close_reason_modal") {
+        const reason =
+          interaction.fields.getTextInputValue("reason") || undefined;
+        await closeTicket(interaction, id, reason);
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);

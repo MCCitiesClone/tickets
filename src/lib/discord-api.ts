@@ -235,6 +235,7 @@ type PanelMessageInput = {
   id: string;
   title: string;
   description: string;
+  color: number;
   buttonLabel: string;
   buttonEmoji: string | null;
   buttonColor: string;
@@ -257,7 +258,13 @@ export async function postPanelMessage(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      embeds: [{ title: panel.title, description: panel.description }],
+      embeds: [
+        {
+          title: panel.title,
+          description: panel.description,
+          color: panel.color,
+        },
+      ],
       components: [
         {
           type: 1,
