@@ -18,6 +18,13 @@ import { requireSession } from "@/lib/session";
  * the user may manage the target guild.
  */
 
+const questionSchema = z.object({
+  label: z.string().min(1).max(45),
+  style: z.enum(["short", "paragraph"]),
+  required: z.boolean(),
+  placeholder: z.string().max(100).optional(),
+});
+
 const createSchema = z.object({
   guildId: z.string().min(1),
   channelId: z.string().min(1),
@@ -26,6 +33,8 @@ const createSchema = z.object({
   buttonLabel: z.string().min(1).max(80),
   buttonEmoji: z.string().max(64).nullable().optional(),
   buttonColor: z.enum(["Primary", "Secondary", "Success", "Danger"]),
+  // Up to 5 modal questions asked when a member opens a ticket.
+  questions: z.array(questionSchema).max(5).optional().default([]),
 });
 
 export type CreatePanelInput = z.infer<typeof createSchema>;
@@ -41,6 +50,15 @@ export async function createPanel(input: CreatePanelInput) {
   const data = createSchema.parse(input);
   await authorize(data.guildId);
 
+  // Assign each question a stable id for its modal field customId.
+  const questions = data.questions.map((q, i) => ({
+    id: `q${i}`,
+    label: q.label,
+    style: q.style,
+    required: q.required,
+    placeholder: q.placeholder,
+  }));
+
   // Persist first so we have an ID to encode in the button custom_id.
   const panel = await createPanelRow({
     guildId: data.guildId,
@@ -49,6 +67,7 @@ export async function createPanel(input: CreatePanelInput) {
     buttonLabel: data.buttonLabel,
     buttonEmoji: data.buttonEmoji ?? null,
     buttonColor: data.buttonColor,
+    questions,
   });
 
   try {

@@ -1,12 +1,35 @@
-import { type Interaction, MessageFlags } from "discord.js";
+import {
+  type ButtonInteraction,
+  type Interaction,
+  MessageFlags,
+  type ModalSubmitInteraction,
+} from "discord.js";
 
 import { commandMap } from "../commands";
 import {
   claimTicket,
   closeTicket,
-  openTicket,
+  openTicketFromPanel,
+  submitTicketForm,
   unclaimTicket,
 } from "../lib/tickets";
+
+async function reportInteractionError(
+  interaction: ButtonInteraction | ModalSubmitInteraction,
+  err: unknown,
+  label: string,
+) {
+  console.error(`Error handling ${label}:`, err);
+  const content = "Something went wrong handling that action.";
+  // If we already deferred, edit that reply — otherwise it hangs on "thinking…".
+  if (interaction.deferred) {
+    await interaction.editReply({ content }).catch(() => {});
+  } else if (!interaction.replied) {
+    await interaction
+      .reply({ content, flags: MessageFlags.Ephemeral })
+      .catch(() => {});
+  }
+}
 
 /**
  * Central interaction router. Handles:
@@ -39,10 +62,9 @@ export async function onInteractionCreate(
 
   if (interaction.isButton()) {
     const [action, id] = interaction.customId.split(":");
-
     try {
       if (action === "open_ticket") {
-        await openTicket(interaction, id);
+        await openTicketFromPanel(interaction, id);
       } else if (action === "close_ticket") {
         await closeTicket(interaction, id);
       } else if (action === "claim_ticket") {
@@ -51,17 +73,19 @@ export async function onInteractionCreate(
         await unclaimTicket(interaction, id);
       }
     } catch (err) {
-      console.error(`Error handling button ${interaction.customId}:`, err);
-      const content = "Something went wrong handling that action.";
-      // If we already deferred, edit that reply — otherwise it hangs on
-      // "thinking…" forever.
-      if (interaction.deferred) {
-        await interaction.editReply({ content }).catch(() => {});
-      } else if (!interaction.replied) {
-        await interaction
-          .reply({ content, flags: MessageFlags.Ephemeral })
-          .catch(() => {});
+      await reportInteractionError(interaction, err, interaction.customId);
+    }
+    return;
+  }
+
+  if (interaction.isModalSubmit()) {
+    const [action, id] = interaction.customId.split(":");
+    try {
+      if (action === "ticket_form") {
+        await submitTicketForm(interaction, id);
       }
+    } catch (err) {
+      await reportInteractionError(interaction, err, interaction.customId);
     }
     return;
   }

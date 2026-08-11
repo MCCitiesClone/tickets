@@ -10,12 +10,17 @@ import {
   type Guild as DiscordGuild,
   type GuildTextBasedChannel,
   MessageFlags,
+  ModalBuilder,
+  type ModalSubmitInteraction,
   type OverwriteResolvable,
   PermissionFlagsBits,
+  TextInputBuilder,
+  TextInputStyle,
 } from "discord.js";
 
-import type { Guild, Ticket } from "@/db/schema";
+import type { Guild, Panel, Ticket } from "@/db/schema";
 import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
+import { getPanel } from "@/lib/queries/panels";
 import {
   countOpenTicketsForUser,
   createTicket,
@@ -25,7 +30,12 @@ import {
   setTicketClaimedBy,
 } from "@/lib/queries/tickets";
 
-type Interaction = ButtonInteraction | ChatInputCommandInteraction;
+type Interaction =
+  | ButtonInteraction
+  | ChatInputCommandInteraction
+  | ModalSubmitInteraction;
+type OpenInteraction = ButtonInteraction | ModalSubmitInteraction;
+export type FormAnswer = { question: string; answer: string };
 
 /** Permissions granted to a member with access to a ticket channel. */
 const TICKET_MEMBER_PERMS = [
@@ -120,37 +130,113 @@ async function logAction(
 }
 
 /**
- * Open a ticket from a panel button click: validate config + limits, create a
- * private channel under the configured category with per-user/staff overwrites,
- * persist the ticket, and post a welcome message with Claim + Close buttons.
+ * Validate that a ticket can be opened (configured + under the per-user limit).
+ * Replies with an error and returns null if not.
  */
-export async function openTicket(
-  interaction: ButtonInteraction,
-  panelId: string,
-): Promise<void> {
-  if (!interaction.inCachedGuild()) return;
-  const { guild, guildId, user } = interaction;
-
+async function precheckOpen(
+  interaction: OpenInteraction,
+  guildId: string,
+  userId: string,
+): Promise<Guild | null> {
   const config = await getGuild(guildId);
   if (!config?.ticketCategoryId) {
     await replyError(
       interaction,
       "Tickets aren't fully configured on this server yet. Ask an admin to set a ticket category in the dashboard.",
     );
-    return;
+    return null;
   }
-
-  // Enforce the per-user open-ticket limit (0 = unlimited).
   if (config.ticketLimit > 0) {
-    const open = await countOpenTicketsForUser(guildId, user.id);
+    const open = await countOpenTicketsForUser(guildId, userId);
     if (open >= config.ticketLimit) {
       await replyError(
         interaction,
         `You already have ${open} open ticket${open === 1 ? "" : "s"} (limit ${config.ticketLimit}).`,
       );
-      return;
+      return null;
     }
   }
+  return config;
+}
+
+/** Build the Discord modal (form) for a panel's questions. */
+function buildTicketModal(panel: Panel): ModalBuilder {
+  const modal = new ModalBuilder()
+    .setCustomId(`ticket_form:${panel.id}`)
+    .setTitle(panel.title.slice(0, 45) || "Open a ticket");
+
+  for (const q of panel.questions.slice(0, 5)) {
+    const input = new TextInputBuilder()
+      .setCustomId(q.id)
+      .setLabel(q.label.slice(0, 45))
+      .setStyle(
+        q.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short,
+      )
+      .setRequired(q.required);
+    if (q.placeholder) input.setPlaceholder(q.placeholder.slice(0, 100));
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(input),
+    );
+  }
+  return modal;
+}
+
+/**
+ * Entry point for the panel "open ticket" button. If the panel has questions,
+ * present a modal first; otherwise open the ticket immediately.
+ */
+export async function openTicketFromPanel(
+  interaction: ButtonInteraction,
+  panelId: string,
+): Promise<void> {
+  if (!interaction.inCachedGuild()) return;
+
+  const config = await precheckOpen(
+    interaction,
+    interaction.guildId,
+    interaction.user.id,
+  );
+  if (!config) return;
+
+  const panel = await getPanel(panelId);
+  if (panel && panel.questions.length > 0) {
+    await interaction.showModal(buildTicketModal(panel));
+    return;
+  }
+
+  await openTicket(interaction, panelId, [], config);
+}
+
+/** Handle a submitted ticket form modal: collect answers, then open the ticket. */
+export async function submitTicketForm(
+  interaction: ModalSubmitInteraction,
+  panelId: string,
+): Promise<void> {
+  const panel = await getPanel(panelId);
+  const answers: FormAnswer[] = (panel?.questions ?? []).map((q) => ({
+    question: q.label,
+    answer: interaction.fields.getTextInputValue(q.id) || "—",
+  }));
+  await openTicket(interaction, panelId, answers);
+}
+
+/**
+ * Create a ticket: a private channel under the configured category with
+ * per-user/staff overwrites, persist it (with any form answers), and post a
+ * welcome message with Claim + Close buttons plus the answers.
+ */
+export async function openTicket(
+  interaction: OpenInteraction,
+  panelId: string,
+  answers: FormAnswer[],
+  preloadedConfig?: Guild,
+): Promise<void> {
+  if (!interaction.inCachedGuild()) return;
+  const { guild, guildId, user } = interaction;
+
+  const config =
+    preloadedConfig ?? (await precheckOpen(interaction, guildId, user.id));
+  if (!config) return;
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -189,6 +275,7 @@ export async function openTicket(
     channelId: channel.id,
     openerId: user.id,
     panelId,
+    formResponses: answers,
   });
 
   // Respond to the opener as soon as the channel exists so the button doesn't
@@ -207,6 +294,16 @@ export async function openTicket(
     .setTitle(`Ticket #${number}`)
     .setDescription(config.welcomeMessage)
     .setColor(0x5865f2);
+
+  // Include the form answers, if any, as embed fields.
+  if (answers.length > 0) {
+    embed.addFields(
+      answers.map((a) => ({
+        name: a.question.slice(0, 256),
+        value: (a.answer || "—").slice(0, 1024),
+      })),
+    );
+  }
 
   try {
     await channel.send({
@@ -233,7 +330,9 @@ async function resolveTicket(
   if (!interaction.inCachedGuild()) return null;
   const ticket = ticketId
     ? await getTicket(ticketId)
-    : await getTicketByChannel(interaction.channelId);
+    : interaction.channelId
+      ? await getTicketByChannel(interaction.channelId)
+      : null;
   if (!ticket || ticket.guildId !== interaction.guildId) {
     await replyError(interaction, "This isn't a ticket channel.");
     return null;

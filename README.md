@@ -20,6 +20,9 @@ easy to run yourself and to own your own data.
   configurable channel naming.
 - **Panels** — create button messages in the dashboard; members click to open a
   ticket. Tickets close with a button or `/close`, posting a transcript.
+- **Panel forms** — optionally attach up to 5 questions to a panel; clicking it
+  opens a native Discord modal, and the answers are saved and posted in the
+  ticket.
 - **Web dashboard** — sign in with Discord and configure your servers from a
   browser (built with Next.js + shadcn/ui). All config is web-based.
 - **Ticket management** — staff can `/claim` and `/unclaim` tickets (also via
@@ -116,6 +119,7 @@ Useful scripts (run with `aube run <name>`):
 
 - [x] Web-based server selection & configuration (Discord `guilds` scope + Manage Server checks)
 - [x] Panels: create/post from dashboard, button-driven opening
+- [x] Panel forms: modal questions asked on open, answers saved to the ticket
 - [x] Ticket lifecycle: open → staff reply → close → transcript
 - [x] Ticket claiming & member management, close reasons, log-channel audit
 - [ ] Tags / canned responses and per-user blacklist

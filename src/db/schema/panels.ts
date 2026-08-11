@@ -1,6 +1,21 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { guild } from "./guilds";
+
+/**
+ * A question asked in the Discord modal when a member opens a ticket from a
+ * panel. Maps to a modal text input (Discord allows up to 5 per modal).
+ */
+export type PanelQuestion = {
+  /** Stable id, used as the modal field's customId. */
+  id: string;
+  /** Field label (Discord caps at 45 chars). */
+  label: string;
+  /** Single-line ("short") or multi-line ("paragraph") input. */
+  style: "short" | "paragraph";
+  placeholder?: string;
+  required: boolean;
+};
 
 /**
  * A ticket "panel" — a message posted in a channel containing a button that
@@ -33,6 +48,12 @@ export const panel = pgTable("panel", {
   buttonEmoji: text("button_emoji"),
   /** Discord ButtonStyle name: Primary | Secondary | Success | Danger. */
   buttonColor: text("button_color").notNull().default("Primary"),
+
+  /** Questions asked in a modal when opening a ticket (max 5, may be empty). */
+  questions: jsonb("questions")
+    .$type<PanelQuestion[]>()
+    .notNull()
+    .default([]),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -1,6 +1,7 @@
 import {
   bigint,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -47,6 +48,12 @@ export const ticket = pgTable("ticket", {
 
   /** Discord user ID of the staff member who claimed the ticket. */
   claimedBy: text("claimed_by"),
+
+  /** Answers the opener gave to the panel's form questions (may be empty). */
+  formResponses: jsonb("form_responses")
+    .$type<{ question: string; answer: string }[]>()
+    .notNull()
+    .default([]),
 
   openedAt: timestamp("opened_at").notNull().defaultNow(),
   closedAt: timestamp("closed_at"),
