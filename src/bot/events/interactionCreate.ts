@@ -52,12 +52,14 @@ export async function onInteractionCreate(
       }
     } catch (err) {
       console.error(`Error handling button ${interaction.customId}:`, err);
-      if (!interaction.replied && !interaction.deferred) {
+      const content = "Something went wrong handling that action.";
+      // If we already deferred, edit that reply — otherwise it hangs on
+      // "thinking…" forever.
+      if (interaction.deferred) {
+        await interaction.editReply({ content }).catch(() => {});
+      } else if (!interaction.replied) {
         await interaction
-          .reply({
-            content: "Something went wrong handling that action.",
-            flags: MessageFlags.Ephemeral,
-          })
+          .reply({ content, flags: MessageFlags.Ephemeral })
           .catch(() => {});
       }
     }

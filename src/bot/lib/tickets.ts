@@ -191,6 +191,13 @@ export async function openTicket(
     panelId,
   });
 
+  // Respond to the opener as soon as the channel exists so the button doesn't
+  // sit on "thinking…". The welcome message and audit log are best-effort and
+  // must not block or fail the reply.
+  await interaction.editReply({
+    content: `Your ticket is ready: <#${channel.id}>`,
+  });
+
   const mentions = [
     `<@${user.id}>`,
     ...config.staffRoleIds.map((r) => `<@&${r}>`),
@@ -201,21 +208,21 @@ export async function openTicket(
     .setDescription(config.welcomeMessage)
     .setColor(0x5865f2);
 
-  await channel.send({
-    content: mentions,
-    embeds: [embed],
-    components: [buildControls(ticket.id, null)],
-  });
+  try {
+    await channel.send({
+      content: mentions,
+      embeds: [embed],
+      components: [buildControls(ticket.id, null)],
+    });
+  } catch (err) {
+    console.error("Failed to post ticket welcome message:", err);
+  }
 
   await logAction(
     guild,
     config,
     `🎫 Ticket #${number} opened by <@${user.id}> — <#${channel.id}>`,
   );
-
-  await interaction.editReply({
-    content: `Your ticket is ready: <#${channel.id}>`,
-  });
 }
 
 /** Resolve the ticket for an interaction (by id or current channel) + config. */
