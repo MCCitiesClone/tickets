@@ -14,10 +14,12 @@ export async function GET(
 ) {
   const session = await getSession();
   if (!session) {
+    console.warn("[channels] no session");
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const { guildId } = await params;
   if (!(await canManageGuild(guildId))) {
+    console.warn(`[channels] forbidden: user can't manage guild ${guildId}`);
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

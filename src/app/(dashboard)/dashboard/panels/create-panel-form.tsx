@@ -51,13 +51,20 @@ export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
       setChannelId("");
       try {
         const res = await fetch(`/api/guilds/${guildId}/channels`);
-        if (!res.ok) throw new Error("failed");
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          console.error("channels load failed", res.status, body);
+          throw new Error(String(res.status));
+        }
         const data = (await res.json()) as { text: Channel[] };
         if (cancelled) return;
         setChannels(data.text);
         setChannelId(data.text[0]?.id ?? "");
-      } catch {
-        if (!cancelled) toast.error("Couldn't load channels for that server.");
+      } catch (err) {
+        if (!cancelled)
+          toast.error(
+            `Couldn't load channels (${err instanceof Error ? err.message : "error"}).`,
+          );
       } finally {
         if (!cancelled) setChannelsLoading(false);
       }

@@ -27,7 +27,8 @@ const getUserDiscordToken = cache(async (): Promise<string | null> => {
       headers: await headers(),
     });
     return result?.accessToken ?? null;
-  } catch {
+  } catch (err) {
+    console.error("[guild-access] getAccessToken failed:", err);
     return null;
   }
 });

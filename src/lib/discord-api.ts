@@ -4,6 +4,40 @@ import { env } from "@/lib/env";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
+/**
+ * Fetch wrapper that transparently retries on HTTP 429 (Discord rate limit),
+ * respecting the `retry_after` hint. Discord rate-limits some endpoints
+ * (notably `/users/@me/guilds`) aggressively, so a couple of short retries make
+ * reads reliable under bursty dashboard usage.
+ */
+async function discordFetch(
+  url: string,
+  init: RequestInit,
+  retries = 2,
+): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { ...init, cache: "no-store" });
+    if (res.status !== 429 || attempt >= retries) return res;
+    const retryAfter = Number(res.headers.get("retry-after")) || 1;
+    await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000));
+  }
+}
+
+/** Tiny module-level TTL cache to avoid re-hitting rate-limited endpoints. */
+function ttlCache<T>(ttlMs: number) {
+  const store = new Map<string, { at: number; value: T }>();
+  return {
+    get(key: string): T | undefined {
+      const hit = store.get(key);
+      if (hit && Date.now() - hit.at < ttlMs) return hit.value;
+      return undefined;
+    },
+    set(key: string, value: T) {
+      store.set(key, { at: Date.now(), value });
+    },
+  };
+}
+
 export type PartialGuild = { id: string; name: string };
 
 export type BotGuildsResult = {
@@ -23,9 +57,8 @@ export type BotGuildsResult = {
  */
 export const fetchBotGuilds = cache(async (): Promise<BotGuildsResult> => {
   try {
-    const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
+    const res = await discordFetch(`${DISCORD_API}/users/@me/guilds`, {
       headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
-      cache: "no-store",
     });
     if (!res.ok) return { guilds: [], ok: false };
     const guilds = (await res.json()) as PartialGuild[];
@@ -52,9 +85,8 @@ export const fetchGuildChannels = cache(
     guildId: string,
   ): Promise<{ categories: DiscordChannel[]; text: DiscordChannel[] }> => {
     try {
-      const res = await fetch(`${DISCORD_API}/guilds/${guildId}/channels`, {
+      const res = await discordFetch(`${DISCORD_API}/guilds/${guildId}/channels`, {
         headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
-        cache: "no-store",
       });
       if (!res.ok) return { categories: [], text: [] };
       const channels = (await res.json()) as {
@@ -83,9 +115,8 @@ export const fetchGuildChannels = cache(
 export const fetchGuildRoles = cache(
   async (guildId: string): Promise<DiscordChannel[]> => {
     try {
-      const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
+      const res = await discordFetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
         headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
-        cache: "no-store",
       });
       if (!res.ok) return [];
       const roles = (await res.json()) as {
@@ -178,18 +209,26 @@ export async function deleteMessage(
   }
 }
 
+// The user's manageable-guild list rarely changes; cache it briefly per token so
+// rapid successive requests (page render + the channels API call it triggers)
+// don't each hit Discord's tight rate limit on /users/@me/guilds.
+const userGuildsCache = ttlCache<{ ids: Set<string>; ok: boolean }>(60_000);
+
 /**
  * Fetch the IDs of guilds the signed-in user can manage (owner or MANAGE_GUILD),
  * using their Discord OAuth access token. Returns `{ ok:false }` if the token is
- * missing/expired or Discord is unreachable.
+ * missing/expired or Discord is unreachable. Successful results are cached for a
+ * short TTL; failures are not cached so they retry immediately.
  */
 export async function fetchUserManageableGuildIds(
   accessToken: string,
 ): Promise<{ ids: Set<string>; ok: boolean }> {
+  const cached = userGuildsCache.get(accessToken);
+  if (cached) return cached;
+
   try {
-    const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
+    const res = await discordFetch(`${DISCORD_API}/users/@me/guilds`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
     });
     if (!res.ok) return { ids: new Set(), ok: false };
     const guilds = (await res.json()) as {
@@ -207,7 +246,9 @@ export async function fetchUserManageableGuildIds(
         )
         .map((g) => g.id),
     );
-    return { ids, ok: true };
+    const result = { ids, ok: true };
+    userGuildsCache.set(accessToken, result);
+    return result;
   } catch {
     return { ids: new Set(), ok: false };
   }
