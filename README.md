@@ -19,7 +19,11 @@ easy to run yourself and to own your own data.
   with per-user and staff-role permission overwrites, a per-user open limit, and
   configurable channel naming.
 - **Panels** — create button messages in the dashboard; members click to open a
-  ticket. Tickets close with a button or `/close`, posting a transcript.
+  ticket. Tickets close with a button or `/close`, posting a transcript. Each
+  panel is highly configurable: per-panel category / naming / welcome overrides,
+  support & mention roles, embed colour + images, access-control (allow/deny)
+  rules, per-user cooldowns, button visibility, and a disable toggle. Panels can
+  be edited, re-sent to Discord, and have their cooldowns reset.
 - **Panel forms** — optionally attach up to 5 questions to a panel; clicking it
   opens a native Discord modal, and the answers are saved and posted in the
   ticket.
@@ -120,6 +124,7 @@ Useful scripts (run with `aube run <name>`):
 - [x] Web-based server selection & configuration (Discord `guilds` scope + Manage Server checks)
 - [x] Panels: create/post from dashboard, button-driven opening
 - [x] Panel forms: modal questions asked on open, answers saved to the ticket
+- [x] Rich panel config: overrides, access control, cooldowns, edit/resend/reset
 - [x] Ticket lifecycle: open → staff reply → close → transcript
 - [x] Ticket claiming & member management, close reasons, log-channel audit
 - [ ] Tags / canned responses and per-user blacklist

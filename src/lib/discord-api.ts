@@ -292,6 +292,54 @@ export async function postPanelMessage(
   return msg.id;
 }
 
+/** Edit an already-posted panel message in place. Throws on failure. */
+export async function editPanelMessage(
+  channelId: string,
+  messageId: string,
+  panel: PanelMessageInput,
+): Promise<void> {
+  const res = await fetch(
+    `${DISCORD_API}/channels/${channelId}/messages/${messageId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bot ${env.DISCORD_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        embeds: [
+          {
+            title: panel.title,
+            description: panel.description,
+            color: panel.color,
+          },
+        ],
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: BUTTON_STYLES[panel.buttonColor] ?? 1,
+                label: panel.buttonLabel,
+                custom_id: `open_ticket:${panel.id}`,
+                ...(panel.buttonEmoji
+                  ? { emoji: { name: panel.buttonEmoji } }
+                  : {}),
+              },
+            ],
+          },
+        ],
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to edit panel message (${res.status}): ${await res.text()}`,
+    );
+  }
+}
+
 /** Best-effort delete of a message (e.g. when a panel is removed). */
 export async function deleteMessage(
   channelId: string,

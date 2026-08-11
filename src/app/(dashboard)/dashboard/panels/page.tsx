@@ -1,12 +1,14 @@
-import { PanelsTopLeft } from "lucide-react";
+import Link from "next/link";
+import { PanelsTopLeft, Plus } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getActiveGuild } from "@/lib/active-guild";
 import { listGuildPanels } from "@/lib/queries/panels";
 import { requireSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 import { EmptyState, PageHeader } from "../../page-shell";
-import { CreatePanelForm } from "./create-panel-form";
-import { DeletePanelButton } from "./delete-panel-button";
+import { PanelActions } from "./panel-actions";
 
 export default async function PanelsPage() {
   await requireSession();
@@ -22,6 +24,16 @@ export default async function PanelsPage() {
             ? `Button messages members use to open tickets in ${active.name}.`
             : "Button messages members use to open tickets."
         }
+        action={
+          active ? (
+            <Link
+              href="/dashboard/panels/new"
+              className={cn(buttonVariants())}
+            >
+              <Plus /> New panel
+            </Link>
+          ) : undefined
+        }
       />
 
       {!active ? (
@@ -30,25 +42,37 @@ export default async function PanelsPage() {
           title="No server selected"
           description="Invite the bot to a server you manage, then pick it from the switcher in the sidebar."
         />
+      ) : panels.length === 0 ? (
+        <EmptyState
+          icon={<PanelsTopLeft className="size-8" />}
+          title="No panels yet"
+          description="Create a panel so members can open tickets with a button."
+        >
+          <Link href="/dashboard/panels/new" className={cn(buttonVariants())}>
+            <Plus /> New panel
+          </Link>
+        </EmptyState>
       ) : (
-        <CreatePanelForm guildId={active.id} />
-      )}
-
-      {panels.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Existing panels
-          </h2>
           {panels.map((p) => (
             <Card key={p.id}>
-              <CardContent className="flex items-center justify-between gap-4 py-4">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{p.title}</p>
+                  <p className="truncate font-medium">
+                    {p.title}
+                    {p.disabled && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (disabled)
+                      </span>
+                    )}
+                  </p>
                   <p className="truncate text-sm text-muted-foreground">
                     {p.messageId ? "Posted" : "Not posted"}
+                    {p.questions.length > 0 &&
+                      ` · ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`}
                   </p>
                 </div>
-                <DeletePanelButton panelId={p.id} />
+                <PanelActions panelId={p.id} />
               </CardContent>
             </Card>
           ))}
