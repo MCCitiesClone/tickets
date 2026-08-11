@@ -117,6 +117,36 @@ export const panel = pgTable("panel", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * A "multi-panel" combines several individual panels into one embed. Members
+ * pick a ticket type via buttons (each reusing the panel's `open_ticket:<id>`
+ * button) or a dropdown menu.
+ */
+export const multiPanel = pgTable("multi_panel", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  guildId: text("guild_id")
+    .notNull()
+    .references(() => guild.guildId, { onDelete: "cascade" }),
+  channelId: text("channel_id"),
+  messageId: text("message_id"),
+  title: text("title").notNull().default("Open a ticket"),
+  description: text("description")
+    .notNull()
+    .default("Select the type of ticket you'd like to open below."),
+  color: integer("color").notNull().default(DEFAULT_PANEL_COLOR),
+  largeImageUrl: text("large_image_url"),
+  smallImageUrl: text("small_image_url"),
+  /** Show the options as a dropdown (true) or buttons (false). */
+  useDropdown: boolean("use_dropdown").notNull().default(false),
+  /** Ordered ids of the panels included in this multi-panel. */
+  panelIds: jsonb("panel_ids").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type MultiPanel = typeof multiPanel.$inferSelect;
+export type NewMultiPanel = typeof multiPanel.$inferInsert;
+
 /** Per-user, per-panel cooldown tracking (when a user may next open a ticket). */
 export const panelCooldown = pgTable(
   "panel_cooldown",

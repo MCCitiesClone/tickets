@@ -15,6 +15,7 @@ import {
   type ModalSubmitInteraction,
   type OverwriteResolvable,
   PermissionFlagsBits,
+  type StringSelectMenuInteraction,
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
@@ -34,8 +35,12 @@ import {
 type Interaction =
   | ButtonInteraction
   | ChatInputCommandInteraction
-  | ModalSubmitInteraction;
-type OpenInteraction = ButtonInteraction | ModalSubmitInteraction;
+  | ModalSubmitInteraction
+  | StringSelectMenuInteraction;
+type OpenInteraction =
+  | ButtonInteraction
+  | ModalSubmitInteraction
+  | StringSelectMenuInteraction;
 export type FormAnswer = { question: string; answer: string };
 
 /** Permissions granted to a member with access to a ticket channel. */
@@ -298,7 +303,7 @@ function buildTicketModal(panel: Panel): ModalBuilder {
  * present a modal first; otherwise open the ticket immediately.
  */
 export async function openTicketFromPanel(
-  interaction: ButtonInteraction,
+  interaction: ButtonInteraction | StringSelectMenuInteraction,
   panelId: string,
 ): Promise<void> {
   if (!interaction.inCachedGuild()) return;

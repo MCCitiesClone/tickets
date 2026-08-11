@@ -3,6 +3,7 @@ import {
   type Interaction,
   MessageFlags,
   type ModalSubmitInteraction,
+  type StringSelectMenuInteraction,
 } from "discord.js";
 
 import { commandMap } from "../commands";
@@ -16,7 +17,10 @@ import {
 } from "../lib/tickets";
 
 async function reportInteractionError(
-  interaction: ButtonInteraction | ModalSubmitInteraction,
+  interaction:
+    | ButtonInteraction
+    | ModalSubmitInteraction
+    | StringSelectMenuInteraction,
   err: unknown,
   label: string,
 ) {
@@ -74,6 +78,20 @@ export async function onInteractionCreate(
         await claimTicket(interaction, id);
       } else if (action === "unclaim_ticket") {
         await unclaimTicket(interaction, id);
+      }
+    } catch (err) {
+      await reportInteractionError(interaction, err, interaction.customId);
+    }
+    return;
+  }
+
+  if (interaction.isStringSelectMenu()) {
+    const [action] = interaction.customId.split(":");
+    try {
+      if (action === "multipanel_select") {
+        // The selected option's value is the chosen panel's id.
+        const panelId = interaction.values[0];
+        if (panelId) await openTicketFromPanel(interaction, panelId);
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);

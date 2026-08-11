@@ -1,9 +1,12 @@
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  multiPanel,
   panel,
   panelCooldown,
+  type MultiPanel,
+  type NewMultiPanel,
   type NewPanel,
   type Panel,
 } from "@/db/schema";
@@ -25,6 +28,14 @@ export async function listGuildPanels(guildId: string): Promise<Panel[]> {
 export async function getPanel(id: string): Promise<Panel | null> {
   const [row] = await db.select().from(panel).where(eq(panel.id, id)).limit(1);
   return row ?? null;
+}
+
+/** Fetch panels by id, returned in the order of the given id list. */
+export async function getPanelsByIds(ids: string[]): Promise<Panel[]> {
+  if (ids.length === 0) return [];
+  const rows = await db.select().from(panel).where(inArray(panel.id, ids));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return ids.map((id) => byId.get(id)).filter((p): p is Panel => Boolean(p));
 }
 
 export async function createPanel(values: NewPanel): Promise<Panel> {
@@ -97,6 +108,65 @@ export async function startCooldown(
       target: [panelCooldown.panelId, panelCooldown.userId],
       set: { expiresAt },
     });
+}
+
+// --- Multi-panels ----------------------------------------------------------
+
+export async function listGuildMultiPanels(
+  guildId: string,
+): Promise<MultiPanel[]> {
+  return db
+    .select()
+    .from(multiPanel)
+    .where(eq(multiPanel.guildId, guildId))
+    .orderBy(desc(multiPanel.createdAt));
+}
+
+export async function getMultiPanel(id: string): Promise<MultiPanel | null> {
+  const [row] = await db
+    .select()
+    .from(multiPanel)
+    .where(eq(multiPanel.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function createMultiPanel(
+  values: NewMultiPanel,
+): Promise<MultiPanel> {
+  const [row] = await db.insert(multiPanel).values(values).returning();
+  return row;
+}
+
+export async function updateMultiPanel(
+  id: string,
+  values: Partial<Omit<NewMultiPanel, "id" | "guildId">>,
+): Promise<MultiPanel | null> {
+  const [row] = await db
+    .update(multiPanel)
+    .set({ ...values, updatedAt: new Date() })
+    .where(eq(multiPanel.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function setMultiPanelMessage(
+  id: string,
+  channelId: string,
+  messageId: string,
+): Promise<void> {
+  await db
+    .update(multiPanel)
+    .set({ channelId, messageId, updatedAt: new Date() })
+    .where(eq(multiPanel.id, id));
+}
+
+export async function deleteMultiPanel(id: string): Promise<MultiPanel | null> {
+  const [row] = await db
+    .delete(multiPanel)
+    .where(eq(multiPanel.id, id))
+    .returning();
+  return row ?? null;
 }
 
 /** Clear all active cooldowns for a panel. Returns how many were cleared. */

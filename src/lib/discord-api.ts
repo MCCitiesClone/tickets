@@ -350,6 +350,129 @@ export async function editPanelMessage(
   }
 }
 
+type MultiPanelMessageInput = {
+  id: string;
+  title: string;
+  description: string;
+  color: number;
+  largeImageUrl: string | null;
+  smallImageUrl: string | null;
+  useDropdown: boolean;
+};
+export type PanelButtonInput = {
+  id: string;
+  title: string;
+  buttonLabel: string;
+  buttonEmoji: string | null;
+  buttonColor: string;
+};
+
+/** Embed + button/dropdown payload for a multi-panel message. */
+function multiPanelPayload(
+  mp: MultiPanelMessageInput,
+  panels: PanelButtonInput[],
+) {
+  const embed: Record<string, unknown> = {
+    title: mp.title,
+    description: mp.description,
+    color: mp.color,
+  };
+  if (mp.largeImageUrl) embed.image = { url: mp.largeImageUrl };
+  if (mp.smallImageUrl) embed.thumbnail = { url: mp.smallImageUrl };
+
+  let components: unknown[];
+  if (mp.useDropdown) {
+    // A single string-select menu (max 25 options).
+    components = [
+      {
+        type: 1,
+        components: [
+          {
+            type: 3,
+            custom_id: `multipanel_select:${mp.id}`,
+            placeholder: "Select a ticket type…",
+            options: panels.slice(0, 25).map((p) => {
+              const emoji = resolveButtonEmoji(p.buttonEmoji);
+              return {
+                label: (p.buttonLabel || p.title).slice(0, 100),
+                value: p.id,
+                description: p.title ? p.title.slice(0, 100) : undefined,
+                ...(emoji ? { emoji } : {}),
+              };
+            }),
+          },
+        ],
+      },
+    ];
+  } else {
+    // Buttons, 5 per action row, up to 5 rows (25 buttons).
+    const buttons = panels.slice(0, 25).map((p) => {
+      const emoji = resolveButtonEmoji(p.buttonEmoji);
+      return {
+        type: 2,
+        style: BUTTON_STYLES[p.buttonColor] ?? 1,
+        label: p.buttonLabel,
+        custom_id: `open_ticket:${p.id}`,
+        ...(emoji ? { emoji } : {}),
+      };
+    });
+    components = [];
+    for (let i = 0; i < buttons.length; i += 5) {
+      components.push({ type: 1, components: buttons.slice(i, i + 5) });
+    }
+  }
+
+  return { embeds: [embed], components };
+}
+
+/** Post a multi-panel message, returning the created message id. Throws on error. */
+export async function postMultiPanelMessage(
+  channelId: string,
+  mp: MultiPanelMessageInput,
+  panels: PanelButtonInput[],
+): Promise<string> {
+  const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(multiPanelPayload(mp, panels)),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to post multi-panel message (${res.status}): ${await res.text()}`,
+    );
+  }
+  const msg = (await res.json()) as { id: string };
+  return msg.id;
+}
+
+/** Edit a posted multi-panel message in place. Throws on failure. */
+export async function editMultiPanelMessage(
+  channelId: string,
+  messageId: string,
+  mp: MultiPanelMessageInput,
+  panels: PanelButtonInput[],
+): Promise<void> {
+  const res = await fetch(
+    `${DISCORD_API}/channels/${channelId}/messages/${messageId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bot ${env.DISCORD_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(multiPanelPayload(mp, panels)),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to edit multi-panel message (${res.status}): ${await res.text()}`,
+    );
+  }
+}
+
 /** Best-effort delete of a message (e.g. when a panel is removed). */
 export async function deleteMessage(
   channelId: string,
