@@ -21,6 +21,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tickets}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets}
       POSTGRES_DB: ${POSTGRES_DB:-tickets}
+    # Published so a local `aube run dev` / `bot:dev` can reach this same DB via
+    # the localhost DATABASE_URL in .env. Change the host port if 5432 is taken.
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

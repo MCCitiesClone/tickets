@@ -24,6 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // next-themes updates <html> (class + color-scheme) on the client before
+      // React hydrates; suppress the expected first-render attribute mismatch.
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
