@@ -7,6 +7,7 @@ import {
   type ChatInputCommandInteraction,
   ChannelType,
   EmbedBuilder,
+  type Guild as DiscordGuild,
   type GuildTextBasedChannel,
   MessageFlags,
   type OverwriteResolvable,
@@ -21,20 +22,31 @@ import {
   getTicket,
   getTicketByChannel,
   markTicketClosed,
+  setTicketClaimedBy,
 } from "@/lib/queries/tickets";
 
 type Interaction = ButtonInteraction | ChatInputCommandInteraction;
 
+/** Permissions granted to a member with access to a ticket channel. */
+const TICKET_MEMBER_PERMS = [
+  PermissionFlagsBits.ViewChannel,
+  PermissionFlagsBits.SendMessages,
+  PermissionFlagsBits.ReadMessageHistory,
+  PermissionFlagsBits.AttachFiles,
+  PermissionFlagsBits.EmbedLinks,
+];
+
 /** Turn a naming scheme into a valid Discord channel name. */
 function channelName(scheme: string, number: number, username: string): string {
-  return scheme
-    .replaceAll("{number}", String(number))
-    .replaceAll("{username}", username)
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 90)
-    || `ticket-${number}`;
+  return (
+    scheme
+      .replaceAll("{number}", String(number))
+      .replaceAll("{username}", username)
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90) || `ticket-${number}`
+  );
 }
 
 async function replyError(interaction: Interaction, content: string) {
@@ -46,10 +58,71 @@ async function replyError(interaction: Interaction, content: string) {
   }
 }
 
+/** Whether the interacting member is support staff (staff role or manager). */
+function isStaff(interaction: Interaction, config: Guild): boolean {
+  const member = interaction.inCachedGuild() ? interaction.member : null;
+  if (!member) return false;
+  if (member.permissions.has(PermissionFlagsBits.ManageChannels)) return true;
+  return config.staffRoleIds.some((r) => member.roles.cache.has(r));
+}
+
+/** The ticket opener or any staff member may act on a ticket. */
+function canManageTicket(
+  interaction: Interaction,
+  config: Guild,
+  ticket: Ticket,
+): boolean {
+  return interaction.user.id === ticket.openerId || isStaff(interaction, config);
+}
+
+/** Buttons shown on the ticket's opening message, reflecting claim state. */
+function buildControls(
+  ticketId: string,
+  claimedBy: string | null,
+): ActionRowBuilder<ButtonBuilder> {
+  const claimButton = claimedBy
+    ? new ButtonBuilder()
+        .setCustomId(`unclaim_ticket:${ticketId}`)
+        .setLabel("Release")
+        .setEmoji("🙌")
+        .setStyle(ButtonStyle.Secondary)
+    : new ButtonBuilder()
+        .setCustomId(`claim_ticket:${ticketId}`)
+        .setLabel("Claim")
+        .setEmoji("🙋")
+        .setStyle(ButtonStyle.Success);
+
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    claimButton,
+    new ButtonBuilder()
+      .setCustomId(`close_ticket:${ticketId}`)
+      .setLabel("Close")
+      .setEmoji("🔒")
+      .setStyle(ButtonStyle.Danger),
+  );
+}
+
+/** Post an audit line to the configured log channel, if any (no pings). */
+async function logAction(
+  guild: DiscordGuild,
+  config: Guild,
+  content: string,
+): Promise<void> {
+  if (!config.logChannelId) return;
+  const channel = await guild.channels
+    .fetch(config.logChannelId)
+    .catch(() => null);
+  if (channel?.isTextBased()) {
+    await channel
+      .send({ content, allowedMentions: { parse: [] } })
+      .catch(() => {});
+  }
+}
+
 /**
  * Open a ticket from a panel button click: validate config + limits, create a
  * private channel under the configured category with per-user/staff overwrites,
- * persist the ticket, and post a welcome message with a Close button.
+ * persist the ticket, and post a welcome message with Claim + Close buttons.
  */
 export async function openTicket(
   interaction: ButtonInteraction,
@@ -85,25 +158,10 @@ export async function openTicket(
 
   const overwrites: OverwriteResolvable[] = [
     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-    {
-      id: user.id,
-      allow: [
-        PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.SendMessages,
-        PermissionFlagsBits.ReadMessageHistory,
-        PermissionFlagsBits.AttachFiles,
-        PermissionFlagsBits.EmbedLinks,
-      ],
-    },
+    { id: user.id, allow: TICKET_MEMBER_PERMS },
     ...config.staffRoleIds.map((roleId) => ({
       id: roleId,
-      allow: [
-        PermissionFlagsBits.ViewChannel,
-        PermissionFlagsBits.SendMessages,
-        PermissionFlagsBits.ReadMessageHistory,
-        PermissionFlagsBits.AttachFiles,
-        PermissionFlagsBits.EmbedLinks,
-      ],
+      allow: TICKET_MEMBER_PERMS,
     })),
   ];
 
@@ -143,85 +201,205 @@ export async function openTicket(
     .setDescription(config.welcomeMessage)
     .setColor(0x5865f2);
 
-  const closeButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`close_ticket:${ticket.id}`)
-      .setLabel("Close")
-      .setEmoji("🔒")
-      .setStyle(ButtonStyle.Danger),
-  );
-
   await channel.send({
     content: mentions,
     embeds: [embed],
-    components: [closeButton],
+    components: [buildControls(ticket.id, null)],
   });
+
+  await logAction(
+    guild,
+    config,
+    `🎫 Ticket #${number} opened by <@${user.id}> — <#${channel.id}>`,
+  );
 
   await interaction.editReply({
     content: `Your ticket is ready: <#${channel.id}>`,
   });
 }
 
-/** Whether the member may close the ticket (opener, staff role, or manager). */
-function canClose(
-  interaction: ButtonInteraction | ChatInputCommandInteraction,
-  config: Guild,
-  ticket: Ticket,
-): boolean {
-  if (interaction.user.id === ticket.openerId) return true;
-  const member = interaction.inCachedGuild() ? interaction.member : null;
-  if (!member) return false;
-  if (member.permissions.has(PermissionFlagsBits.ManageChannels)) return true;
-  return config.staffRoleIds.some((r) => member.roles.cache.has(r));
+/** Resolve the ticket for an interaction (by id or current channel) + config. */
+async function resolveTicket(
+  interaction: Interaction,
+  ticketId: string | undefined,
+): Promise<{ ticket: Ticket; config: Guild } | null> {
+  if (!interaction.inCachedGuild()) return null;
+  const ticket = ticketId
+    ? await getTicket(ticketId)
+    : await getTicketByChannel(interaction.channelId);
+  if (!ticket || ticket.guildId !== interaction.guildId) {
+    await replyError(interaction, "This isn't a ticket channel.");
+    return null;
+  }
+  const config = await getGuild(interaction.guildId);
+  if (!config) {
+    await replyError(interaction, "This server isn't configured.");
+    return null;
+  }
+  return { ticket, config };
+}
+
+/** Claim (assign) or release a ticket. */
+async function setClaim(
+  interaction: Interaction,
+  ticketId: string | undefined,
+  claim: boolean,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, ticketId);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+  const userId = interaction.user.id;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!isStaff(interaction, config)) {
+    await replyError(interaction, "Only staff can claim tickets.");
+    return;
+  }
+  if (claim && ticket.claimedBy && ticket.claimedBy !== userId) {
+    await replyError(
+      interaction,
+      `This ticket is already claimed by <@${ticket.claimedBy}>.`,
+    );
+    return;
+  }
+  if (
+    !claim &&
+    ticket.claimedBy !== userId &&
+    !(interaction.inCachedGuild() &&
+      interaction.member.permissions.has(PermissionFlagsBits.ManageChannels))
+  ) {
+    await replyError(
+      interaction,
+      "Only the staff member who claimed this ticket (or a manager) can release it.",
+    );
+    return;
+  }
+
+  await setTicketClaimedBy(ticket.id, claim ? userId : null);
+
+  const notice = claim
+    ? `🙋 <@${userId}> claimed this ticket.`
+    : `🙌 <@${userId}> released this ticket.`;
+
+  // Update the opening message's buttons when acting via them; otherwise post.
+  if (interaction.isButton()) {
+    await interaction
+      .update({ components: [buildControls(ticket.id, claim ? userId : null)] })
+      .catch(() => {});
+    if (interaction.channel?.isSendable()) {
+      await interaction.channel.send(notice).catch(() => {});
+    }
+  } else {
+    await interaction.reply(notice);
+  }
+
+  await logAction(
+    interaction.guild!,
+    config,
+    `${claim ? "🙋" : "🙌"} Ticket #${ticket.number} ${claim ? "claimed" : "released"} by <@${userId}>`,
+  );
+}
+
+export const claimTicket = (
+  interaction: Interaction,
+  ticketId?: string,
+): Promise<void> => setClaim(interaction, ticketId, true);
+
+export const unclaimTicket = (
+  interaction: Interaction,
+  ticketId?: string,
+): Promise<void> => setClaim(interaction, ticketId, false);
+
+/** Add or remove a member's access to the current ticket channel. */
+export async function setTicketMember(
+  interaction: ChatInputCommandInteraction,
+  targetId: string,
+  add: boolean,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!canManageTicket(interaction, config, ticket)) {
+    await replyError(
+      interaction,
+      "Only the ticket opener or staff can manage members.",
+    );
+    return;
+  }
+
+  const channel = await interaction
+    .guild!.channels.fetch(ticket.channelId)
+    .catch(() => null);
+  if (!channel || channel.isThread() || !("permissionOverwrites" in channel)) {
+    await replyError(interaction, "Couldn't access the ticket channel.");
+    return;
+  }
+
+  try {
+    if (add) {
+      await channel.permissionOverwrites.edit(targetId, {
+        ViewChannel: true,
+        SendMessages: true,
+        ReadMessageHistory: true,
+      });
+      await interaction.reply(`➕ Added <@${targetId}> to the ticket.`);
+    } else {
+      await channel.permissionOverwrites.delete(targetId);
+      await interaction.reply(`➖ Removed <@${targetId}> from the ticket.`);
+    }
+  } catch (err) {
+    console.error("Failed to update ticket member:", err);
+    await replyError(interaction, "I couldn't update that member's access.");
+  }
 }
 
 /** Build a plain-text transcript from the channel's recent messages. */
 async function buildTranscript(
   channel: GuildTextBasedChannel,
   ticket: Ticket,
+  reason: string | undefined,
 ): Promise<Buffer> {
   const messages = await channel.messages.fetch({ limit: 100 });
-  const lines = [...messages.values()]
-    .reverse()
-    .map((m) => {
-      const when = m.createdAt.toISOString();
-      const content = m.content || (m.embeds.length ? "[embed]" : "");
-      return `[${when}] ${m.author.tag}: ${content}`;
-    });
-  const header = `Transcript for ticket #${ticket.number} (${ticket.id})\nChannel: #${channel.name}\n\n`;
+  const lines = [...messages.values()].reverse().map((m) => {
+    const when = m.createdAt.toISOString();
+    const content = m.content || (m.embeds.length ? "[embed]" : "");
+    return `[${when}] ${m.author.tag}: ${content}`;
+  });
+  const header =
+    `Transcript for ticket #${ticket.number} (${ticket.id})\n` +
+    `Channel: #${channel.name}\n` +
+    (reason ? `Close reason: ${reason}\n` : "") +
+    `\n`;
   return Buffer.from(header + lines.join("\n"), "utf8");
 }
 
 /**
  * Close a ticket: authorize, capture a transcript to the configured transcript
- * channel, mark it closed in the DB, and delete the ticket channel.
+ * channel, mark it closed in the DB, log it, and delete the ticket channel.
  */
 export async function closeTicket(
   interaction: ButtonInteraction | ChatInputCommandInteraction,
   ticketId?: string,
+  reason?: string,
 ): Promise<void> {
-  if (!interaction.inCachedGuild()) return;
-  const { guild, guildId, channelId } = interaction;
+  const resolved = await resolveTicket(interaction, ticketId);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+  const guild = interaction.guild!;
 
-  const ticket = ticketId
-    ? await getTicket(ticketId)
-    : await getTicketByChannel(channelId);
-
-  if (!ticket || ticket.guildId !== guildId) {
-    await replyError(interaction, "This isn't a ticket channel.");
-    return;
-  }
   if (ticket.status === "closed") {
     await replyError(interaction, "This ticket is already closed.");
     return;
   }
-
-  const config = await getGuild(guildId);
-  if (!config) {
-    await replyError(interaction, "This server isn't configured.");
-    return;
-  }
-  if (!canClose(interaction, config, ticket)) {
+  if (!canManageTicket(interaction, config, ticket)) {
     await replyError(
       interaction,
       "Only the ticket opener or staff can close this ticket.",
@@ -229,26 +407,27 @@ export async function closeTicket(
     return;
   }
 
-  await interaction.reply({ content: "Closing this ticket…" });
+  await interaction.reply({
+    content: reason ? `Closing this ticket: ${reason}` : "Closing this ticket…",
+  });
 
-  const channel = await guild.channels
-    .fetch(ticket.channelId)
-    .catch(() => null);
+  const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
 
   // Post a transcript before deleting the channel.
   if (config.transcriptChannelId && channel?.isTextBased()) {
     try {
       const file = new AttachmentBuilder(
-        await buildTranscript(channel as GuildTextBasedChannel, ticket),
+        await buildTranscript(channel as GuildTextBasedChannel, ticket, reason),
         { name: `ticket-${ticket.number}.txt` },
       );
-      const logChannel = await guild.channels
+      const transcriptChannel = await guild.channels
         .fetch(config.transcriptChannelId)
         .catch(() => null);
-      if (logChannel?.isTextBased()) {
-        await logChannel.send({
-          content: `Ticket #${ticket.number} closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).`,
+      if (transcriptChannel?.isTextBased()) {
+        await transcriptChannel.send({
+          content: `Ticket #${ticket.number} closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).${reason ? `\nReason: ${reason}` : ""}`,
           files: [file],
+          allowedMentions: { parse: [] },
         });
       }
     } catch (err) {
@@ -257,6 +436,12 @@ export async function closeTicket(
   }
 
   await markTicketClosed(ticket.id, interaction.user.id);
+
+  await logAction(
+    guild,
+    config,
+    `📪 Ticket #${ticket.number} closed by <@${interaction.user.id}>${reason ? ` — ${reason}` : ""}`,
+  );
 
   if (channel && !channel.isThread() && channel.deletable) {
     await channel.delete(`Ticket #${ticket.number} closed`).catch(() => {});

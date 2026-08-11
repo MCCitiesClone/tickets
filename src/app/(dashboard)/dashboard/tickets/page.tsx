@@ -42,6 +42,7 @@ export default async function TicketsPage() {
                 <th className="px-4 py-2 font-medium">#</th>
                 <th className="px-4 py-2 font-medium">Opener</th>
                 <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 font-medium">Claimed by</th>
                 <th className="px-4 py-2 font-medium">Opened</th>
               </tr>
             </thead>
@@ -60,6 +61,9 @@ export default async function TicketsPage() {
                     >
                       {t.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                    {t.claimedBy ?? "—"}
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {t.openedAt.toLocaleString()}

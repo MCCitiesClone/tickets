@@ -1,5 +1,7 @@
 import type { Command } from "../types";
+import { claimCommand, unclaimCommand } from "./claim";
 import { closeCommand } from "./close";
+import { addCommand, removeCommand } from "./members";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
 import { setupCommand } from "./setup";
@@ -15,6 +17,10 @@ export const commands: Command[] = [
   setupCommand,
   panelCommand,
   closeCommand,
+  claimCommand,
+  unclaimCommand,
+  addCommand,
+  removeCommand,
 ];
 
 /** Lookup by command name, used by the interaction handler. */

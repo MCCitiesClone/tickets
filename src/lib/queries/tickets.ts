@@ -69,3 +69,11 @@ export async function markTicketClosed(
     .set({ status: "closed", closedAt: new Date(), closedBy })
     .where(eq(ticket.id, id));
 }
+
+/** Set (claim) or clear (`null` = release) a ticket's assigned staff member. */
+export async function setTicketClaimedBy(
+  id: string,
+  claimedBy: string | null,
+): Promise<void> {
+  await db.update(ticket).set({ claimedBy }).where(eq(ticket.id, id));
+}

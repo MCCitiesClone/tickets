@@ -22,8 +22,11 @@ easy to run yourself and to own your own data.
   ticket. Tickets close with a button or `/close`, posting a transcript.
 - **Web dashboard** — sign in with Discord and configure your servers from a
   browser (built with Next.js + shadcn/ui). All config is web-based.
-- **Slash commands** — `/ping`, `/close`; `/setup` and `/panel` link to the
-  dashboard.
+- **Ticket management** — staff can `/claim` and `/unclaim` tickets (also via
+  buttons), `/add` and `/remove` members, and `/close [reason]`. Lifecycle
+  events are logged to a configurable log channel.
+- **Slash commands** — `/ping`, `/close`, `/claim`, `/unclaim`, `/add`,
+  `/remove`; `/setup` and `/panel` link to the dashboard.
 - **Self-hostable** — one `docker compose up` brings up Postgres, the web app,
   and the bot. Your data stays on your infrastructure.
 
@@ -114,7 +117,8 @@ Useful scripts (run with `aube run <name>`):
 - [x] Web-based server selection & configuration (Discord `guilds` scope + Manage Server checks)
 - [x] Panels: create/post from dashboard, button-driven opening
 - [x] Ticket lifecycle: open → staff reply → close → transcript
-- [ ] Ticket claiming, tags, and per-user blacklist
+- [x] Ticket claiming & member management, close reasons, log-channel audit
+- [ ] Tags / canned responses and per-user blacklist
 - [ ] Stats & transcript viewer in the dashboard
 
 ## License

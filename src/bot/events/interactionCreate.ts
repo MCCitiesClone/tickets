@@ -1,7 +1,12 @@
 import { type Interaction, MessageFlags } from "discord.js";
 
 import { commandMap } from "../commands";
-import { closeTicket, openTicket } from "../lib/tickets";
+import {
+  claimTicket,
+  closeTicket,
+  openTicket,
+  unclaimTicket,
+} from "../lib/tickets";
 
 /**
  * Central interaction router. Handles:
@@ -40,6 +45,10 @@ export async function onInteractionCreate(
         await openTicket(interaction, id);
       } else if (action === "close_ticket") {
         await closeTicket(interaction, id);
+      } else if (action === "claim_ticket") {
+        await claimTicket(interaction, id);
+      } else if (action === "unclaim_ticket") {
+        await unclaimTicket(interaction, id);
       }
     } catch (err) {
       console.error(`Error handling button ${interaction.customId}:`, err);

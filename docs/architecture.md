@@ -85,10 +85,18 @@ Implemented in `src/bot/lib/tickets.ts`, routed from
 - **Panels** — created in the dashboard (`/dashboard/panels`). The
   `createPanel` server action persists a `panel` row and posts the embed + button
   via the bot REST API (`postPanelMessage`), storing the `messageId`.
-- **Closing** (`close_ticket:<ticketId>` button or `/close`) — authorizes
-  (opener / staff role / Manage Channels), builds a transcript from the channel's
-  messages, posts it to `transcriptChannelId`, flips `ticket.status` to closed,
-  and deletes the channel.
+- **Claiming** (`claim_ticket`/`unclaim_ticket` buttons or `/claim` `/unclaim`)
+  — staff assign/release a ticket; `ticket.claimedBy` is updated and the opening
+  message's buttons swap between Claim/Release.
+- **Members** (`/add` `/remove`) — opener or staff grant/revoke a member's access
+  to the ticket channel via permission overwrites.
+- **Closing** (`close_ticket:<ticketId>` button or `/close [reason]`) —
+  authorizes (opener / staff role / Manage Channels), builds a transcript from
+  the channel's messages, posts it to `transcriptChannelId`, flips
+  `ticket.status` to closed, and deletes the channel.
+
+Lifecycle events (open, claim, release, close) are also written to the
+configured `logChannelId` for an audit trail.
 
 **Transcript caveat:** message text is fetched via the bot REST API. Full
 content requires the **Message Content** privileged intent enabled for your app
