@@ -15,6 +15,6 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const guilds = await fetchBotGuilds();
-  return NextResponse.json({ botGuildCount: guilds.length });
+  const { guilds, ok } = await fetchBotGuilds();
+  return NextResponse.json({ botGuildCount: guilds.length, ok });
 }

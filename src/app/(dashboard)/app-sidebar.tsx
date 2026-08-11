@@ -34,14 +34,13 @@ type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
-  disabled?: boolean;
 };
 
 const navItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft, disabled: true },
-  { title: "Tickets", href: "/dashboard/tickets", icon: Ticket, disabled: true },
-  { title: "Settings", href: "/dashboard/settings", icon: Settings, disabled: true },
+  { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
+  { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
+  { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function AppSidebar({
@@ -77,16 +76,13 @@ export function AppSidebar({
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
-                  isActive={pathname === item.href}
-                  aria-disabled={item.disabled}
-                  tooltip={item.disabled ? "Coming soon" : item.title}
-                  render={
-                    item.disabled ? (
-                      <span className="pointer-events-none opacity-50" />
-                    ) : (
-                      <Link href={item.href} />
-                    )
+                  isActive={
+                    item.href === "/dashboard"
+                      ? pathname === item.href
+                      : pathname.startsWith(item.href)
                   }
+                  tooltip={item.title}
+                  render={<Link href={item.href} />}
                 >
                   <item.icon />
                   <span>{item.title}</span>

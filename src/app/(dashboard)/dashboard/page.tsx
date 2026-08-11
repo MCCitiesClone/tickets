@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, TriangleAlert } from "lucide-react";
 
 import {
   Card,
@@ -24,15 +24,17 @@ type Step = {
 export default async function DashboardPage() {
   const session = await requireSession();
 
-  // Derive checklist state from real data so it reflects reality on refresh.
-  const [botGuilds, configuredGuilds] = await Promise.all([
-    fetchBotGuilds(),
-    listGuilds(),
-  ]);
+  // Derive checklist state from real data. Both calls are defensive: if the DB
+  // read throws it bubbles to the dashboard error boundary; Discord failures are
+  // reported via `discordOk` so we don't show misleading progress.
+  const [{ guilds: botGuilds, ok: discordOk }, configuredGuilds] =
+    await Promise.all([fetchBotGuilds(), listGuilds()]);
 
   const botInvited = botGuilds.length > 0;
-  const hasSetup = configuredGuilds.some((g) => g.ticketCategoryId);
-  const hasStaff = configuredGuilds.some((g) => g.staffRoleIds.length > 0);
+  const hasSetup = configuredGuilds.length > 0;
+  const isConfigured = configuredGuilds.some(
+    (g) => g.ticketCategoryId && g.staffRoleIds.length > 0,
+  );
 
   let inviteUrl: string | null = null;
   try {
@@ -65,17 +67,19 @@ export default async function DashboardPage() {
       done: hasSetup,
       title: "Run /setup in your server",
       description: hasSetup
-        ? "Ticket category configured."
-        : "Initializes config and sets your ticket category.",
+        ? `${configuredGuilds.length} server${configuredGuilds.length === 1 ? "" : "s"} initialized.`
+        : "Run /setup in your server to initialize its configuration.",
     },
     {
-      done: hasStaff,
-      title: "Configure staff roles & channels",
-      description: hasStaff
-        ? "Staff roles are set."
-        : "Guild-level settings (coming to this dashboard next).",
+      done: isConfigured,
+      title: "Set a ticket category & staff roles",
+      description: isConfigured
+        ? "Ticket category and staff roles are set."
+        : "Set a ticket category and at least one staff role (via /setup or Settings).",
     },
   ];
+
+  const completed = steps.filter((s) => s.done).length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -86,11 +90,28 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      {!discordOk && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <TriangleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
+          <div>
+            <p className="font-medium">Couldn&apos;t reach Discord</p>
+            <p className="text-muted-foreground">
+              The bot&apos;s server list couldn&apos;t be fetched, so the
+              &ldquo;invite&rdquo; step below may be out of date. Check
+              <code className="mx-1 rounded bg-muted px-1 py-0.5 text-xs">
+                DISCORD_TOKEN
+              </code>
+              and that Discord is reachable.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Getting started</CardTitle>
           <CardDescription>
-            A few steps to get tickets running on your server.
+            {completed} of {steps.length} steps complete.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -113,18 +134,6 @@ export default async function DashboardPage() {
             </div>
           ))}
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Server selection</CardTitle>
-          <CardDescription>
-            Choosing a server to configure — using your Discord “guilds” scope —
-            lands here in the next iteration. For now, use{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">/setup</code>{" "}
-            in your server.
-          </CardDescription>
-        </CardHeader>
       </Card>
     </div>
   );

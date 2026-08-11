@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "bot": "tsx src/bot/index.ts",
-    "bot:dev": "tsx watch src/bot/index.ts",
+    "bot:dev": "tsx watch --clear-screen=false src/bot/index.ts",
     "bot:register": "tsx src/bot/lib/register-commands.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

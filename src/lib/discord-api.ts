@@ -4,25 +4,33 @@ import { env } from "@/lib/env";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
-type PartialGuild = { id: string; name: string };
+export type PartialGuild = { id: string; name: string };
+
+export type BotGuildsResult = {
+  /** Guilds the bot is a member of (empty if unreachable). */
+  guilds: PartialGuild[];
+  /** Whether the Discord API call succeeded. `false` means "unknown", not "0". */
+  ok: boolean;
+};
 
 /**
  * Fetch the guilds the bot is currently a member of, using the bot token.
  *
- * Wrapped in React `cache()` so it runs at most once per request even if
- * several server components ask for it. Failures (bad token, network, rate
- * limit) resolve to an empty list rather than crashing the page — callers treat
- * "unknown" as "not yet invited".
+ * Wrapped in React `cache()` so it runs at most once per request. Failures
+ * resolve to `{ guilds: [], ok: false }` so callers can tell "Discord is
+ * unreachable" apart from "the bot genuinely isn't in any server" and avoid
+ * showing misleading checklist state.
  */
-export const fetchBotGuilds = cache(async (): Promise<PartialGuild[]> => {
+export const fetchBotGuilds = cache(async (): Promise<BotGuildsResult> => {
   try {
     const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
       headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
       cache: "no-store",
     });
-    if (!res.ok) return [];
-    return (await res.json()) as PartialGuild[];
+    if (!res.ok) return { guilds: [], ok: false };
+    const guilds = (await res.json()) as PartialGuild[];
+    return { guilds, ok: true };
   } catch {
-    return [];
+    return { guilds: [], ok: false };
   }
 });
