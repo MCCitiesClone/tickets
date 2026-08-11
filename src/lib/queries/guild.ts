@@ -9,6 +9,11 @@ import { guild, type Guild, type NewGuild } from "@/db/schema";
  * runtimes stay in sync.
  */
 
+/** List every configured guild row. */
+export async function listGuilds(): Promise<Guild[]> {
+  return db.select().from(guild);
+}
+
 /** Fetch a guild's configuration row, or `null` if it hasn't been set up. */
 export async function getGuild(guildId: string): Promise<Guild | null> {
   const [row] = await db
