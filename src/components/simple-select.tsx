@@ -39,7 +39,18 @@ export function SimpleSelect({
       disabled={disabled}
     >
       <SelectTrigger id={id} className={cn("w-full", className)}>
-        <SelectValue placeholder={placeholder} />
+        {/*
+          base-ui's SelectValue renders the raw value (e.g. the channel id) in
+          the closed trigger unless it can map value -> label. The render
+          function does that lookup from `options`, so the trigger shows the
+          friendly label. Routing all selects through SimpleSelect keeps this
+          correct everywhere.
+        */}
+        <SelectValue placeholder={placeholder}>
+          {(v: unknown) =>
+            options.find((o) => o.value === v)?.label ?? placeholder ?? null
+          }
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (
