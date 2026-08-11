@@ -13,8 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SimpleSelect } from "@/components/simple-select";
 import { createPanel } from "@/app/actions/panel";
 
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
@@ -96,6 +102,12 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
     });
   }
 
+  // value -> label maps so the Select triggers show names, not ids.
+  const channelItems = Object.fromEntries(
+    channels.map((c) => [c.id, `#${c.name}`]),
+  );
+  const colorItems = Object.fromEntries(COLORS.map((c) => [c, c]));
+
   return (
     <Card>
       <CardHeader>
@@ -105,23 +117,31 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="p-channel">Channel</Label>
-            <SimpleSelect
-              id="p-channel"
+            <Select
+              items={channelItems}
               value={channelId}
-              onValueChange={setChannelId}
+              onValueChange={(v) => setChannelId(v as string)}
               disabled={channelsLoading || channels.length === 0}
-              placeholder={
-                channelsLoading
-                  ? "Loading…"
-                  : channels.length === 0
-                    ? "No channels"
-                    : "Select a channel"
-              }
-              options={channels.map((c) => ({
-                value: c.id,
-                label: `#${c.name}`,
-              }))}
-            />
+            >
+              <SelectTrigger id="p-channel" className="w-full">
+                <SelectValue
+                  placeholder={
+                    channelsLoading
+                      ? "Loading…"
+                      : channels.length === 0
+                        ? "No channels"
+                        : "Select a channel"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {channels.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    #{c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -163,14 +183,24 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="p-color">Button color</Label>
-              <SimpleSelect
-                id="p-color"
+              <Select
+                items={colorItems}
                 value={buttonColor}
                 onValueChange={(v) =>
                   setButtonColor(v as (typeof COLORS)[number])
                 }
-                options={COLORS.map((c) => ({ value: c, label: c }))}
-              />
+              >
+                <SelectTrigger id="p-color" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLORS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

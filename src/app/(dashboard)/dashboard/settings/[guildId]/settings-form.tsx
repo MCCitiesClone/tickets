@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SimpleSelect, type SelectOption } from "@/components/simple-select";
 import type { Guild } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
@@ -16,15 +22,19 @@ import { updateGuildConfig } from "@/app/actions/guild";
 // Sentinel for "no channel selected" (base-ui Select needs a concrete value).
 const NONE = "none";
 
-/** Build channel options with a leading "none" entry. */
-function channelOptions(
+/**
+ * Build the value→label map for a channel Select. Passed as `items` to the
+ * Select root (base-ui uses it to show the label, not the id, in the trigger)
+ * and also drives the option list so labels aren't duplicated.
+ */
+function channelItems(
   channels: DiscordChannel[],
   noneLabel: string,
-): SelectOption[] {
-  return [
-    { value: NONE, label: noneLabel },
-    ...channels.map((c) => ({ value: c.id, label: c.name })),
-  ];
+): Record<string, string> {
+  return {
+    [NONE]: noneLabel,
+    ...Object.fromEntries(channels.map((c) => [c.id, c.name])),
+  };
 }
 
 export function GuildSettingsForm({
@@ -64,6 +74,9 @@ export function GuildSettingsForm({
 
   const discordUnavailable =
     categories.length === 0 && textChannels.length === 0 && roles.length === 0;
+
+  const categoryItems = channelItems(categories, "— Select a category —");
+  const textItems = channelItems(textChannels, "— None —");
 
   function toggleRole(id: string, checked: boolean) {
     setStaffRoleIds((prev) =>
@@ -105,12 +118,22 @@ export function GuildSettingsForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="category">Ticket category</Label>
-        <SimpleSelect
-          id="category"
+        <Select
+          items={categoryItems}
           value={ticketCategoryId}
-          onValueChange={setTicketCategoryId}
-          options={channelOptions(categories, "— Select a category —")}
-        />
+          onValueChange={(v) => setTicketCategoryId(v as string)}
+        >
+          <SelectTrigger id="category" className="w-full">
+            <SelectValue placeholder="— Select a category —" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(categoryItems).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
           New ticket channels are created under this category.
         </p>
@@ -119,21 +142,41 @@ export function GuildSettingsForm({
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="transcript">Transcript channel</Label>
-          <SimpleSelect
-            id="transcript"
+          <Select
+            items={textItems}
             value={transcriptChannelId}
-            onValueChange={setTranscriptChannelId}
-            options={channelOptions(textChannels, "— None —")}
-          />
+            onValueChange={(v) => setTranscriptChannelId(v as string)}
+          >
+            <SelectTrigger id="transcript" className="w-full">
+              <SelectValue placeholder="— None —" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(textItems).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="log">Log channel</Label>
-          <SimpleSelect
-            id="log"
+          <Select
+            items={textItems}
             value={logChannelId}
-            onValueChange={setLogChannelId}
-            options={channelOptions(textChannels, "— None —")}
-          />
+            onValueChange={(v) => setLogChannelId(v as string)}
+          >
+            <SelectTrigger id="log" className="w-full">
+              <SelectValue placeholder="— None —" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(textItems).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

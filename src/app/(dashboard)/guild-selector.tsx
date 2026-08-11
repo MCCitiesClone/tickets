@@ -4,7 +4,13 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { SimpleSelect } from "@/components/simple-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { setActiveGuild } from "@/app/actions/active-guild";
 import type { ManageableGuild } from "@/lib/guild-access";
 
@@ -21,23 +27,37 @@ export function GuildSelector({
 
   if (guilds.length === 0) return null;
 
+  // value -> label map; base-ui Select uses it to show the name in the trigger.
+  const items = Object.fromEntries(guilds.map((g) => [g.id, g.name]));
+
   return (
-    <SimpleSelect
+    <Select
+      items={items}
       value={activeGuildId ?? ""}
       disabled={pending}
-      placeholder="Select a server"
-      options={guilds.map((g) => ({ value: g.id, label: g.name }))}
       onValueChange={(v) => {
-        if (!v || v === activeGuildId) return;
+        const id = v as string;
+        if (!id || id === activeGuildId) return;
         startTransition(async () => {
           try {
-            await setActiveGuild(v);
+            await setActiveGuild(id);
             router.refresh();
           } catch {
             toast.error("Couldn't switch server.");
           }
         });
       }}
-    />
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select a server" />
+      </SelectTrigger>
+      <SelectContent>
+        {guilds.map((g) => (
+          <SelectItem key={g.id} value={g.id}>
+            {g.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
