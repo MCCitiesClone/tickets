@@ -53,23 +53,38 @@ export type BotGuildsResult = {
 /**
  * Fetch the guilds the bot is currently a member of, using the bot token.
  *
- * Wrapped in React `cache()` so it runs at most once per request. Failures
- * resolve to `{ guilds: [], ok: false }` so callers can tell "Discord is
- * unreachable" apart from "the bot genuinely isn't in any server" and avoid
- * showing misleading checklist state.
+ * Cached for 60s across requests: `/users/@me/guilds` is heavily rate-limited
+ * even with the bot token, and the bot's guild list rarely changes. Without this
+ * cache, every request that authorizes a user (`canManageGuild`) re-hit the
+ * endpoint, hit 429s, and waited on `retry_after` — making channel/config loads
+ * slow. Use `fetchBotGuildsFresh` where up-to-the-second freshness matters (the
+ * invite-polling status endpoint).
  */
-export const fetchBotGuilds = cache(async (): Promise<BotGuildsResult> => {
+const botGuildsCache = ttlCache<BotGuildsResult>(60_000);
+
+async function fetchBotGuildsUncached(): Promise<BotGuildsResult> {
   try {
     const res = await discordFetch(`${DISCORD_API}/users/@me/guilds`, {
       headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
     });
     if (!res.ok) return { guilds: [], ok: false };
     const guilds = (await res.json()) as PartialGuild[];
-    return { guilds, ok: true };
+    const result: BotGuildsResult = { guilds, ok: true };
+    botGuildsCache.set("bot", result); // shared with the cached path
+    return result;
   } catch {
     return { guilds: [], ok: false };
   }
+}
+
+export const fetchBotGuilds = cache(async (): Promise<BotGuildsResult> => {
+  return botGuildsCache.get("bot") ?? (await fetchBotGuildsUncached());
 });
+
+/** Bypass the 60s cache — for the invite-polling status endpoint. */
+export function fetchBotGuildsFresh(): Promise<BotGuildsResult> {
+  return fetchBotGuildsUncached();
+}
 
 // Discord channel types we care about for configuration dropdowns.
 const CHANNEL_TYPE_TEXT = 0;

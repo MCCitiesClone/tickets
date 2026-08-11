@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fetchBotGuilds } from "@/lib/discord-api";
+import { fetchBotGuildsFresh } from "@/lib/discord-api";
 import { getSession } from "@/lib/session";
 
 /**
@@ -15,6 +15,6 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { guilds, ok } = await fetchBotGuilds();
+  const { guilds, ok } = await fetchBotGuildsFresh();
   return NextResponse.json({ botGuildCount: guilds.length, ok });
 }
