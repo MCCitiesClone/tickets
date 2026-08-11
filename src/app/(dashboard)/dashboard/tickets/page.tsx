@@ -1,22 +1,34 @@
 import { Ticket as TicketIcon } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { listTickets } from "@/lib/queries/tickets";
+import { getActiveGuild } from "@/lib/active-guild";
+import { listGuildTickets } from "@/lib/queries/tickets";
 import { requireSession } from "@/lib/session";
 import { EmptyState, PageHeader } from "../../page-shell";
 
 export default async function TicketsPage() {
   await requireSession();
-  const tickets = await listTickets();
+  const { active } = await getActiveGuild();
+  const tickets = active ? await listGuildTickets(active.id) : [];
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader
         title="Tickets"
-        description="Support tickets opened across your servers."
+        description={
+          active
+            ? `Support tickets in ${active.name}.`
+            : "Support tickets for the selected server."
+        }
       />
 
-      {tickets.length === 0 ? (
+      {!active ? (
+        <EmptyState
+          icon={<TicketIcon className="size-8" />}
+          title="No server selected"
+          description="Invite the bot to a server you manage, then pick it from the switcher in the sidebar."
+        />
+      ) : tickets.length === 0 ? (
         <EmptyState
           icon={<TicketIcon className="size-8" />}
           title="No tickets yet"

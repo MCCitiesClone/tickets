@@ -10,9 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getActiveGuild } from "@/lib/active-guild";
 import { fetchBotGuilds } from "@/lib/discord-api";
 import { botInviteUrl } from "@/lib/discord";
-import { listGuilds } from "@/lib/queries/guild";
+import { getGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { InviteButton } from "./invite-button";
@@ -27,15 +28,18 @@ type Step = {
 export default async function DashboardPage() {
   const session = await requireSession();
 
-  // Derive checklist state from real data. Both calls are defensive: if the DB
-  // read throws it bubbles to the dashboard error boundary; Discord failures are
-  // reported via `discordOk` so we don't show misleading progress.
-  const [{ guilds: botGuilds, ok: discordOk }, configuredGuilds] =
-    await Promise.all([fetchBotGuilds(), listGuilds()]);
+  // Derive checklist state from real data. Discord failures are reported via
+  // `discordOk` so we don't show misleading progress. The config step reflects
+  // the currently-selected (active) server.
+  const [{ guilds: botGuilds, ok: discordOk }, { active }] = await Promise.all([
+    fetchBotGuilds(),
+    getActiveGuild(),
+  ]);
+  const activeConfig = active ? await getGuild(active.id) : null;
 
   const botInvited = botGuilds.length > 0;
-  const isConfigured = configuredGuilds.some(
-    (g) => g.ticketCategoryId && g.staffRoleIds.length > 0,
+  const isConfigured = Boolean(
+    activeConfig?.ticketCategoryId && activeConfig.staffRoleIds.length > 0,
   );
 
   let inviteUrl: string | null = null;
@@ -69,8 +73,10 @@ export default async function DashboardPage() {
       done: isConfigured,
       title: "Configure a server",
       description: isConfigured
-        ? "Ticket category and staff roles are set."
-        : "Pick a server in Settings and set its ticket category and staff roles.",
+        ? `${active?.name ?? "Your server"} has a ticket category and staff roles.`
+        : active
+          ? `Set ${active.name}'s ticket category and staff roles in Settings.`
+          : "Pick a server in the sidebar, then set its ticket category and staff roles.",
       action: !isConfigured ? (
         <Link
           href="/dashboard/settings"

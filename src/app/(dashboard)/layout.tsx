@@ -3,6 +3,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { getActiveGuild } from "@/lib/active-guild";
 import { requireSession } from "@/lib/session";
 import { AppSidebar } from "./app-sidebar";
 
@@ -13,11 +14,14 @@ export default async function DashboardLayout({
 }) {
   // Real auth check (the proxy.ts cookie check is only optimistic).
   const session = await requireSession();
+  const { guilds, active } = await getActiveGuild();
 
   return (
     <SidebarProvider>
       <AppSidebar
         user={{ name: session.user.name, image: session.user.image }}
+        guilds={guilds}
+        activeGuildId={active?.id ?? null}
       />
       <SidebarInset>
         <header className="flex h-14 items-center gap-2 border-b px-4">

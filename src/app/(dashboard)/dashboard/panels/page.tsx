@@ -1,8 +1,8 @@
 import { PanelsTopLeft } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { getManageableGuilds } from "@/lib/guild-access";
-import { listPanels } from "@/lib/queries/panels";
+import { getActiveGuild } from "@/lib/active-guild";
+import { listGuildPanels } from "@/lib/queries/panels";
 import { requireSession } from "@/lib/session";
 import { EmptyState, PageHeader } from "../../page-shell";
 import { CreatePanelForm } from "./create-panel-form";
@@ -10,29 +10,28 @@ import { DeletePanelButton } from "./delete-panel-button";
 
 export default async function PanelsPage() {
   await requireSession();
-  const [{ guilds }, panels] = await Promise.all([
-    getManageableGuilds(),
-    listPanels(),
-  ]);
-
-  const guildName = (id: string) =>
-    guilds.find((g) => g.id === id)?.name ?? id;
+  const { active } = await getActiveGuild();
+  const panels = active ? await listGuildPanels(active.id) : [];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Panels"
-        description="Button messages members use to open tickets."
+        description={
+          active
+            ? `Button messages members use to open tickets in ${active.name}.`
+            : "Button messages members use to open tickets."
+        }
       />
 
-      {guilds.length === 0 ? (
+      {!active ? (
         <EmptyState
           icon={<PanelsTopLeft className="size-8" />}
-          title="No servers available"
-          description="Invite the bot to a server you manage, then you can post panels here."
+          title="No server selected"
+          description="Invite the bot to a server you manage, then pick it from the switcher in the sidebar."
         />
       ) : (
-        <CreatePanelForm guilds={guilds} />
+        <CreatePanelForm guildId={active.id} />
       )}
 
       {panels.length > 0 && (
@@ -46,8 +45,7 @@ export default async function PanelsPage() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{p.title}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {guildName(p.guildId)}
-                    {p.messageId ? " · posted" : " · not posted"}
+                    {p.messageId ? "Posted" : "Not posted"}
                   </p>
                 </div>
                 <DeletePanelButton panelId={p.id} />

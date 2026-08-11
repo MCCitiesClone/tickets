@@ -14,19 +14,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SimpleSelect } from "@/components/simple-select";
 import { createPanel } from "@/app/actions/panel";
-import type { ManageableGuild } from "@/lib/guild-access";
-
-const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
 
 type Channel = { id: string; name: string };
 
-export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
+export function CreatePanelForm({ guildId }: { guildId: string }) {
   const router = useRouter();
-  const [guildId, setGuildId] = useState(guilds[0]?.id ?? "");
   const [channels, setChannels] = useState<Channel[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
   const [channelId, setChannelId] = useState("");
@@ -40,9 +36,8 @@ export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
     useState<(typeof COLORS)[number]>("Primary");
   const [pending, startTransition] = useTransition();
 
-  // Load the selected guild's text channels for the channel picker.
+  // Load the active guild's text channels for the channel picker.
   useEffect(() => {
-    if (!guildId) return;
     let cancelled = false;
 
     async function load() {
@@ -78,8 +73,8 @@ export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!guildId || !channelId) {
-      toast.error("Pick a server and a channel first.");
+    if (!channelId) {
+      toast.error("Pick a channel first.");
       return;
     }
     startTransition(async () => {
@@ -108,44 +103,25 @@ export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="p-guild">Server</Label>
-              <select
-                id="p-guild"
-                className={selectClass}
-                value={guildId}
-                onChange={(e) => setGuildId(e.target.value)}
-              >
-                {guilds.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="p-channel">Channel</Label>
-              <select
-                id="p-channel"
-                className={selectClass}
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                disabled={channelsLoading || channels.length === 0}
-              >
-                {channelsLoading ? (
-                  <option>Loading…</option>
-                ) : channels.length === 0 ? (
-                  <option value="">No channels</option>
-                ) : (
-                  channels.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      #{c.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="p-channel">Channel</Label>
+            <SimpleSelect
+              id="p-channel"
+              value={channelId}
+              onValueChange={setChannelId}
+              disabled={channelsLoading || channels.length === 0}
+              placeholder={
+                channelsLoading
+                  ? "Loading…"
+                  : channels.length === 0
+                    ? "No channels"
+                    : "Select a channel"
+              }
+              options={channels.map((c) => ({
+                value: c.id,
+                label: `#${c.name}`,
+              }))}
+            />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -187,20 +163,14 @@ export function CreatePanelForm({ guilds }: { guilds: ManageableGuild[] }) {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="p-color">Button color</Label>
-              <select
+              <SimpleSelect
                 id="p-color"
-                className={selectClass}
                 value={buttonColor}
-                onChange={(e) =>
-                  setButtonColor(e.target.value as (typeof COLORS)[number])
+                onValueChange={(v) =>
+                  setButtonColor(v as (typeof COLORS)[number])
                 }
-              >
-                {COLORS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                options={COLORS.map((c) => ({ value: c, label: c }))}
+              />
             </div>
           </div>
 

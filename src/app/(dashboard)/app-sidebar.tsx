@@ -29,6 +29,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
+import type { ManageableGuild } from "@/lib/guild-access";
+import { GuildSelector } from "./guild-selector";
 
 type NavItem = {
   title: string;
@@ -45,8 +47,12 @@ const navItems: NavItem[] = [
 
 export function AppSidebar({
   user,
+  guilds,
+  activeGuildId,
 }: {
   user: { name: string; image?: string | null };
+  guilds: ManageableGuild[];
+  activeGuildId: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,11 +69,12 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="gap-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <Ticket className="size-5" />
           <span className="font-semibold">Tickets</span>
         </div>
+        <GuildSelector guilds={guilds} activeGuildId={activeGuildId} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

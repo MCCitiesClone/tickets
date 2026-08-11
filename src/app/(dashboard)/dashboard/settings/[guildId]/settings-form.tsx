@@ -8,42 +8,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SimpleSelect, type SelectOption } from "@/components/simple-select";
 import type { Guild } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
-import { cn } from "@/lib/utils";
 
-const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+// Sentinel for "no channel selected" (base-ui Select needs a concrete value).
+const NONE = "none";
 
-function ChannelSelect({
-  id,
-  value,
-  onChange,
-  options,
-  placeholder,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: DiscordChannel[];
-  placeholder: string;
-}) {
-  return (
-    <select
-      id={id}
-      className={selectClass}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-        </option>
-      ))}
-    </select>
-  );
+/** Build channel options with a leading "none" entry. */
+function channelOptions(
+  channels: DiscordChannel[],
+  noneLabel: string,
+): SelectOption[] {
+  return [
+    { value: NONE, label: noneLabel },
+    ...channels.map((c) => ({ value: c.id, label: c.name })),
+  ];
 }
 
 export function GuildSettingsForm({
@@ -60,12 +41,14 @@ export function GuildSettingsForm({
   roles: DiscordChannel[];
 }) {
   const [ticketCategoryId, setTicketCategoryId] = useState(
-    config?.ticketCategoryId ?? "",
+    config?.ticketCategoryId ?? NONE,
   );
   const [transcriptChannelId, setTranscriptChannelId] = useState(
-    config?.transcriptChannelId ?? "",
+    config?.transcriptChannelId ?? NONE,
   );
-  const [logChannelId, setLogChannelId] = useState(config?.logChannelId ?? "");
+  const [logChannelId, setLogChannelId] = useState(
+    config?.logChannelId ?? NONE,
+  );
   const [staffRoleIds, setStaffRoleIds] = useState<string[]>(
     config?.staffRoleIds ?? [],
   );
@@ -94,9 +77,10 @@ export function GuildSettingsForm({
       try {
         await updateGuildConfig({
           guildId,
-          ticketCategoryId: ticketCategoryId || null,
-          transcriptChannelId: transcriptChannelId || null,
-          logChannelId: logChannelId || null,
+          ticketCategoryId: ticketCategoryId === NONE ? null : ticketCategoryId,
+          transcriptChannelId:
+            transcriptChannelId === NONE ? null : transcriptChannelId,
+          logChannelId: logChannelId === NONE ? null : logChannelId,
           staffRoleIds,
           welcomeMessage,
           ticketLimit,
@@ -121,12 +105,11 @@ export function GuildSettingsForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="category">Ticket category</Label>
-        <ChannelSelect
+        <SimpleSelect
           id="category"
           value={ticketCategoryId}
-          onChange={setTicketCategoryId}
-          options={categories}
-          placeholder="— Select a category —"
+          onValueChange={setTicketCategoryId}
+          options={channelOptions(categories, "— Select a category —")}
         />
         <p className="text-xs text-muted-foreground">
           New ticket channels are created under this category.
@@ -136,22 +119,20 @@ export function GuildSettingsForm({
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="transcript">Transcript channel</Label>
-          <ChannelSelect
+          <SimpleSelect
             id="transcript"
             value={transcriptChannelId}
-            onChange={setTranscriptChannelId}
-            options={textChannels}
-            placeholder="— None —"
+            onValueChange={setTranscriptChannelId}
+            options={channelOptions(textChannels, "— None —")}
           />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="log">Log channel</Label>
-          <ChannelSelect
+          <SimpleSelect
             id="log"
             value={logChannelId}
-            onChange={setLogChannelId}
-            options={textChannels}
-            placeholder="— None —"
+            onValueChange={setLogChannelId}
+            options={channelOptions(textChannels, "— None —")}
           />
         </div>
       </div>
@@ -223,7 +204,7 @@ export function GuildSettingsForm({
         </div>
       </div>
 
-      <div className={cn("flex justify-end gap-2")}>
+      <div className="flex justify-end gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>

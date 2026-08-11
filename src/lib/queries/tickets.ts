@@ -8,6 +8,19 @@ export async function listTickets(limit = 100): Promise<Ticket[]> {
   return db.select().from(ticket).orderBy(desc(ticket.openedAt)).limit(limit);
 }
 
+/** List recent tickets for a single guild (most recently opened first). */
+export async function listGuildTickets(
+  guildId: string,
+  limit = 100,
+): Promise<Ticket[]> {
+  return db
+    .select()
+    .from(ticket)
+    .where(eq(ticket.guildId, guildId))
+    .orderBy(desc(ticket.openedAt))
+    .limit(limit);
+}
+
 export async function getTicket(id: string): Promise<Ticket | null> {
   const [row] = await db.select().from(ticket).where(eq(ticket.id, id)).limit(1);
   return row ?? null;
