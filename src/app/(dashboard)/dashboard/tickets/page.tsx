@@ -3,7 +3,7 @@ import { Ticket as TicketIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { listTickets } from "@/lib/queries/tickets";
 import { requireSession } from "@/lib/session";
-import { EmptyState, PageHeader } from "../page-shell";
+import { EmptyState, PageHeader } from "../../page-shell";
 
 export default async function TicketsPage() {
   await requireSession();

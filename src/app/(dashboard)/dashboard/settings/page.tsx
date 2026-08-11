@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getManageableGuilds } from "@/lib/guild-access";
 import { requireSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { EmptyState, PageHeader } from "../page-shell";
+import { EmptyState, PageHeader } from "../../page-shell";
 
 export default async function SettingsPage() {
   await requireSession();

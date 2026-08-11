@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getManageableGuilds } from "@/lib/guild-access";
 import { listPanels } from "@/lib/queries/panels";
 import { requireSession } from "@/lib/session";
-import { EmptyState, PageHeader } from "../page-shell";
+import { EmptyState, PageHeader } from "../../page-shell";
 import { CreatePanelForm } from "./create-panel-form";
 import { DeletePanelButton } from "./delete-panel-button";
 
