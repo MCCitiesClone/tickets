@@ -45,6 +45,12 @@ export type Env = z.infer<typeof schema>;
  * malformed variable so misconfiguration fails fast at startup (both processes).
  */
 function loadEnv(): Env {
+  // Allow `next build` (and CI type-checks) to run without real secrets. The
+  // Docker web build sets this; real values are still required at runtime.
+  if (process.env.SKIP_ENV_VALIDATION) {
+    return process.env as unknown as Env;
+  }
+
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     const issues = parsed.error.issues

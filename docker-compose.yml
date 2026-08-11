@@ -1,0 +1,71 @@
+# Self-hosting stack: Postgres + web dashboard + Discord bot.
+# Quickstart:  cp .env.example .env  &&  docker compose up -d --build
+# See docs/self-hosting.md for details.
+
+x-app-env: &app-env
+  # DATABASE_URL points at the internal `postgres` service, overriding the
+  # localhost value in .env.
+  DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD:-tickets}@postgres:5432/${POSTGRES_DB:-tickets}
+  DISCORD_TOKEN: ${DISCORD_TOKEN}
+  DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+  DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+  DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tickets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets}
+      POSTGRES_DB: ${POSTGRES_DB:-tickets}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: apply DB migrations, then exit. web + bot wait for it to succeed.
+  migrate:
+    build:
+      context: .
+      target: bot
+    command: ["npx", "tsx", "src/db/migrate.ts"]
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: web
+    environment: *app-env
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .
+      target: bot
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
