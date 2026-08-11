@@ -127,6 +127,7 @@ export async function createPanel(input: CreatePanelInput) {
     await setPanelMessage(panel.id, data.channelId, messageId);
   } catch (err) {
     // Posting failed — roll back the row so we don't leave an orphan panel.
+    console.error("Failed to post panel message:", err);
     await deletePanelRow(panel.id);
     throw err;
   }
@@ -147,13 +148,19 @@ export async function updatePanel(input: UpdatePanelInput) {
   const updated = await updatePanelRow(data.panelId, toRow(data));
   if (!updated) throw new Error("Panel not found.");
 
-  // Keep the Discord message in sync: edit in place if it's still in the same
-  // channel, otherwise re-post to the (possibly new) channel.
-  const sameChannel =
-    existing.messageId && existing.channelId === data.channelId;
-  if (sameChannel && existing.messageId && existing.channelId) {
-    await editPanelMessage(existing.channelId, existing.messageId, updated);
-  } else {
+  // Keep the Discord message in sync. Edit in place when it's still in the same
+  // channel; if that fails (the message was deleted in Discord) or the channel
+  // changed, re-post it.
+  let edited = false;
+  if (existing.messageId && existing.channelId === data.channelId) {
+    try {
+      await editPanelMessage(existing.channelId, existing.messageId, updated);
+      edited = true;
+    } catch (err) {
+      console.error("Panel message edit failed; re-posting:", err);
+    }
+  }
+  if (!edited) {
     if (existing.channelId && existing.messageId) {
       await deleteMessage(existing.channelId, existing.messageId);
     }
