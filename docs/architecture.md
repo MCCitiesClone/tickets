@@ -28,10 +28,21 @@ src/
 ├── lib/
 │   ├── env.ts               #   SHARED: zod-validated env
 │   ├── auth.ts              #   Better-Auth server config
-│   ├── queries/guild.ts     #   SHARED: guild config data access
-│   └── discord.ts           #   bot invite URL builder
+│   ├── queries/            #   SHARED: guild/ticket/panel data access
+│   ├── discord.ts           #   bot invite URL builder
+│   ├── discord-api.ts       #   Discord REST reads (bot + user guilds, channels, roles)
+│   └── guild-access.ts      #   which servers a user may configure (authz)
 └── proxy.ts                 # optimistic dashboard auth gate (Next "middleware")
 ```
+
+## Configuration is web-based
+
+All per-server configuration happens in the dashboard (**Settings**), not in
+Discord. A user may configure a server only when the bot is in it **and** they
+have Manage Server there — computed in `src/lib/guild-access.ts` by intersecting
+the bot's guilds (bot token) with the user's manageable guilds (their Discord
+OAuth token). The `/setup` command is just a deep link to that page, and the
+`updateGuildConfig` server action re-checks this authorization on every save.
 
 ## Why the bot is a separate process
 

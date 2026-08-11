@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Circle, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Circle, Settings, TriangleAlert } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,6 +14,7 @@ import { fetchBotGuilds } from "@/lib/discord-api";
 import { botInviteUrl } from "@/lib/discord";
 import { listGuilds } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 import { InviteButton } from "./invite-button";
 
 type Step = {
@@ -31,7 +34,6 @@ export default async function DashboardPage() {
     await Promise.all([fetchBotGuilds(), listGuilds()]);
 
   const botInvited = botGuilds.length > 0;
-  const hasSetup = configuredGuilds.length > 0;
   const isConfigured = configuredGuilds.some(
     (g) => g.ticketCategoryId && g.staffRoleIds.length > 0,
   );
@@ -64,18 +66,19 @@ export default async function DashboardPage() {
         ) : null,
     },
     {
-      done: hasSetup,
-      title: "Run /setup in your server",
-      description: hasSetup
-        ? `${configuredGuilds.length} server${configuredGuilds.length === 1 ? "" : "s"} initialized.`
-        : "Run /setup in your server to initialize its configuration.",
-    },
-    {
       done: isConfigured,
-      title: "Set a ticket category & staff roles",
+      title: "Configure a server",
       description: isConfigured
         ? "Ticket category and staff roles are set."
-        : "Set a ticket category and at least one staff role (via /setup or Settings).",
+        : "Pick a server in Settings and set its ticket category and staff roles.",
+      action: !isConfigured ? (
+        <Link
+          href="/dashboard/settings"
+          className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+        >
+          <Settings /> Open settings
+        </Link>
+      ) : null,
     },
   ];
 

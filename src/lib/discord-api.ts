@@ -34,3 +34,105 @@ export const fetchBotGuilds = cache(async (): Promise<BotGuildsResult> => {
     return { guilds: [], ok: false };
   }
 });
+
+// Discord channel types we care about for configuration dropdowns.
+const CHANNEL_TYPE_TEXT = 0;
+const CHANNEL_TYPE_CATEGORY = 4;
+/** Discord permission flag: MANAGE_GUILD (a.k.a. "Manage Server"). */
+const PERMISSION_MANAGE_GUILD = 1 << 5;
+
+export type DiscordChannel = { id: string; name: string };
+
+/**
+ * Fetch a guild's category and text channels via the bot token, split by kind,
+ * for use in config dropdowns. Returns empty lists on failure.
+ */
+export const fetchGuildChannels = cache(
+  async (
+    guildId: string,
+  ): Promise<{ categories: DiscordChannel[]; text: DiscordChannel[] }> => {
+    try {
+      const res = await fetch(`${DISCORD_API}/guilds/${guildId}/channels`, {
+        headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
+        cache: "no-store",
+      });
+      if (!res.ok) return { categories: [], text: [] };
+      const channels = (await res.json()) as {
+        id: string;
+        name: string;
+        type: number;
+      }[];
+      return {
+        categories: channels
+          .filter((c) => c.type === CHANNEL_TYPE_CATEGORY)
+          .map(({ id, name }) => ({ id, name })),
+        text: channels
+          .filter((c) => c.type === CHANNEL_TYPE_TEXT)
+          .map(({ id, name }) => ({ id, name })),
+      };
+    } catch {
+      return { categories: [], text: [] };
+    }
+  },
+);
+
+/**
+ * Fetch a guild's assignable roles via the bot token (excludes @everyone and
+ * bot-managed roles). Returns an empty list on failure.
+ */
+export const fetchGuildRoles = cache(
+  async (guildId: string): Promise<DiscordChannel[]> => {
+    try {
+      const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
+        headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
+        cache: "no-store",
+      });
+      if (!res.ok) return [];
+      const roles = (await res.json()) as {
+        id: string;
+        name: string;
+        managed: boolean;
+      }[];
+      return roles
+        .filter((r) => r.id !== guildId && !r.managed)
+        .map(({ id, name }) => ({ id, name }));
+    } catch {
+      return [];
+    }
+  },
+);
+
+/**
+ * Fetch the IDs of guilds the signed-in user can manage (owner or MANAGE_GUILD),
+ * using their Discord OAuth access token. Returns `{ ok:false }` if the token is
+ * missing/expired or Discord is unreachable.
+ */
+export async function fetchUserManageableGuildIds(
+  accessToken: string,
+): Promise<{ ids: Set<string>; ok: boolean }> {
+  try {
+    const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return { ids: new Set(), ok: false };
+    const guilds = (await res.json()) as {
+      id: string;
+      owner: boolean;
+      permissions: string;
+    }[];
+    const ids = new Set(
+      guilds
+        .filter(
+          (g) =>
+            g.owner ||
+            (BigInt(g.permissions) & BigInt(PERMISSION_MANAGE_GUILD)) !==
+              BigInt(0),
+        )
+        .map((g) => g.id),
+    );
+    return { ids, ok: true };
+  } catch {
+    return { ids: new Set(), ok: false };
+  }
+}

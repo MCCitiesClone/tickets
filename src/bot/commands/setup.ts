@@ -1,32 +1,23 @@
 import {
-  ChannelType,
   MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
 
 import type { Command } from "../types";
-import { upsertGuild } from "@/lib/queries/guild";
 
 /**
- * `/setup` — initialize this server's ticket configuration.
+ * `/setup` — a bridge to the web dashboard, where all configuration now lives.
  *
- * This lightweight version ensures a guild config row exists and stores the
- * ticket category. Full configuration (staff roles, transcript/log channels,
- * welcome message, limits) is intended to be done from the web dashboard, or
- * expanded here later. Requires Manage Server.
+ * Configuration (ticket category, staff roles, transcript/log channels, welcome
+ * message, limits) is done in the dashboard rather than through Discord, so this
+ * command just hands the user a deep link to this server's settings page.
+ * Requires Manage Server.
  */
 export const setupCommand: Command = {
   data: new SlashCommandBuilder()
     .setName("setup")
-    .setDescription("Initialize the tickets bot for this server.")
-    .addChannelOption((opt) =>
-      opt
-        .setName("category")
-        .setDescription("Category that new ticket channels are created under.")
-        .addChannelTypes(ChannelType.GuildCategory)
-        .setRequired(false),
-    )
+    .setDescription("Get a link to configure this server in the dashboard.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
   async execute(interaction) {
@@ -38,22 +29,15 @@ export const setupCommand: Command = {
       return;
     }
 
-    const category = interaction.options.getChannel("category");
-
-    await upsertGuild(interaction.guildId, {
-      ticketCategoryId: category?.id ?? null,
-    });
+    const { env } = await import("@/lib/env");
+    const url = `${env.BETTER_AUTH_URL}/dashboard/settings/${interaction.guildId}`;
 
     await interaction.reply({
       content: [
-        "✅ Tickets bot initialized for this server.",
-        category ? `Ticket category set to **${category.name}**.` : null,
-        "Finish configuring staff roles, transcript channel and panels from the dashboard.",
-        "",
-        "_Note: opening/closing tickets is not wired up yet in this scaffold._",
-      ]
-        .filter(Boolean)
-        .join("\n"),
+        "🎫 **Configure tickets in the dashboard**",
+        `Head to ${url} to set this server's ticket category, staff roles, and more.`,
+        "You'll sign in with Discord and need the **Manage Server** permission.",
+      ].join("\n"),
       flags: MessageFlags.Ephemeral,
     });
   },

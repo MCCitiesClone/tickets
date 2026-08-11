@@ -20,7 +20,10 @@ readable message if any required value is missing or malformed.
 ## Guild (per-server) configuration
 
 Stored in the `guild` table (`src/db/schema/guilds.ts`), one row per Discord
-server. Managed today via `/setup` and — increasingly — the dashboard.
+server. Configured through the **web dashboard**: sign in, open **Settings**,
+pick a server you manage (you need Manage Server and the bot must be present),
+and edit its config there. The `/setup` slash command just links you to that
+page. Saving in the dashboard creates/updates the row.
 
 | Field                 | Meaning                                                            |
 | --------------------- | ----------------------------------------------------------------- |

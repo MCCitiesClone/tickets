@@ -107,10 +107,10 @@ Useful scripts (run with `aube run <name>`):
 
 ## Roadmap
 
+- [x] Web-based server selection & configuration (Discord `guilds` scope + Manage Server checks)
 - [ ] Ticket lifecycle: open → staff reply → close → transcript
 - [ ] Panels: create/post from dashboard, button-driven opening
 - [ ] Ticket claiming, tags, and per-user blacklist
-- [ ] Server selection & permission checks via the Discord `guilds` scope
 - [ ] Stats & transcript viewer in the dashboard
 
 ## License
