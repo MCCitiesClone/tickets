@@ -125,6 +125,7 @@ Useful scripts (run with `aube run <name>`):
 - [x] Panels: create/post from dashboard, button-driven opening
 - [x] Panel forms: modal questions asked on open, answers saved to the ticket
 - [x] Rich panel config: overrides, access control, cooldowns, edit/resend/reset
+- [x] Multi-panels: combine panels into one message (buttons or dropdown)
 - [x] Ticket lifecycle: open → staff reply → close → transcript
 - [x] Ticket claiming & member management, close reasons, log-channel audit
 - [ ] Tags / canned responses and per-user blacklist
