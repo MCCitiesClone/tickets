@@ -1,5 +1,6 @@
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Plus } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,7 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { botInviteUrl } from "@/lib/discord";
 import { requireSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 const gettingStarted = [
   {
@@ -18,7 +21,7 @@ const gettingStarted = [
   {
     done: false,
     title: "Invite the bot to your server",
-    description: "Use the “Add to Discord” button on the home page.",
+    description: "Use the “Add to Discord” button above.",
   },
   {
     done: false,
@@ -35,15 +38,34 @@ const gettingStarted = [
 export default async function DashboardPage() {
   const session = await requireSession();
 
+  let inviteUrl: string | null = null;
+  try {
+    inviteUrl = botInviteUrl();
+  } catch {
+    // DISCORD_CLIENT_ID not configured — hide the invite button.
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          Welcome, {session.user.name}
-        </h1>
-        <p className="text-muted-foreground">
-          Configure and manage your Discord support tickets from here.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Welcome, {session.user.name}
+          </h1>
+          <p className="text-muted-foreground">
+            Configure and manage your Discord support tickets from here.
+          </p>
+        </div>
+        {inviteUrl && (
+          <a
+            href={inviteUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(buttonVariants())}
+          >
+            <Plus /> Add to Discord
+          </a>
+        )}
       </div>
 
       <Card>
