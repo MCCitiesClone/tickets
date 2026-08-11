@@ -6,20 +6,24 @@ for configuration and management. Inspired by
 [TicketsBot](https://github.com/orgs/TicketsBot-cloud/repositories) — built to be
 easy to run yourself and to own your own data.
 
-> **Status: foundation scaffold.** The architecture — database, auth, bot, web
-> dashboard, and Docker self-hosting — is wired up and runs end to end. The
-> full ticket lifecycle (opening/closing channels, transcripts) is stubbed with
-> clear entry points and is the next iteration. See the [roadmap](#roadmap).
+> **Status: early but functional.** Configuration, panels, and the core ticket
+> lifecycle (open → staff reply → close → transcript) work end to end. Claiming,
+> tags, blacklist, and in-dashboard stats/transcript viewing are still to come —
+> see the [roadmap](#roadmap).
 
 ---
 
 ## Features
 
 - **Channel-based tickets** — each ticket is a private channel under a category,
-  with per-user and staff-role permission overwrites.
+  with per-user and staff-role permission overwrites, a per-user open limit, and
+  configurable channel naming.
+- **Panels** — create button messages in the dashboard; members click to open a
+  ticket. Tickets close with a button or `/close`, posting a transcript.
 - **Web dashboard** — sign in with Discord and configure your servers from a
-  browser (built with Next.js + shadcn/ui).
-- **Slash commands** — `/ping`, `/setup`, `/panel` (panels stubbed for now).
+  browser (built with Next.js + shadcn/ui). All config is web-based.
+- **Slash commands** — `/ping`, `/close`; `/setup` and `/panel` link to the
+  dashboard.
 - **Self-hostable** — one `docker compose up` brings up Postgres, the web app,
   and the bot. Your data stays on your infrastructure.
 
@@ -108,8 +112,8 @@ Useful scripts (run with `aube run <name>`):
 ## Roadmap
 
 - [x] Web-based server selection & configuration (Discord `guilds` scope + Manage Server checks)
-- [ ] Ticket lifecycle: open → staff reply → close → transcript
-- [ ] Panels: create/post from dashboard, button-driven opening
+- [x] Panels: create/post from dashboard, button-driven opening
+- [x] Ticket lifecycle: open → staff reply → close → transcript
 - [ ] Ticket claiming, tags, and per-user blacklist
 - [ ] Stats & transcript viewer in the dashboard
 

@@ -8,6 +8,13 @@
       "when": 1786481676845,
       "tag": "0000_nervous_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786484365554,
+      "tag": "0001_narrow_magneto",
+      "breakpoints": true
     }
   ]
 }

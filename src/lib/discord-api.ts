@@ -102,6 +102,82 @@ export const fetchGuildRoles = cache(
   },
 );
 
+const BUTTON_STYLES: Record<string, number> = {
+  Primary: 1,
+  Secondary: 2,
+  Success: 3,
+  Danger: 4,
+};
+
+type PanelMessageInput = {
+  id: string;
+  title: string;
+  description: string;
+  buttonLabel: string;
+  buttonEmoji: string | null;
+  buttonColor: string;
+};
+
+/**
+ * Post a panel's embed + "open ticket" button into a channel via the bot token,
+ * returning the created message ID. The button's `custom_id` encodes the panel
+ * ID so the bot can route clicks (`open_ticket:<panelId>`). Throws on failure so
+ * the caller can surface it.
+ */
+export async function postPanelMessage(
+  channelId: string,
+  panel: PanelMessageInput,
+): Promise<string> {
+  const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      embeds: [{ title: panel.title, description: panel.description }],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: BUTTON_STYLES[panel.buttonColor] ?? 1,
+              label: panel.buttonLabel,
+              custom_id: `open_ticket:${panel.id}`,
+              ...(panel.buttonEmoji
+                ? { emoji: { name: panel.buttonEmoji } }
+                : {}),
+            },
+          ],
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to post panel message (${res.status}): ${await res.text()}`,
+    );
+  }
+  const msg = (await res.json()) as { id: string };
+  return msg.id;
+}
+
+/** Best-effort delete of a message (e.g. when a panel is removed). */
+export async function deleteMessage(
+  channelId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
+    });
+  } catch {
+    // best-effort
+  }
+}
+
 /**
  * Fetch the IDs of guilds the signed-in user can manage (owner or MANAGE_GUILD),
  * using their Discord OAuth access token. Returns `{ ok:false }` if the token is

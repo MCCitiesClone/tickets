@@ -1,6 +1,7 @@
 import { type Interaction, MessageFlags } from "discord.js";
 
 import { commandMap } from "../commands";
+import { closeTicket, openTicket } from "../lib/tickets";
 
 /**
  * Central interaction router. Handles:
@@ -32,20 +33,25 @@ export async function onInteractionCreate(
   }
 
   if (interaction.isButton()) {
-    const [action] = interaction.customId.split(":");
+    const [action, id] = interaction.customId.split(":");
 
-    if (action === "open_ticket") {
-      // STUB (scaffold): the ticket-opening flow lives here. When implemented
-      // it will: look up the guild config + panel, enforce the per-user ticket
-      // limit, create a private channel under `guild.ticketCategoryId` with
-      // permission overwrites for the opener + staff roles, insert a `ticket`
-      // row, and post the welcome message. See docs/architecture.md.
-      await interaction.reply({
-        content:
-          "🚧 Opening tickets isn't implemented yet in this scaffold, but your click was received!",
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
+    try {
+      if (action === "open_ticket") {
+        await openTicket(interaction, id);
+      } else if (action === "close_ticket") {
+        await closeTicket(interaction, id);
+      }
+    } catch (err) {
+      console.error(`Error handling button ${interaction.customId}:`, err);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction
+          .reply({
+            content: "Something went wrong handling that action.",
+            flags: MessageFlags.Ephemeral,
+          })
+          .catch(() => {});
+      }
     }
+    return;
   }
 }

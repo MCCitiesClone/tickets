@@ -20,7 +20,7 @@ export default async function TicketsPage() {
         <EmptyState
           icon={<TicketIcon className="size-8" />}
           title="No tickets yet"
-          description="Once members open tickets, they'll appear here. The ticket-opening flow is coming in a future update."
+          description="Create a panel and once members click it to open tickets, they'll appear here."
         />
       ) : (
         <Card className="overflow-hidden p-0">

@@ -7,25 +7,20 @@ import {
 import type { Command } from "../types";
 
 /**
- * `/panel` — post a ticket panel (a message with an "Open Ticket" button) into
- * the current channel.
- *
- * STUB (scaffold): panel creation/persistence and the button that opens tickets
- * are not implemented yet. When built, this will read/create a `panel` row for
- * the guild, post the embed + button, and store the resulting `messageId` so
- * `interactionCreate` can route `open_ticket:<panelId>` button clicks. Requires
- * Manage Server.
+ * `/panel` — a bridge to the dashboard, where panels are created and posted.
+ * Panels (the button messages members click to open tickets) are managed in the
+ * web UI; this just links there. Requires Manage Server.
  */
 export const panelCommand: Command = {
   data: new SlashCommandBuilder()
     .setName("panel")
-    .setDescription("Post a ticket panel in this channel. (Not yet implemented)")
+    .setDescription("Get a link to create ticket panels in the dashboard.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
   async execute(interaction) {
+    const { env } = await import("@/lib/env");
     await interaction.reply({
-      content:
-        "🚧 Panels aren't implemented yet in this scaffold. Configure them from the dashboard once available.",
+      content: `Create and post ticket panels from the dashboard: ${env.BETTER_AUTH_URL}/dashboard/panels`,
       flags: MessageFlags.Ephemeral,
     });
   },

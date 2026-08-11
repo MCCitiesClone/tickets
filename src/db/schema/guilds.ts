@@ -1,5 +1,6 @@
 import {
   bigint,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -48,6 +49,12 @@ export const guild = pgTable("guild", {
    * substituted, e.g. "ticket-{number}" -> "ticket-42".
    */
   namingScheme: text("naming_scheme").notNull().default("ticket-{number}"),
+
+  /**
+   * Monotonic per-guild ticket counter. Incremented atomically when a ticket is
+   * opened to produce its `number` (see `nextTicketNumber`).
+   */
+  ticketCounter: integer("ticket_counter").notNull().default(0),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

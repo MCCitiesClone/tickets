@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { guild, type Guild, type NewGuild } from "@/db/schema";
@@ -41,4 +41,17 @@ export async function upsertGuild(
     })
     .returning();
   return row;
+}
+
+/**
+ * Atomically increment and return the guild's ticket counter. Used to assign a
+ * unique, monotonic `number` to each new ticket without a read-then-write race.
+ */
+export async function nextTicketNumber(guildId: string): Promise<number> {
+  const [row] = await db
+    .update(guild)
+    .set({ ticketCounter: sql`${guild.ticketCounter} + 1` })
+    .where(eq(guild.guildId, guildId))
+    .returning({ n: guild.ticketCounter });
+  return row?.n ?? 1;
 }

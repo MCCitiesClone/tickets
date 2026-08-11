@@ -72,20 +72,31 @@ follows and you should too:
 - `output: "standalone"` is set for slim Docker images.
 - Read `node_modules/next/dist/docs/` before adding framework features.
 
-## Where the ticket lifecycle plugs in (next iteration)
+## The ticket lifecycle
 
-The channel-based ticket flow is stubbed with clear seams:
+Implemented in `src/bot/lib/tickets.ts`, routed from
+`src/bot/events/interactionCreate.ts`:
 
-- **Opening** — `src/bot/events/interactionCreate.ts`, the
-  `open_ticket:<panelId>` button branch. It should: load guild + panel config,
-  enforce `ticketLimit`, create a private channel under `ticketCategoryId` with
-  permission overwrites for the opener + `staffRoleIds`, insert a `ticket` row
-  (assigning the next per-guild `number`), and post `welcomeMessage`.
-- **Panels** — `src/bot/commands/panel.ts` + a dashboard page: create/persist a
-  `panel` row, post the embed + button, store `messageId`.
-- **Closing / transcripts** — a close button/command flips `ticket.status`,
-  captures messages into `ticket_message`, posts to `transcriptChannelId`, and
-  deletes/archives the channel.
+- **Opening** (`open_ticket:<panelId>` button) — loads guild config, enforces
+  `ticketLimit`, atomically assigns the next per-guild `number`
+  (`nextTicketNumber` → `guild.ticket_counter`), creates a private channel under
+  `ticketCategoryId` with overwrites for the opener + `staffRoleIds`, inserts a
+  `ticket` row, and posts `welcomeMessage` with a Close button.
+- **Panels** — created in the dashboard (`/dashboard/panels`). The
+  `createPanel` server action persists a `panel` row and posts the embed + button
+  via the bot REST API (`postPanelMessage`), storing the `messageId`.
+- **Closing** (`close_ticket:<ticketId>` button or `/close`) — authorizes
+  (opener / staff role / Manage Channels), builds a transcript from the channel's
+  messages, posts it to `transcriptChannelId`, flips `ticket.status` to closed,
+  and deletes the channel.
 
-The schema (`src/db/schema/tickets.ts`) and the shared query layer already
-model all of this, so these features are additive.
+**Transcript caveat:** message text is fetched via the bot REST API. Full
+content requires the **Message Content** privileged intent enabled for your app
+in the Developer Portal; without it, message bodies may come back empty. The
+gateway client intentionally does **not** request that intent by default (doing
+so would block login until it's enabled), so enable it in the portal if you want
+complete transcripts.
+
+Still additive from here (schema already models them): claiming (`ticket.claimedBy`),
+tags, blacklist, and persisting messages into `ticket_message` for an in-dashboard
+transcript viewer.

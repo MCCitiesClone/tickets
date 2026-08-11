@@ -1,4 +1,5 @@
 import type { Command } from "../types";
+import { closeCommand } from "./close";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
 import { setupCommand } from "./setup";
@@ -9,7 +10,12 @@ import { setupCommand } from "./setup";
  * with Discord (`register-commands.ts`). An explicit array (rather than fs
  * globbing) keeps command loading predictable under tsx and when bundled.
  */
-export const commands: Command[] = [pingCommand, setupCommand, panelCommand];
+export const commands: Command[] = [
+  pingCommand,
+  setupCommand,
+  panelCommand,
+  closeCommand,
+];
 
 /** Lookup by command name, used by the interaction handler. */
 export const commandMap = new Map<string, Command>(
