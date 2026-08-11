@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Circle, Plus } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,7 +12,7 @@ import { fetchBotGuilds } from "@/lib/discord-api";
 import { botInviteUrl } from "@/lib/discord";
 import { listGuilds } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
-import { cn } from "@/lib/utils";
+import { InviteButton } from "./invite-button";
 
 type Step = {
   done: boolean;
@@ -56,14 +55,10 @@ export default async function DashboardPage() {
         : "Add the bot to a server to get started.",
       action:
         !botInvited && inviteUrl ? (
-          <a
-            href={inviteUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            <Plus /> Add to Discord
-          </a>
+          <InviteButton
+            inviteUrl={inviteUrl}
+            initialBotGuildCount={botGuilds.length}
+          />
         ) : null,
     },
     {
