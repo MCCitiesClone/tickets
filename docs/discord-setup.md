@@ -58,3 +58,9 @@ aube run bot:register <guildId>  # single guild, instant — great for testing
 
 Set `DISCORD_DEV_GUILD_ID` in `.env` to always register to your test guild
 during development.
+
+Registration keeps autocomplete tidy: the bulk overwrite removes any command
+you've deleted from the registry, and registering to a guild also clears the
+**global** commands so they don't show up twice. Because of that, use a
+**separate Discord application for development vs production** so dev
+registration never wipes your production global commands.

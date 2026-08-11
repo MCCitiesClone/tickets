@@ -7,6 +7,16 @@ import { REST, Routes } from "discord.js";
  * ideal for development). With no guild ID, commands register globally (can
  * take up to an hour to propagate).
  *
+ * Keeping autocomplete clean:
+ * - The bulk-overwrite `PUT` replaces the ENTIRE command set for the target
+ *   scope, so any command removed from our registry is deleted from Discord on
+ *   the next registration (no stale commands linger).
+ * - Cross-scope duplicates: a command registered globally ALSO shows up in every
+ *   guild's autocomplete. When we register to a specific guild (dev flow), we
+ *   therefore also clear the global set so commands don't appear twice. (Use a
+ *   separate Discord application for dev vs prod so this never touches your
+ *   production global commands.)
+ *
  * Env must already be loaded (Next.js loads it for the web app; the bot entry
  * and the direct-run block below call `loadEnvConfig` first). Imports of `env`
  * and the command registry are deferred so importing this module has no side
@@ -19,16 +29,25 @@ export async function registerCommands(guildId?: string): Promise<void> {
   const rest = new REST().setToken(env.DISCORD_TOKEN);
   const body = commands.map((c) => c.data.toJSON());
 
-  const route = guildId
-    ? Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, guildId)
-    : Routes.applicationCommands(env.DISCORD_CLIENT_ID);
+  const globalRoute = Routes.applicationCommands(env.DISCORD_CLIENT_ID);
 
-  await rest.put(route, { body });
-  console.log(
-    `Registered ${body.length} command(s) ${
-      guildId ? `to guild ${guildId}` : "globally"
-    }.`,
-  );
+  if (guildId) {
+    // Overwrite this guild's commands (removes any that are no longer defined).
+    await rest.put(Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, guildId), {
+      body,
+    });
+    // Clear global commands so they don't duplicate the guild-scoped ones in
+    // autocomplete. No-op if there were none.
+    await rest.put(globalRoute, { body: [] });
+    console.log(
+      `Registered ${body.length} command(s) to guild ${guildId}; cleared global commands to avoid duplicates.`,
+    );
+    return;
+  }
+
+  // Global registration overwrites the global set (removes stale commands).
+  await rest.put(globalRoute, { body });
+  console.log(`Registered ${body.length} command(s) globally.`);
 }
 
 // Allow running directly: `aube run bot:register [guildId]`
