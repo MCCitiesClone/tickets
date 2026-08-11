@@ -12,6 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - DrizzleORM with Postgresql
 - Better-Auth
 - discord.js
+- react-hook-form
+- zod
 - shadcn-ui components for the web interface
 
 # Rules for development
