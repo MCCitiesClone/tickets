@@ -1,4 +1,5 @@
 import { cache } from "react";
+import * as nodeEmoji from "node-emoji";
 
 import { env } from "@/lib/env";
 
@@ -231,6 +232,63 @@ const BUTTON_STYLES: Record<string, number> = {
   Danger: 4,
 };
 
+type DiscordEmoji = { id?: string; name?: string; animated?: boolean };
+
+/**
+ * Resolve a user-entered button emoji into Discord's emoji object.
+ * Accepts a raw unicode emoji (📩), a shortcode name (`:classical_building:` or
+ * `classical_building`), or a custom-emoji mention (`<:name:id>` / `<a:name:id>`).
+ * Returns null (omit) if it can't be resolved, so we never send an invalid emoji.
+ */
+function resolveButtonEmoji(raw: string | null): DiscordEmoji | null {
+  const input = raw?.trim();
+  if (!input) return null;
+
+  // Custom emoji mention.
+  const custom = input.match(/^<(a)?:(\w+):(\d+)>$/);
+  if (custom) {
+    return { animated: Boolean(custom[1]), name: custom[2], id: custom[3] };
+  }
+
+  // Shortcode name (colons optional).
+  const name = input.replace(/^:|:$/g, "");
+  if (nodeEmoji.has(name)) return { name: nodeEmoji.get(name) };
+
+  // Already a unicode emoji (contains non-ASCII).
+  if ([...input].some((c) => c.charCodeAt(0) > 127)) return { name: input };
+
+  // Unresolvable ASCII text — omit rather than trigger COMPONENT_INVALID_EMOJI.
+  return null;
+}
+
+/** Shared embed + open-ticket button payload for a panel message. */
+function panelMessagePayload(panel: PanelMessageInput) {
+  const emoji = resolveButtonEmoji(panel.buttonEmoji);
+  return {
+    embeds: [
+      {
+        title: panel.title,
+        description: panel.description,
+        color: panel.color,
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: BUTTON_STYLES[panel.buttonColor] ?? 1,
+            label: panel.buttonLabel,
+            custom_id: `open_ticket:${panel.id}`,
+            ...(emoji ? { emoji } : {}),
+          },
+        ],
+      },
+    ],
+  };
+}
+
 type PanelMessageInput = {
   id: string;
   title: string;
@@ -257,31 +315,7 @@ export async function postPanelMessage(
       Authorization: `Bot ${env.DISCORD_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      embeds: [
-        {
-          title: panel.title,
-          description: panel.description,
-          color: panel.color,
-        },
-      ],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: BUTTON_STYLES[panel.buttonColor] ?? 1,
-              label: panel.buttonLabel,
-              custom_id: `open_ticket:${panel.id}`,
-              ...(panel.buttonEmoji
-                ? { emoji: { name: panel.buttonEmoji } }
-                : {}),
-            },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(panelMessagePayload(panel)),
   });
   if (!res.ok) {
     throw new Error(
@@ -306,31 +340,7 @@ export async function editPanelMessage(
         Authorization: `Bot ${env.DISCORD_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        embeds: [
-          {
-            title: panel.title,
-            description: panel.description,
-            color: panel.color,
-          },
-        ],
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: BUTTON_STYLES[panel.buttonColor] ?? 1,
-                label: panel.buttonLabel,
-                custom_id: `open_ticket:${panel.id}`,
-                ...(panel.buttonEmoji
-                  ? { emoji: { name: panel.buttonEmoji } }
-                  : {}),
-              },
-            ],
-          },
-        ],
-      }),
+      body: JSON.stringify(panelMessagePayload(panel)),
     },
   );
   if (!res.ok) {
