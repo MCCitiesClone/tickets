@@ -7,3 +7,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Packages to use
+- DrizzleORM with Postgresql
+- Better-Auth
+- discord.js
+- shadcn-ui components for the web interface
+
+# Rules for development
+- Use git commit regularly to save your work
+- Assume that the dev server is already running. Do not run a new dev server.
+- Use aube as your package manager instead of npm or pnpm
+- Any commonly used commands (such as seeding the database, running tests, etc.) should be defined as scripts in the package.json file and run with `aube run`
