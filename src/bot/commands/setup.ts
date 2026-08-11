@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 
 import type { Command } from "../types";
-import { upsertGuild } from "../lib/guild-config";
+import { upsertGuild } from "@/lib/queries/guild";
 
 /**
  * `/setup` — initialize this server's ticket configuration.

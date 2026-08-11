@@ -3,6 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { guild, type Guild, type NewGuild } from "@/db/schema";
 
+/**
+ * Shared guild-config data access, used by BOTH the web dashboard (server
+ * actions) and the Discord bot. Keep DB access for guild config here so the two
+ * runtimes stay in sync.
+ */
+
 /** Fetch a guild's configuration row, or `null` if it hasn't been set up. */
 export async function getGuild(guildId: string): Promise<Guild | null> {
   const [row] = await db
