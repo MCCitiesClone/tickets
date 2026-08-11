@@ -250,11 +250,12 @@ function resolveButtonEmoji(raw: string | null): DiscordEmoji | null {
     return { animated: Boolean(custom[1]), name: custom[2], id: custom[3] };
   }
 
-  // Shortcode name (colons optional).
-  const name = input.replace(/^:|:$/g, "");
-  if (nodeEmoji.has(name)) return { name: nodeEmoji.get(name) };
+  // Shortcode name (colons optional). Use get()'s result directly — has()
+  // also returns true for a raw emoji char, but get() then yields undefined.
+  const resolved = nodeEmoji.get(input.replace(/^:|:$/g, ""));
+  if (resolved) return { name: resolved };
 
-  // Already a unicode emoji (contains non-ASCII).
+  // Already a raw unicode emoji (contains non-ASCII).
   if ([...input].some((c) => c.charCodeAt(0) > 127)) return { name: input };
 
   // Unresolvable ASCII text — omit rather than trigger COMPONENT_INVALID_EMOJI.
