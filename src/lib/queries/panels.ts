@@ -55,6 +55,14 @@ export async function setPanelMessage(
     .where(eq(panel.id, id));
 }
 
+/** Clear a panel's posted-message reference (e.g. when it's no longer posted). */
+export async function clearPanelMessage(id: string): Promise<void> {
+  await db
+    .update(panel)
+    .set({ channelId: null, messageId: null, updatedAt: new Date() })
+    .where(eq(panel.id, id));
+}
+
 /** Update a panel's configuration fields. */
 export async function updatePanel(
   id: string,

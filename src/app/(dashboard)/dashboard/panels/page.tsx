@@ -76,12 +76,16 @@ export default async function PanelsPage() {
                     )}
                   </p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {p.messageId ? "Posted" : "Not posted"}
+                    {p.messageId
+                      ? "Posted"
+                      : p.channelId
+                        ? "Not posted"
+                        : "Not posted · multi-panel only"}
                     {p.questions.length > 0 &&
                       ` · ${p.questions.length} question${p.questions.length === 1 ? "" : "s"}`}
                   </p>
                 </div>
-                <PanelActions panelId={p.id} />
+                <PanelActions panelId={p.id} canResend={Boolean(p.channelId)} />
               </CardContent>
             </Card>
           ))}

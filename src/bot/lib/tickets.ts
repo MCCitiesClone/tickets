@@ -383,7 +383,7 @@ export async function openTicket(
       type: ChannelType.GuildText,
       parent: categoryId,
       permissionOverwrites: overwrites,
-      topic: `Ticket #${number} · opened by ${user.tag} (${user.id})`,
+      topic: `Ticket #${number} · opened by ${user.tag} <@${user.id}>`,
     });
   } catch (err) {
     console.error("Failed to create ticket channel:", err);

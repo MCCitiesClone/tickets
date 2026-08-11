@@ -14,7 +14,13 @@ import {
 } from "@/app/actions/panel";
 import { cn } from "@/lib/utils";
 
-export function PanelActions({ panelId }: { panelId: string }) {
+export function PanelActions({
+  panelId,
+  canResend = true,
+}: {
+  panelId: string;
+  canResend?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -39,16 +45,18 @@ export function PanelActions({ panelId }: { panelId: string }) {
       >
         <Pencil />
       </Link>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        disabled={pending}
-        onClick={() => run(() => resendPanel(panelId), "Panel re-sent.")}
-        aria-label="Resend panel"
-        title="Resend to Discord"
-      >
-        <Send />
-      </Button>
+      {canResend && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={pending}
+          onClick={() => run(() => resendPanel(panelId), "Panel re-sent.")}
+          aria-label="Resend panel"
+          title="Resend to Discord"
+        >
+          <Send />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon-sm"

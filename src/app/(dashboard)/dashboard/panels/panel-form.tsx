@@ -75,8 +75,11 @@ export function PanelForm({
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Panel message
-  const [channelId, setChannelId] = useState(panel?.channelId ?? "");
+  // Panel message. New panels default to a channel (auto-selected on load);
+  // existing panels keep their channel, or CHANNEL_NONE if they aren't posted.
+  const [channelId, setChannelId] = useState(
+    panel ? (panel.channelId ?? CHANNEL_NONE) : "",
+  );
   const [title, setTitle] = useState(panel?.title ?? "Open a ticket");
   const [description, setDescription] = useState(
     panel?.description ?? "Click the button below to open a support ticket.",
@@ -180,19 +183,18 @@ export function PanelForm({
   const removeRule = (i: number) =>
     setAccessControl((p) => p.filter((_, idx) => idx !== i));
 
+  const postChannelId =
+    channelId && channelId !== CHANNEL_NONE ? channelId : null;
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!channelId) {
-      toast.error("Pick a channel to post the panel in.");
-      return;
-    }
     const cleanedQuestions = questions
       .map((q) => ({ ...q, label: q.label.trim() }))
       .filter((q) => q.label.length > 0);
 
     const payload = {
       guildId,
-      channelId,
+      channelId: postChannelId,
       title,
       description,
       color,
@@ -249,7 +251,10 @@ export function PanelForm({
           <CardTitle>Panel message</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Field label="Channel" hint="Where the panel message is posted.">
+          <Field
+            label="Channel"
+            hint="Where the panel is posted. Choose “Don't post” to use this panel only inside a multi-panel."
+          >
             <ChannelSelect
               guildId={guildId}
               kind="text"
@@ -258,6 +263,8 @@ export function PanelForm({
               value={channelId}
               onValueChange={setChannelId}
               disabled={loading}
+              allowNone
+              noneLabel="— Don't post (multi-panel only) —"
               placeholder={loading ? "Loading…" : "Select a channel"}
             />
           </Field>
@@ -565,12 +572,14 @@ export function PanelForm({
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={pending || !channelId}>
+        <Button type="submit" disabled={pending}>
           {pending
             ? "Saving…"
             : isEdit
               ? "Save changes"
-              : "Create & post panel"}
+              : postChannelId
+                ? "Create & post panel"
+                : "Create panel"}
         </Button>
       </div>
     </form>

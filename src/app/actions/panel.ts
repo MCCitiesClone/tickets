@@ -10,6 +10,7 @@ import {
 } from "@/lib/discord-api";
 import { canManageGuild } from "@/lib/guild-access";
 import {
+  clearPanelMessage,
   createPanel as createPanelRow,
   deletePanel as deletePanelRow,
   getPanel,
@@ -40,7 +41,8 @@ const accessRuleSchema = z.object({
 // Fields shared by create and edit. Optional/nullable fields fall back to
 // server defaults when null.
 const panelFields = {
-  channelId: z.string().min(1),
+  // Null = don't post the panel anywhere (e.g. only used in a multi-panel).
+  channelId: z.string().nullable().optional(),
   title: z.string().min(1).max(255),
   description: z.string().min(1).max(1024),
   color: z.number().int().min(0).max(0xffffff),
@@ -122,14 +124,17 @@ export async function createPanel(input: CreatePanelInput) {
   // Persist first so we have an ID to encode in the button custom_id.
   const panel = await createPanelRow(toRow(data));
 
-  try {
-    const messageId = await postPanelMessage(data.channelId, panel);
-    await setPanelMessage(panel.id, data.channelId, messageId);
-  } catch (err) {
-    // Posting failed — roll back the row so we don't leave an orphan panel.
-    console.error("Failed to post panel message:", err);
-    await deletePanelRow(panel.id);
-    throw err;
+  // A panel can be created without a channel (used only inside a multi-panel).
+  if (data.channelId) {
+    try {
+      const messageId = await postPanelMessage(data.channelId, panel);
+      await setPanelMessage(panel.id, data.channelId, messageId);
+    } catch (err) {
+      // Posting failed — roll back the row so we don't leave an orphan panel.
+      console.error("Failed to post panel message:", err);
+      await deletePanelRow(panel.id);
+      throw err;
+    }
   }
 
   revalidatePath("/dashboard/panels");
@@ -148,21 +153,27 @@ export async function updatePanel(input: UpdatePanelInput) {
   const updated = await updatePanelRow(data.panelId, toRow(data));
   if (!updated) throw new Error("Panel not found.");
 
-  // Keep the Discord message in sync. Edit in place when it's still in the same
-  // channel; if that fails (the message was deleted in Discord) or the channel
-  // changed, re-post it.
-  let edited = false;
-  if (existing.messageId && existing.channelId === data.channelId) {
+  const hadMessage = Boolean(existing.channelId && existing.messageId);
+
+  if (!data.channelId) {
+    // Panel should no longer be posted anywhere — remove any existing message.
+    if (hadMessage) {
+      await deleteMessage(existing.channelId!, existing.messageId!);
+      await clearPanelMessage(updated.id);
+    }
+  } else if (hadMessage && existing.channelId === data.channelId) {
+    // Edit in place; if the message was deleted in Discord, re-post it.
     try {
-      await editPanelMessage(existing.channelId, existing.messageId, updated);
-      edited = true;
+      await editPanelMessage(existing.channelId!, existing.messageId!, updated);
     } catch (err) {
       console.error("Panel message edit failed; re-posting:", err);
+      const messageId = await postPanelMessage(data.channelId, updated);
+      await setPanelMessage(updated.id, data.channelId, messageId);
     }
-  }
-  if (!edited) {
-    if (existing.channelId && existing.messageId) {
-      await deleteMessage(existing.channelId, existing.messageId);
+  } else {
+    // New channel (or first time posting) — delete any old message, then post.
+    if (hadMessage) {
+      await deleteMessage(existing.channelId!, existing.messageId!);
     }
     const messageId = await postPanelMessage(data.channelId, updated);
     await setPanelMessage(updated.id, data.channelId, messageId);
