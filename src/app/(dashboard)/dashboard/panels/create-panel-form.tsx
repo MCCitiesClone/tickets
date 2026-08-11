@@ -21,15 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ChannelSelect, type Channel } from "@/components/channel-select";
 import { createPanel } from "@/app/actions/panel";
 
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
 
-type Channel = { id: string; name: string };
-
 export function CreatePanelForm({ guildId }: { guildId: string }) {
   const router = useRouter();
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [categories, setCategories] = useState<Channel[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
   const [channelId, setChannelId] = useState("");
   const [title, setTitle] = useState("Open a ticket");
@@ -49,6 +49,7 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
     async function load() {
       setChannelsLoading(true);
       setChannels([]);
+      setCategories([]);
       setChannelId("");
       try {
         const res = await fetch(`/api/guilds/${guildId}/channels`);
@@ -57,9 +58,13 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
           console.error("channels load failed", res.status, body);
           throw new Error(String(res.status));
         }
-        const data = (await res.json()) as { text: Channel[] };
+        const data = (await res.json()) as {
+          text: Channel[];
+          categories: Channel[];
+        };
         if (cancelled) return;
         setChannels(data.text);
+        setCategories(data.categories);
         setChannelId(data.text[0]?.id ?? "");
       } catch (err) {
         if (!cancelled)
@@ -102,10 +107,7 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
     });
   }
 
-  // value -> label maps so the Select triggers show names, not ids.
-  const channelItems = Object.fromEntries(
-    channels.map((c) => [c.id, `#${c.name}`]),
-  );
+  // value -> label map so the color Select trigger shows the name, not the id.
   const colorItems = Object.fromEntries(COLORS.map((c) => [c, c]));
 
   return (
@@ -117,31 +119,17 @@ export function CreatePanelForm({ guildId }: { guildId: string }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="p-channel">Channel</Label>
-            <Select
-              items={channelItems}
+            <ChannelSelect
+              id="p-channel"
+              guildId={guildId}
+              kind="text"
+              channels={channels}
+              categories={categories}
               value={channelId}
-              onValueChange={(v) => setChannelId(v as string)}
-              disabled={channelsLoading || channels.length === 0}
-            >
-              <SelectTrigger id="p-channel" className="w-full">
-                <SelectValue
-                  placeholder={
-                    channelsLoading
-                      ? "Loading…"
-                      : channels.length === 0
-                        ? "No channels"
-                        : "Select a channel"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {channels.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    #{c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setChannelId}
+              disabled={channelsLoading}
+              placeholder={channelsLoading ? "Loading…" : "Select a channel"}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

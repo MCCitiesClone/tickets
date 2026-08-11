@@ -7,35 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ChannelSelect, CHANNEL_NONE } from "@/components/channel-select";
 import type { Guild } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
-
-// Sentinel for "no channel selected" (base-ui Select needs a concrete value).
-const NONE = "none";
-
-/**
- * Build the value→label map for a channel Select. Passed as `items` to the
- * Select root (base-ui uses it to show the label, not the id, in the trigger)
- * and also drives the option list so labels aren't duplicated.
- */
-function channelItems(
-  channels: DiscordChannel[],
-  noneLabel: string,
-): Record<string, string> {
-  return {
-    [NONE]: noneLabel,
-    ...Object.fromEntries(channels.map((c) => [c.id, c.name])),
-  };
-}
 
 export function GuildSettingsForm({
   guildId,
@@ -51,13 +27,13 @@ export function GuildSettingsForm({
   roles: DiscordChannel[];
 }) {
   const [ticketCategoryId, setTicketCategoryId] = useState(
-    config?.ticketCategoryId ?? NONE,
+    config?.ticketCategoryId ?? CHANNEL_NONE,
   );
   const [transcriptChannelId, setTranscriptChannelId] = useState(
-    config?.transcriptChannelId ?? NONE,
+    config?.transcriptChannelId ?? CHANNEL_NONE,
   );
   const [logChannelId, setLogChannelId] = useState(
-    config?.logChannelId ?? NONE,
+    config?.logChannelId ?? CHANNEL_NONE,
   );
   const [staffRoleIds, setStaffRoleIds] = useState<string[]>(
     config?.staffRoleIds ?? [],
@@ -72,11 +48,7 @@ export function GuildSettingsForm({
 
   const [pending, startTransition] = useTransition();
 
-  const discordUnavailable =
-    categories.length === 0 && textChannels.length === 0 && roles.length === 0;
-
-  const categoryItems = channelItems(categories, "— Select a category —");
-  const textItems = channelItems(textChannels, "— None —");
+  const rolesUnavailable = roles.length === 0;
 
   function toggleRole(id: string, checked: boolean) {
     setStaffRoleIds((prev) =>
@@ -84,16 +56,17 @@ export function GuildSettingsForm({
     );
   }
 
+  const orNull = (v: string) => (v === CHANNEL_NONE ? null : v);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
       try {
         await updateGuildConfig({
           guildId,
-          ticketCategoryId: ticketCategoryId === NONE ? null : ticketCategoryId,
-          transcriptChannelId:
-            transcriptChannelId === NONE ? null : transcriptChannelId,
-          logChannelId: logChannelId === NONE ? null : logChannelId,
+          ticketCategoryId: orNull(ticketCategoryId),
+          transcriptChannelId: orNull(transcriptChannelId),
+          logChannelId: orNull(logChannelId),
           staffRoleIds,
           welcomeMessage,
           ticketLimit,
@@ -108,32 +81,18 @@ export function GuildSettingsForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      {discordUnavailable && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-muted-foreground">
-          Couldn&apos;t load this server&apos;s channels and roles from Discord.
-          You can still save, but the dropdowns are empty — check that the bot is
-          in the server and <code>DISCORD_TOKEN</code> is valid.
-        </p>
-      )}
-
       <div className="flex flex-col gap-2">
         <Label htmlFor="category">Ticket category</Label>
-        <Select
-          items={categoryItems}
+        <ChannelSelect
+          id="category"
+          guildId={guildId}
+          kind="category"
+          channels={categories}
           value={ticketCategoryId}
-          onValueChange={(v) => setTicketCategoryId(v as string)}
-        >
-          <SelectTrigger id="category" className="w-full">
-            <SelectValue placeholder="— Select a category —" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(categoryItems).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onValueChange={setTicketCategoryId}
+          allowNone
+          placeholder="— Select a category —"
+        />
         <p className="text-xs text-muted-foreground">
           New ticket channels are created under this category.
         </p>
@@ -142,41 +101,29 @@ export function GuildSettingsForm({
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="transcript">Transcript channel</Label>
-          <Select
-            items={textItems}
+          <ChannelSelect
+            id="transcript"
+            guildId={guildId}
+            kind="text"
+            channels={textChannels}
+            categories={categories}
             value={transcriptChannelId}
-            onValueChange={(v) => setTranscriptChannelId(v as string)}
-          >
-            <SelectTrigger id="transcript" className="w-full">
-              <SelectValue placeholder="— None —" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(textItems).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={setTranscriptChannelId}
+            allowNone
+          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="log">Log channel</Label>
-          <Select
-            items={textItems}
+          <ChannelSelect
+            id="log"
+            guildId={guildId}
+            kind="text"
+            channels={textChannels}
+            categories={categories}
             value={logChannelId}
-            onValueChange={(v) => setLogChannelId(v as string)}
-          >
-            <SelectTrigger id="log" className="w-full">
-              <SelectValue placeholder="— None —" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(textItems).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={setLogChannelId}
+            allowNone
+          />
         </div>
       </div>
 
@@ -185,7 +132,7 @@ export function GuildSettingsForm({
         <p className="text-xs text-muted-foreground">
           These roles get access to every ticket channel.
         </p>
-        {roles.length === 0 ? (
+        {rolesUnavailable ? (
           <p className="text-sm text-muted-foreground">No roles available.</p>
         ) : (
           <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2">

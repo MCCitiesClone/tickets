@@ -23,7 +23,7 @@ async function discordFetch(
   }
 }
 
-/** Tiny module-level TTL cache to avoid re-hitting rate-limited endpoints. */
+/** Tiny module-level TTL cache to avoid re-hitting rate-limited/slow endpoints. */
 function ttlCache<T>(ttlMs: number) {
   const store = new Map<string, { at: number; value: T }>();
   return {
@@ -34,6 +34,9 @@ function ttlCache<T>(ttlMs: number) {
     },
     set(key: string, value: T) {
       store.set(key, { at: Date.now(), value });
+    },
+    delete(key: string) {
+      store.delete(key);
     },
   };
 }
@@ -75,26 +78,43 @@ const CHANNEL_TYPE_CATEGORY = 4;
 const PERMISSION_MANAGE_GUILD = 1 << 5;
 
 export type DiscordChannel = { id: string; name: string };
+export type GuildChannels = {
+  categories: DiscordChannel[];
+  text: DiscordChannel[];
+};
+
+// Channels/roles change rarely and the round-trip is slow; cache per guild so
+// navigating between pages doesn't re-fetch. Invalidated when we create a
+// channel (see `invalidateGuildChannels` / `createGuildChannel`).
+const guildChannelsCache = ttlCache<GuildChannels>(5 * 60_000);
+const guildRolesCache = ttlCache<DiscordChannel[]>(5 * 60_000);
+
+/** Clear the cached channel list for a guild (e.g. after creating a channel). */
+export function invalidateGuildChannels(guildId: string) {
+  guildChannelsCache.delete(guildId);
+}
 
 /**
  * Fetch a guild's category and text channels via the bot token, split by kind,
- * for use in config dropdowns. Returns empty lists on failure.
+ * for use in config dropdowns. Cached per guild; returns empty lists on failure
+ * (failures are not cached).
  */
 export const fetchGuildChannels = cache(
-  async (
-    guildId: string,
-  ): Promise<{ categories: DiscordChannel[]; text: DiscordChannel[] }> => {
+  async (guildId: string): Promise<GuildChannels> => {
+    const cached = guildChannelsCache.get(guildId);
+    if (cached) return cached;
     try {
-      const res = await discordFetch(`${DISCORD_API}/guilds/${guildId}/channels`, {
-        headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
-      });
+      const res = await discordFetch(
+        `${DISCORD_API}/guilds/${guildId}/channels`,
+        { headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` } },
+      );
       if (!res.ok) return { categories: [], text: [] };
       const channels = (await res.json()) as {
         id: string;
         name: string;
         type: number;
       }[];
-      return {
+      const result: GuildChannels = {
         categories: channels
           .filter((c) => c.type === CHANNEL_TYPE_CATEGORY)
           .map(({ id, name }) => ({ id, name })),
@@ -102,6 +122,8 @@ export const fetchGuildChannels = cache(
           .filter((c) => c.type === CHANNEL_TYPE_TEXT)
           .map(({ id, name }) => ({ id, name })),
       };
+      guildChannelsCache.set(guildId, result);
+      return result;
     } catch {
       return { categories: [], text: [] };
     }
@@ -110,10 +132,12 @@ export const fetchGuildChannels = cache(
 
 /**
  * Fetch a guild's assignable roles via the bot token (excludes @everyone and
- * bot-managed roles). Returns an empty list on failure.
+ * bot-managed roles). Cached per guild; returns an empty list on failure.
  */
 export const fetchGuildRoles = cache(
   async (guildId: string): Promise<DiscordChannel[]> => {
+    const cached = guildRolesCache.get(guildId);
+    if (cached) return cached;
     try {
       const res = await discordFetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
         headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
@@ -124,14 +148,47 @@ export const fetchGuildRoles = cache(
         name: string;
         managed: boolean;
       }[];
-      return roles
+      const result = roles
         .filter((r) => r.id !== guildId && !r.managed)
         .map(({ id, name }) => ({ id, name }));
+      guildRolesCache.set(guildId, result);
+      return result;
     } catch {
       return [];
     }
   },
 );
+
+/**
+ * Create a channel in a guild via the bot token. `type` maps to a text channel
+ * or a category. Invalidates the channel cache so the new channel shows up.
+ * Throws on failure.
+ */
+export async function createGuildChannel(
+  guildId: string,
+  opts: { name: string; type: "text" | "category"; parentId?: string | null },
+): Promise<DiscordChannel> {
+  const res = await discordFetch(`${DISCORD_API}/guilds/${guildId}/channels`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: opts.name,
+      type: opts.type === "category" ? CHANNEL_TYPE_CATEGORY : CHANNEL_TYPE_TEXT,
+      parent_id: opts.parentId || undefined,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to create channel (${res.status}): ${await res.text()}`,
+    );
+  }
+  invalidateGuildChannels(guildId);
+  const ch = (await res.json()) as { id: string; name: string };
+  return { id: ch.id, name: ch.name };
+}
 
 const BUTTON_STYLES: Record<string, number> = {
   Primary: 1,
