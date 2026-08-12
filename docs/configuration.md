@@ -54,6 +54,11 @@ Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
   request, form responses). See `src/db/schema/tickets.ts`.
 - `ticket_message` — captured messages that make up a transcript.
 - `transcript` — the shareable transcript record (token, message count, reason).
+- `blacklist` — per-guild list of users/roles blocked from opening tickets
+  (enforced in the open-ticket precheck; managed from the dashboard or
+  `/blacklist`). See `src/db/schema/blacklist.ts`.
+- `canned_response` — saved, reusable staff replies posted with
+  `/cannedresponse`.
 
 The full ticket lifecycle populates these tables end to end — see
 [architecture.md](architecture.md). Full documentation of every feature lives in

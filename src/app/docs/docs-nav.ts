@@ -31,6 +31,7 @@ export const docsNav: DocSection[] = [
       { title: "Panels & forms", href: "/docs/panels" },
       { title: "Message templates", href: "/docs/messages" },
       { title: "Canned responses", href: "/docs/canned-responses" },
+      { title: "Blacklist", href: "/docs/blacklist" },
       { title: "Slash commands", href: "/docs/commands" },
     ],
   },

@@ -1,4 +1,5 @@
 import type { Command } from "../types";
+import { blacklistCommand } from "./blacklist";
 import { cannedResponseCommand } from "./cannedresponse";
 import { claimCommand, unclaimCommand } from "./claim";
 import { closeCommand } from "./close";
@@ -31,6 +32,7 @@ export const commands: Command[] = [
   switchPanelCommand,
   notesCommand,
   cannedResponseCommand,
+  blacklistCommand,
 ];
 
 /** Lookup by command name, used by the interaction handler. */

@@ -1,0 +1,52 @@
+export const metadata = {
+  title: "Blacklist",
+  description:
+    "Block specific users or roles from opening tickets in your server.",
+};
+
+# Blacklist
+
+The **blacklist** blocks specific users — or everyone holding a given role —
+from opening tickets in your server. It's a basic abuse-prevention tool: a
+blacklisted member is stopped in the open-ticket check before any channel is
+created, and told they're blocked (with your reason, if you set one).
+
+Blacklisting is **absolute**: it applies even to staff, and it takes effect no
+matter which panel or button the member tries to open from.
+
+## What a blacklist entry is
+
+Each entry targets one of:
+
+- a **user** — blocked by their Discord user ID, or
+- a **role** — every member who has that role is blocked.
+
+An entry can carry an optional **reason** (shown to staff and to the blocked
+member) and records **who added it** and **when**.
+
+## Managing the blacklist
+
+From the **dashboard**, open **Blacklist**, then:
+
+- **Add** — choose _User_ (paste a user ID) or _Role_ (pick from the list), add
+  an optional reason, and click **Add to blacklist**.
+- **Remove** — click the trash icon next to an entry.
+
+> To copy a user ID, enable **Developer Mode** in Discord
+> (_Settings → Advanced_), then right-click a user → **Copy User ID**.
+
+From **Discord**, staff with **Manage Server** can use the slash command:
+
+| Command | Description |
+| --- | --- |
+| `/blacklist add <target> [reason]` | Block a user or role (mention or pick either). |
+| `/blacklist remove <target>` | Unblock a user or role. |
+| `/blacklist list` | Show the current blacklist. |
+
+## How it's enforced
+
+When a member clicks a panel button (or a multi-panel dropdown), the bot checks
+the blacklist first. If the member's ID matches a **user** entry, or they hold a
+role that matches a **role** entry, the open is refused with an ephemeral
+message and no ticket channel is created. This runs ahead of panel
+access-control, per-user limits, and cooldowns.

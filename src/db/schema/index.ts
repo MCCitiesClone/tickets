@@ -3,6 +3,7 @@
  * Drizzle client both consume this barrel.
  */
 export * from "./auth";
+export * from "./blacklist";
 export * from "./canned-response";
 export * from "./guilds";
 export * from "./message-template";
