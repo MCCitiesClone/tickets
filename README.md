@@ -9,7 +9,7 @@ easy to run yourself and to own your own data.
 > **Status: functional.** Configuration, panels, forms, multi-panels, the full
 > ticket lifecycle (open → claim → reply → close → transcript), rich message
 > templates, close requests, staff notes, and a shareable transcript viewer all
-> work end to end. Tags/canned responses, a per-user blacklist, and in-dashboard
+> work end to end. Canned responses, a per-user blacklist, and in-dashboard
 > stats are still to come — see the [roadmap](#roadmap).
 
 ---
@@ -149,9 +149,30 @@ Repository copies of the core setup guides:
 - [x] Rename / switch-panel / staff notes / close requests with auto-close
 - [x] Rich message templates (welcome, claim, close DM, transcript post)
 - [x] Shareable transcript viewer + optional DM-on-close; tickets list in dashboard
-- [ ] Tags / canned responses and per-user blacklist
-- [ ] Stats in the dashboard
+- [x] MIT licensed
+
+Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
+
+**High priority**
+
+- [ ] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
+- [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
+- [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
+- [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
+
+**Medium priority**
+
+- [ ] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
+- [ ] Thread-based tickets — alternative to channels ([#7](https://github.com/MCCitiesClone/tickets/issues/7))
+- [ ] Ticket priority levels ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
+- [ ] Working hours / outside-hours notice ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
+- [ ] Applications module — application forms that convert to tickets ([#11](https://github.com/MCCitiesClone/tickets/issues/11))
+
+**Low priority / later**
+
+- [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
+- [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
 
 ## License
 
-See [LICENSE](LICENSE) if present; otherwise add one before distributing.
+[MIT](LICENSE) © Evan Sizemore

@@ -107,4 +107,4 @@ complete transcripts.
 
 Messages are persisted into `ticket_message` (captured live and swept on close)
 and served by the shareable transcript viewer at `/transcripts/<token>`. Still
-additive from here: tags / canned responses and a per-user blacklist.
+additive from here: canned responses and a per-user blacklist.
