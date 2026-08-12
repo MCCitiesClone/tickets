@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { guild } from "./guilds";
+import type { MessageTemplate } from "./message-template";
 
 /**
  * A question asked in the Discord modal when a member opens a ticket from a
@@ -78,8 +79,14 @@ export const panel = pgTable("panel", {
   categoryId: text("category_id"),
   /** Channel naming scheme (overrides guild setting). */
   namingScheme: text("naming_scheme"),
-  /** First message inside a new ticket (overrides guild setting). */
+  /** First message inside a new ticket (legacy plain-text; overrides guild). */
   welcomeMessage: text("welcome_message"),
+  /**
+   * Rich welcome message for tickets from this panel, designed in the embed
+   * editor. When set (non-empty), it overrides both the guild's welcome
+   * template and the legacy `welcomeMessage`.
+   */
+  welcomeTemplate: jsonb("welcome_template").$type<MessageTemplate | null>(),
   /** Staff roles granted access to tickets from this panel (overrides guild). */
   supportRoleIds: jsonb("support_role_ids")
     .$type<string[]>()

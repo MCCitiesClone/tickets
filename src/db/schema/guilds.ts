@@ -8,6 +8,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import type { GuildMessageTemplates } from "./message-template";
+
 /**
  * Per-Discord-server (guild) configuration for the tickets bot.
  *
@@ -42,10 +44,23 @@ export const guild = pgTable("guild", {
     .notNull()
     .default([]),
 
-  /** Message posted as the first message inside a newly opened ticket. */
+  /**
+   * Legacy plain-text first message inside a new ticket. Used as a fallback when
+   * no rich `messageTemplates.welcome` is configured (see `messageTemplates`).
+   */
   welcomeMessage: text("welcome_message")
     .notNull()
     .default("Thanks for opening a ticket! Staff will be with you shortly."),
+
+  /**
+   * Admin-configured rich system messages (welcome, claim notice, close DM,
+   * transcript post) designed in the dashboard embed editor. Absent keys fall
+   * back to the bot's built-in defaults.
+   */
+  messageTemplates: jsonb("message_templates")
+    .$type<GuildMessageTemplates>()
+    .notNull()
+    .default({}),
 
   /** Max simultaneously-open tickets a single user may have (0 = unlimited). */
   ticketLimit: bigint("ticket_limit", { mode: "number" }).notNull().default(1),

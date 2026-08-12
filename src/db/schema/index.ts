@@ -4,5 +4,6 @@
  */
 export * from "./auth";
 export * from "./guilds";
+export * from "./message-template";
 export * from "./panels";
 export * from "./tickets";
