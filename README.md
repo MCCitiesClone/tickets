@@ -159,6 +159,9 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
+- [ ] CI: GitHub Actions for lint, typecheck & Docker build ([#15](https://github.com/MCCitiesClone/tickets/issues/15))
+- [ ] Fix: multi-panel dropdown keeps the previous selection ([#18](https://github.com/MCCitiesClone/tickets/issues/18))
+- [ ] Archive images/files from tickets into transcripts ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 
 **Medium priority**
 
@@ -167,11 +170,20 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Ticket priority levels ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
 - [ ] Working hours / outside-hours notice ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
 - [ ] Applications module — application forms that convert to tickets ([#11](https://github.com/MCCitiesClone/tickets/issues/11))
+- [ ] Publish Docker images to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
+- [ ] Semantic versioning + auto-generated changelog ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
+- [ ] Improve onboarding & multi-server switching ([#21](https://github.com/MCCitiesClone/tickets/issues/21))
+- [ ] Members can view transcripts for their own tickets ([#22](https://github.com/MCCitiesClone/tickets/issues/22))
+- [ ] Simplify the embed editor for non-technical users ([#23](https://github.com/MCCitiesClone/tickets/issues/23))
+- [ ] Reusable form questions shared across panels ([#24](https://github.com/MCCitiesClone/tickets/issues/24))
+- [ ] Richer form field types — select, checkbox, radio, file upload ([#25](https://github.com/MCCitiesClone/tickets/issues/25))
 
 **Low priority / later**
 
 - [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
 - [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
+- [ ] Custom emoji in multi-panel dropdown options ([#14](https://github.com/MCCitiesClone/tickets/issues/14))
+- [ ] Docs: comparison page vs other ticket bots ([#19](https://github.com/MCCitiesClone/tickets/issues/19))
 
 ## License
 
