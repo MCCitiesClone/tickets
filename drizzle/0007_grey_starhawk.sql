@@ -1,0 +1,1 @@
+ALTER TABLE "ticket" ADD COLUMN "notes_thread_id" text;

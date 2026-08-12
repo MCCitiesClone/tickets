@@ -101,6 +101,14 @@ export async function setTicketPanel(
   await db.update(ticket).set({ panelId }).where(eq(ticket.id, id));
 }
 
+/** Record the private staff-notes thread created for a ticket. */
+export async function setTicketNotesThread(
+  id: string,
+  notesThreadId: string,
+): Promise<void> {
+  await db.update(ticket).set({ notesThreadId }).where(eq(ticket.id, id));
+}
+
 // --- Transcript capture ----------------------------------------------------
 
 /** Open tickets' channel IDs, used to warm the bot's in-memory capture cache. */

@@ -50,6 +50,9 @@ export const ticket = pgTable("ticket", {
   /** Discord user ID of the staff member who claimed the ticket. */
   claimedBy: text("claimed_by"),
 
+  /** Private staff-only notes thread attached to this ticket, if created. */
+  notesThreadId: text("notes_thread_id"),
+
   /** Answers the opener gave to the panel's form questions (may be empty). */
   formResponses: jsonb("form_responses")
     .$type<{ question: string; answer: string }[]>()
