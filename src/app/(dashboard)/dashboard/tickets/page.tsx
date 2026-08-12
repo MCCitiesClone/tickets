@@ -1,4 +1,5 @@
-import { Ticket as TicketIcon } from "lucide-react";
+import Link from "next/link";
+import { FileText, Ticket as TicketIcon } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { getActiveGuild } from "@/lib/active-guild";
@@ -44,6 +45,7 @@ export default async function TicketsPage() {
                 <th className="px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2 font-medium">Claimed by</th>
                 <th className="px-4 py-2 font-medium">Opened</th>
+                <th className="px-4 py-2 font-medium">Transcript</th>
               </tr>
             </thead>
             <tbody>
@@ -67,6 +69,19 @@ export default async function TicketsPage() {
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {t.openedAt.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2">
+                    {t.transcriptToken ? (
+                      <Link
+                        href={`/transcripts/${t.transcriptToken}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <FileText className="size-3.5" /> View
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
