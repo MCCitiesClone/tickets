@@ -34,6 +34,10 @@ Run these inside a ticket channel.
 | `/rename <name>`                     | `name` — required, ≤80 chars                                            | Staff             | Renames the channel prefix, keeping the ticket number (e.g. `bug-42`). |
 | `/switchpanel <panel>`               | `panel` — required, autocompletes panel names                           | Staff             | Moves the ticket to another panel (category, naming, roles).           |
 | `/notes`                             | —                                                                       | Staff             | Opens a private staff-only notes thread on the ticket.                 |
+| `/cannedresponse <name>`             | `name` — required, autocompletes saved responses                        | Staff             | Posts a saved [canned response](/docs/canned-responses) into the channel. |
 
 See the [ticket lifecycle](/docs/tickets) for how these fit together, and how
 tickets also open and close from panel **buttons** rather than commands.
+
+`/cannedresponse` also works outside tickets (any channel a staff member can
+use it in) — see [canned responses](/docs/canned-responses).

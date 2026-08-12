@@ -8,8 +8,8 @@ easy to run yourself and to own your own data.
 
 > **Status: functional.** Configuration, panels, forms, multi-panels, the full
 > ticket lifecycle (open → claim → reply → close → transcript), rich message
-> templates, close requests, staff notes, and a shareable transcript viewer all
-> work end to end. Canned responses, a per-user blacklist, and in-dashboard
+> templates, canned responses, close requests, staff notes, and a shareable
+> transcript viewer all work end to end. A per-user blacklist and in-dashboard
 > stats are still to come — see the [roadmap](#roadmap).
 
 ---
@@ -150,28 +150,47 @@ Repository copies of the core setup guides:
 - [x] Rich message templates (welcome, claim, close DM, transcript post)
 - [x] Shareable transcript viewer + optional DM-on-close; tickets list in dashboard
 - [x] MIT licensed
+- [x] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
 **High priority**
 
-- [ ] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
 - [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
+- [ ] CI: GitHub Actions for lint, typecheck & Docker build ([#15](https://github.com/MCCitiesClone/tickets/issues/15))
+- [ ] Fix: multi-panel dropdown keeps the previous selection ([#18](https://github.com/MCCitiesClone/tickets/issues/18))
+- [ ] Archive images/files from tickets into transcripts ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
+- [ ] Overflow category when a ticket category is full ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
 
 **Medium priority**
 
 - [ ] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
 - [ ] Thread-based tickets — alternative to channels ([#7](https://github.com/MCCitiesClone/tickets/issues/7))
 - [ ] Ticket priority levels ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
-- [ ] Working hours / outside-hours notice ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
+- [ ] Support hours & response-time expectations ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
 - [ ] Applications module — application forms that convert to tickets ([#11](https://github.com/MCCitiesClone/tickets/issues/11))
+- [ ] Publish Docker images to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
+- [ ] Semantic versioning + auto-generated changelog ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
+- [ ] Improve onboarding & multi-server switching ([#21](https://github.com/MCCitiesClone/tickets/issues/21))
+- [ ] Members can view transcripts for their own tickets ([#22](https://github.com/MCCitiesClone/tickets/issues/22))
+- [ ] Simplify the embed editor for non-technical users ([#23](https://github.com/MCCitiesClone/tickets/issues/23))
+- [ ] Reusable form questions shared across panels ([#24](https://github.com/MCCitiesClone/tickets/issues/24))
+- [ ] Richer form field types — select, checkbox, radio groups ([#25](https://github.com/MCCitiesClone/tickets/issues/25))
+- [ ] Audit log view in the dashboard ([#26](https://github.com/MCCitiesClone/tickets/issues/26))
+- [ ] Ticket status board channels per category ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
+- [ ] On-call support — ping on-call staff on open ([#29](https://github.com/MCCitiesClone/tickets/issues/29))
+- [ ] Warn near Discord's 50-channel-per-category limit ([#30](https://github.com/MCCitiesClone/tickets/issues/30))
 
 **Low priority / later**
 
 - [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
 - [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
+- [ ] Custom emoji in multi-panel dropdown options ([#14](https://github.com/MCCitiesClone/tickets/issues/14))
+- [ ] Docs: comparison page vs other ticket bots ([#19](https://github.com/MCCitiesClone/tickets/issues/19))
+- [ ] Dynamic date/time placeholders in messages ([#27](https://github.com/MCCitiesClone/tickets/issues/27))
+- [ ] Autocomplete close-request reasons ([#32](https://github.com/MCCitiesClone/tickets/issues/32))
 
 ## License
 

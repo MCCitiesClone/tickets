@@ -1,0 +1,53 @@
+export const metadata = {
+  title: "Canned responses",
+  description:
+    "Saved, reusable staff replies posted into a channel with /cannedresponse.",
+};
+
+# Canned responses
+
+**Canned responses** are saved, reusable replies your staff can drop into a
+channel with a single command — answers to FAQs, policy blurbs, "we're looking
+into it" holding messages, and the like. You design them in the dashboard using
+the same rich embed editor as [message templates](/docs/messages), and staff
+post them in a ticket with `/cannedresponse`.
+
+## Creating one
+
+Open **Canned responses** in the dashboard, click **New response**, and fill in:
+
+| Field           | Notes                                                                       |
+| --------------- | --------------------------------------------------------------------------- |
+| Name            | The short key staff pick from `/cannedresponse` autocomplete (unique, ≤80). |
+| Description     | Optional one-line summary shown in the dashboard list.                      |
+| Restrict to roles | Optional. Leave empty to let any staff member use it; set roles to limit it. |
+| Message         | Content and/or up to 10 embeds, built in the embed editor.                  |
+
+## Using one
+
+In a channel, run `/cannedresponse` and pick a response by name — the option
+autocompletes as you type, showing only the responses you're allowed to use. The
+bot posts the rendered message into the channel.
+
+Who can use it:
+
+- **Staff only** — a member with a configured staff role or the Manage Channels
+  permission. (See [Configuration](/docs/configuration#per-server-guild-settings).)
+- If a response has **role restrictions**, the member must additionally have one
+  of those roles (members with Manage Channels bypass this).
+
+## Placeholders
+
+Canned responses support the same `{placeholder}` tokens as message templates.
+The following are filled in at send time:
+
+- `{server}` — the server (guild) name.
+- `{channel}` — a mention of the channel the command was run in.
+
+When the command is run **inside a ticket channel**, these are also filled:
+
+- `{ticket}` / `{number}` — the ticket's number.
+- `{opener}` — a mention of the member who opened the ticket.
+
+Tokens that can't be resolved (for example ticket tokens used outside a ticket)
+are left as-is.
