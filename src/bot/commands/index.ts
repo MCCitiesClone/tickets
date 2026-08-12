@@ -1,6 +1,7 @@
 import type { Command } from "../types";
 import { claimCommand, unclaimCommand } from "./claim";
 import { closeCommand } from "./close";
+import { closeRequestCommand } from "./closerequest";
 import { addCommand, removeCommand } from "./members";
 import { notesCommand } from "./notes";
 import { panelCommand } from "./panel";
@@ -20,6 +21,7 @@ export const commands: Command[] = [
   setupCommand,
   panelCommand,
   closeCommand,
+  closeRequestCommand,
   claimCommand,
   unclaimCommand,
   addCommand,
