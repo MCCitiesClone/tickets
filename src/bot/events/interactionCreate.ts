@@ -65,6 +65,16 @@ export async function onInteractionCreate(
     return;
   }
 
+  if (interaction.isAutocomplete()) {
+    const command = commandMap.get(interaction.commandName);
+    try {
+      await command?.autocomplete?.(interaction);
+    } catch (err) {
+      console.error(`Error autocompleting /${interaction.commandName}:`, err);
+    }
+    return;
+  }
+
   if (interaction.isButton()) {
     const [action, id] = interaction.customId.split(":");
     try {

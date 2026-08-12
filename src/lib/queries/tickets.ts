@@ -93,6 +93,14 @@ export async function setTicketClaimedBy(
   await db.update(ticket).set({ claimedBy }).where(eq(ticket.id, id));
 }
 
+/** Re-associate a ticket with a different panel. */
+export async function setTicketPanel(
+  id: string,
+  panelId: string,
+): Promise<void> {
+  await db.update(ticket).set({ panelId }).where(eq(ticket.id, id));
+}
+
 // --- Transcript capture ----------------------------------------------------
 
 /** Open tickets' channel IDs, used to warm the bot's in-memory capture cache. */

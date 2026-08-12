@@ -4,7 +4,9 @@ import { closeCommand } from "./close";
 import { addCommand, removeCommand } from "./members";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
+import { renameCommand } from "./rename";
 import { setupCommand } from "./setup";
+import { switchPanelCommand } from "./switchpanel";
 
 /**
  * The command registry. Add new commands here — this single list is the source
@@ -21,6 +23,8 @@ export const commands: Command[] = [
   unclaimCommand,
   addCommand,
   removeCommand,
+  renameCommand,
+  switchPanelCommand,
 ];
 
 /** Lookup by command name, used by the interaction handler. */

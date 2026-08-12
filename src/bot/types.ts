@@ -1,4 +1,5 @@
 import type {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   SlashCommandBuilder,
   SlashCommandOptionsOnlyBuilder,
@@ -13,4 +14,8 @@ export interface Command {
     | SlashCommandSubcommandsOnlyBuilder
     | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void> | void;
+  /** Optional handler for option autocomplete (for options with autocomplete). */
+  autocomplete?: (
+    interaction: AutocompleteInteraction,
+  ) => Promise<void> | void;
 }
