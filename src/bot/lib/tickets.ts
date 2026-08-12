@@ -1263,7 +1263,7 @@ export async function requestClose(
     .setTitle("Close request")
     .setDescription(
       `<@${interaction.user.id}> has requested to close this ticket.\n` +
-        "Another member can confirm below to close it" +
+        "Click **Confirm & close** below to close it" +
         (expiresAt
           ? `, otherwise it will auto-close <t:${Math.floor(expiresAt.getTime() / 1000)}:R>.`
           : "."),
@@ -1299,13 +1299,6 @@ export async function confirmCloseRequest(
     await replyError(
       interaction,
       "There's no active close request for this ticket.",
-    );
-    return;
-  }
-  if (interaction.user.id === ticket.closeRequestedBy) {
-    await replyError(
-      interaction,
-      "Someone else must confirm your close request.",
     );
     return;
   }
