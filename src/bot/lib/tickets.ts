@@ -41,7 +41,11 @@ import {
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { messageToRow } from "./message-snapshot";
-import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
+import {
+  ignoreMessage,
+  trackTicketChannel,
+  untrackTicketChannel,
+} from "./ticket-channels";
 
 type Interaction =
   | ButtonInteraction
@@ -451,10 +455,16 @@ export async function openTicket(
 
   try {
     await channel.send({
-      content: mentions,
       embeds: [embed],
       components: buildControls(buttonVisibility(panel), ticket.id, null),
     });
+
+    // Ping the opener and any mention roles with a throwaway message, then
+    // delete it. The notification still fires, but no mention line lingers in
+    // the channel (or the transcript — see `ignoreMessage`).
+    const ping = await channel.send({ content: mentions });
+    ignoreMessage(ping.id);
+    await ping.delete().catch(() => {});
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
   }
@@ -830,9 +840,9 @@ export async function openStaffNotes(
   let thread;
   try {
     thread = await (channel as TextChannel).threads.create({
-      name: `notes-${ticket.number}`,
+      name: `notes`,
       type: ChannelType.PrivateThread,
-      invitable: false,
+      invitable: true,
       autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
       reason: `Staff notes for ticket #${ticket.number}`,
     });
@@ -854,34 +864,23 @@ export async function openStaffNotes(
     ? panel.supportRoleIds
     : config.staffRoleIds;
 
-  await thread.members.add(interaction.user.id).catch(() => {});
-  const added = new Set<string>([interaction.user.id]);
-  for (const roleId of roleIds) {
-    const role = guild.roles.cache.get(roleId);
-    if (!role) continue;
-    for (const member of role.members.values()) {
-      if (member.user.bot || added.has(member.id)) continue;
-      added.add(member.id);
-      await thread.members.add(member.id).catch(() => {});
-    }
-  }
+
 
   const mentions = roleIds.map((r) => `<@&${r}>`).join(" ");
   await thread
     .send({
       content:
-        `🗒️ **Private staff notes for ticket #${ticket.number}.**\n` +
-        "The ticket opener can't see this thread — use it for internal discussion." +
         (mentions ? `\n${mentions}` : ""),
       allowedMentions: { roles: roleIds },
     })
     .catch(() => {});
+  
 
-  await interaction.editReply(`🗒️ Created private staff notes: <#${thread.id}>`);
+  await interaction.editReply(`A notes thread has been created for this ticket: <#${thread.id}>`);
   await logAction(
     guild,
     config,
-    `🗒️ Staff notes opened for ticket #${ticket.number} by <@${interaction.user.id}>`,
+    `Staff notes opened for ticket #${ticket.number} by <@${interaction.user.id}>`,
   );
 }
 
