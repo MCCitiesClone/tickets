@@ -1,7 +1,7 @@
 import type { Message, PartialMessage } from "discord.js";
 
 import { markMessageEdited } from "@/lib/queries/tickets";
-import { getTrackedTicket, isMessageIgnored } from "../lib/ticket-channels";
+import { getTrackedTicket } from "../lib/ticket-channels";
 
 /**
  * Record content edits to captured ticket messages. discord.js also fires this
@@ -14,7 +14,6 @@ export async function onMessageUpdate(
 ): Promise<void> {
   const ticketId = getTrackedTicket(newMessage.channelId);
   if (!ticketId) return;
-  if (isMessageIgnored(newMessage.id)) return;
 
   try {
     const message = newMessage.partial ? await newMessage.fetch() : newMessage;

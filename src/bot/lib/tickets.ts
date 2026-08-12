@@ -41,11 +41,7 @@ import {
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { messageToRow } from "./message-snapshot";
-import {
-  ignoreMessage,
-  trackTicketChannel,
-  untrackTicketChannel,
-} from "./ticket-channels";
+import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
 
 type Interaction =
   | ButtonInteraction
@@ -435,11 +431,6 @@ export async function openTicket(
     content: `Your ticket is ready: <#${channel.id}>`,
   });
 
-  const mentions = [
-    `<@${user.id}>`,
-    ...panel.mentionRoleIds.map((r) => `<@&${r}>`),
-  ].join(" ");
-
   const embed = new EmbedBuilder()
     .setTitle(`Ticket #${number}`)
     .setDescription(panel.welcomeMessage || config.welcomeMessage)
@@ -464,35 +455,6 @@ export async function openTicket(
     });
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
-  }
-
-  // Ping the opener and any mention roles with a throwaway message, then remove
-  // it. The notification still fires, but no mention line lingers in the channel
-  // (or the transcript — the id is ignored by the capture listeners).
-  //
-  // Deleting a message within milliseconds of sending it can race Discord's
-  // propagation and throw "Unknown Message", leaving it undeleted — so we let it
-  // settle briefly first. If the delete still fails we blank the message
-  // instead, which can't fail on permissions the way deleting can.
-  try {
-    const ping = await channel.send({ content: mentions });
-    ignoreMessage(ping.id);
-    await sleep(1000);
-    try {
-      await ping.delete();
-    } catch (deleteErr) {
-      console.error(
-        "Failed to delete ticket ping; blanking it instead:",
-        deleteErr,
-      );
-      await ping
-        .edit({ content: "​", allowedMentions: { parse: [] } })
-        .catch((editErr) =>
-          console.error("Failed to blank ticket ping:", editErr),
-        );
-    }
-  } catch (err) {
-    console.error("Failed to post ticket ping:", err);
   }
 
   await logAction(
@@ -890,19 +852,26 @@ export async function openStaffNotes(
     ? panel.supportRoleIds
     : config.staffRoleIds;
 
+  // Ping the support roles to pull staff into the private thread, then delete
+  // the message — the notification still fires (deleting doesn't retract it),
+  // but no mention lingers. A brief settle avoids a send/delete race.
+  if (roleIds.length > 0) {
+    const mentions = roleIds.map((r) => `<@&${r}>`).join(" ");
+    try {
+      const ping = await thread.send({
+        content: mentions,
+        allowedMentions: { roles: roleIds },
+      });
+      await sleep(1000);
+      await ping.delete();
+    } catch (err) {
+      console.error("Failed to send/delete staff notes ping:", err);
+    }
+  }
 
-
-  const mentions = roleIds.map((r) => `<@&${r}>`).join(" ");
-  await thread
-    .send({
-      content:
-        (mentions ? `\n${mentions}` : ""),
-      allowedMentions: { roles: roleIds },
-    })
-    .catch(() => {});
-  
-
-  await interaction.editReply(`A notes thread has been created for this ticket: <#${thread.id}>`);
+  await interaction.editReply(
+    `A notes thread has been created for this ticket: <#${thread.id}>`,
+  );
   await logAction(
     guild,
     config,
