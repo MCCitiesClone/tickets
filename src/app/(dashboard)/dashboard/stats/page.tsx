@@ -6,8 +6,9 @@ import { formatDuration } from "@/lib/duration";
 import { getGuildStats } from "@/lib/queries/stats";
 import { requireSession } from "@/lib/session";
 import { EmptyState, PageHeader } from "../../page-shell";
-import { StatsCharts } from "./stats-charts";
-import { StatsRangeSelect } from "./stats-range-select";
+import { StatsCharts } from "../stats-charts";
+import { StatsExport } from "../stats-export";
+import { StatsRangeSelect } from "../stats-range-select";
 
 const RANGES: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
 const DEFAULT_RANGE = "30d";
@@ -57,7 +58,16 @@ export default async function StatsPage({
             ? `Ticket activity for ${active.name} over the last ${range.replace("d", " days")}.`
             : "Ticket activity and analytics."
         }
-        action={active ? <StatsRangeSelect value={range} /> : undefined}
+        action={
+          active && stats ? (
+            <div className="flex items-center gap-2">
+              <StatsRangeSelect value={range} />
+              <StatsExport stats={stats} range={range} />
+            </div>
+          ) : active ? (
+            <StatsRangeSelect value={range} />
+          ) : undefined
+        }
       />
 
       {!active || !stats ? (
