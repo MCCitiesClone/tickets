@@ -58,6 +58,10 @@ type OpenInteraction =
   | StringSelectMenuInteraction;
 export type FormAnswer = { question: string; answer: string };
 
+/** Promise-based delay. */
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 /** Permissions granted to a member with access to a ticket channel. */
 const TICKET_MEMBER_PERMS = [
   PermissionFlagsBits.ViewChannel,
@@ -458,15 +462,37 @@ export async function openTicket(
       embeds: [embed],
       components: buildControls(buttonVisibility(panel), ticket.id, null),
     });
-
-    // Ping the opener and any mention roles with a throwaway message, then
-    // delete it. The notification still fires, but no mention line lingers in
-    // the channel (or the transcript — see `ignoreMessage`).
-    const ping = await channel.send({ content: mentions });
-    ignoreMessage(ping.id);
-    await ping.delete().catch(() => {});
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
+  }
+
+  // Ping the opener and any mention roles with a throwaway message, then remove
+  // it. The notification still fires, but no mention line lingers in the channel
+  // (or the transcript — the id is ignored by the capture listeners).
+  //
+  // Deleting a message within milliseconds of sending it can race Discord's
+  // propagation and throw "Unknown Message", leaving it undeleted — so we let it
+  // settle briefly first. If the delete still fails we blank the message
+  // instead, which can't fail on permissions the way deleting can.
+  try {
+    const ping = await channel.send({ content: mentions });
+    ignoreMessage(ping.id);
+    await sleep(1000);
+    try {
+      await ping.delete();
+    } catch (deleteErr) {
+      console.error(
+        "Failed to delete ticket ping; blanking it instead:",
+        deleteErr,
+      );
+      await ping
+        .edit({ content: "​", allowedMentions: { parse: [] } })
+        .catch((editErr) =>
+          console.error("Failed to blank ticket ping:", editErr),
+        );
+    }
+  } catch (err) {
+    console.error("Failed to post ticket ping:", err);
   }
 
   await logAction(
