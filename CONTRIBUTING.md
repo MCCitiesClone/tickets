@@ -40,13 +40,20 @@ docs: document canned-response placeholders
 
 ## Releases
 
-Releases are automated with
-[release-please](https://github.com/googleapis/release-please):
+Releases are fully automated with
+[semantic-release](https://github.com/semantic-release/semantic-release) — there
+is **no release PR to approve**. When a releasable change (a `feat:` or `fix:`,
+or a breaking change) lands on `main`, the
+[`release` workflow](.github/workflows/release.yml):
 
-1. Merging Conventional Commits to `main` keeps an open **"release" PR** that
-   bumps the version in `package.json` and updates `CHANGELOG.md`.
-2. Merging that release PR tags the release, creates a GitHub Release, and — in
-   the same [`release` workflow](.github/workflows/release.yml) — builds and
-   pushes the `web` and `bot` images to the GitHub Container Registry (GHCR).
+1. computes the next version from the Conventional Commits since the last
+   release,
+2. updates `CHANGELOG.md` and `package.json`, commits them, and tags the
+   release,
+3. creates the GitHub Release, and
+4. builds and pushes the `web` and `bot` images to the GitHub Container Registry
+   (GHCR).
 
-You never bump the version or edit `CHANGELOG.md` by hand.
+Commits that don't affect users (`docs:`, `ci:`, `chore:`, `refactor:`,
+`build:`) don't trigger a release. You never bump the version or edit
+`CHANGELOG.md` by hand.
