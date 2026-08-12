@@ -75,6 +75,23 @@ function pickTemplate(
   return null;
 }
 
+/** Accent colours for the bot's built-in (unconfigured) system embeds. */
+const EMBED_COLOR = {
+  info: 0x5865f2,
+  success: 0x57f287,
+  neutral: 0x99aab5,
+} as const;
+
+/** A single-button action row linking out to a URL (e.g. a transcript). */
+function linkButtonRow(
+  label: string,
+  url: string,
+): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url),
+  );
+}
+
 /** Permissions granted to a member with access to a ticket channel. */
 const TICKET_MEMBER_PERMS = [
   PermissionFlagsBits.ViewChannel,
@@ -596,9 +613,15 @@ async function setClaim(
           channel: `<#${ticket.channelId}>`,
         })
       : {
-          content: claim
-            ? `🙋 <@${userId}> claimed this ticket.`
-            : `🙌 <@${userId}> released this ticket.`,
+          embeds: [
+            new EmbedBuilder()
+              .setColor(claim ? EMBED_COLOR.success : EMBED_COLOR.neutral)
+              .setDescription(
+                claim
+                  ? `🙋 <@${userId}> claimed this ticket.`
+                  : `🙌 <@${userId}> released this ticket.`,
+              ),
+          ],
         };
 
   // Update the opening message's buttons when acting via them; otherwise post.
@@ -1055,10 +1078,22 @@ export async function closeTicket(
       const payload = tmpl
         ? renderTemplate(tmpl, closeVars)
         : {
-            content:
-              `📄 Transcript for ticket #${ticket.number} — <${url}>\n` +
-              `Closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).` +
-              (reason ? `\nReason: ${reason}` : ""),
+            embeds: [
+              (() => {
+                const embed = new EmbedBuilder()
+                  .setTitle(`Ticket #${ticket.number} closed`)
+                  .setColor(EMBED_COLOR.info)
+                  .addFields(
+                    { name: "Opened by", value: `<@${ticket.openerId}>`, inline: true },
+                    { name: "Closed by", value: `<@${interaction.user.id}>`, inline: true },
+                  );
+                if (reason) {
+                  embed.addFields({ name: "Reason", value: reason.slice(0, 1024) });
+                }
+                return embed;
+              })(),
+            ],
+            components: [linkButtonRow("View transcript", url)],
           };
       await transcriptChannel
         .send({ ...payload, allowedMentions: { parse: [] } })
@@ -1072,14 +1107,22 @@ export async function closeTicket(
     try {
       const opener = await guild.client.users.fetch(ticket.openerId);
       const tmpl = pickTemplate(config.messageTemplates?.closeDm);
-      const payload = tmpl
-        ? renderTemplate(tmpl, closeVars)
-        : {
-            content:
-              `Your ticket #${ticket.number} in **${guild.name}** was closed.` +
-              (reason ? `\nReason: ${reason}` : "") +
-              `\nTranscript: ${url}`,
-          };
+      let payload;
+      if (tmpl) {
+        payload = renderTemplate(tmpl, closeVars);
+      } else {
+        const embed = new EmbedBuilder()
+          .setTitle(`Ticket #${ticket.number} closed`)
+          .setColor(EMBED_COLOR.info)
+          .setDescription(`Your ticket in **${guild.name}** was closed.`);
+        if (reason) {
+          embed.addFields({ name: "Reason", value: reason.slice(0, 1024) });
+        }
+        payload = {
+          embeds: [embed],
+          components: [linkButtonRow("View transcript", url)],
+        };
+      }
       await opener.send(payload);
     } catch (err) {
       console.error("Failed to DM transcript to opener:", err);
