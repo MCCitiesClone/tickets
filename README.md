@@ -10,9 +10,9 @@ easy to run yourself and to own your own data.
 
 > **Status: functional.** Configuration, panels, forms, multi-panels, the full
 > ticket lifecycle (open → claim → reply → close → transcript), rich message
-> templates, canned responses, close requests, staff notes, and a shareable
-> transcript viewer all work end to end. A per-user blacklist and in-dashboard
-> stats are still to come — see the [roadmap](#roadmap).
+> templates, canned responses, close requests, staff notes, a user/role
+> blacklist, and a shareable transcript viewer all work end to end. An
+> in-dashboard stats view is still to come — see the [roadmap](#roadmap).
 
 ---
 
@@ -40,14 +40,16 @@ easy to run yourself and to own your own data.
   events are logged to a configurable log channel.
 - **Close requests** — `/closerequest [hours] [reason]` asks the opener to
   confirm, with an optional auto-close timer if nobody responds.
+- **Blacklist** — block specific users or roles from opening tickets, from the
+  dashboard or `/blacklist`; enforced before a ticket channel is created.
 - **Message templates** — design the welcome, claim-notice, close-DM, and
   transcript-post messages as rich embeds in the dashboard editor, with
   `{placeholder}` tokens.
 - **Transcripts** — every closed ticket is archived and viewable at a shareable,
   unguessable link; optionally DMed to the opener on close.
 - **Slash commands** — `/ping`, `/close`, `/closerequest`, `/claim`, `/unclaim`,
-  `/add`, `/remove`, `/rename`, `/switchpanel`, `/notes`; `/setup` and `/panel`
-  link to the dashboard.
+  `/add`, `/remove`, `/rename`, `/switchpanel`, `/notes`, `/cannedresponse`,
+  `/blacklist`; `/setup` and `/panel` link to the dashboard.
 - **Self-hostable** — one `docker compose up` brings up Postgres, the web app,
   and the bot. Your data stays on your infrastructure.
 
@@ -158,12 +160,12 @@ Repository copies of the core setup guides:
 - [x] Automated releases + changelog via semantic-release ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
 - [x] Overflow categories — auto-route around Discord's 50-per-category limit ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
 - [x] Archived attachments — transcripts keep images/files past Discord's expiring CDN ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
+- [x] User & role blacklist — block abusers from opening tickets ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
 **High priority**
 
-- [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 

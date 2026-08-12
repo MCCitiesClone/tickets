@@ -58,6 +58,7 @@ import {
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { getCannedResponse } from "@/lib/queries/canned-responses";
+import { findBlacklistMatch } from "@/lib/queries/blacklist";
 import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
@@ -323,6 +324,21 @@ async function precheckOpen(
     await replyError(
       interaction,
       "Tickets aren't fully configured on this server yet. Ask an admin to set a ticket category in the dashboard.",
+    );
+    return null;
+  }
+
+  // Blacklist: block the member up front if they (or one of their roles) are
+  // banned from opening tickets in this guild.
+  const banned = await findBlacklistMatch(guildId, user.id, [
+    ...member.roles.cache.keys(),
+  ]);
+  if (banned) {
+    await replyError(
+      interaction,
+      banned.reason?.trim()
+        ? `You're blocked from opening tickets in this server: ${banned.reason}`
+        : "You're blocked from opening tickets in this server.",
     );
     return null;
   }
