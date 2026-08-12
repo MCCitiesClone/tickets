@@ -2,6 +2,7 @@ import type { Command } from "../types";
 import { claimCommand, unclaimCommand } from "./claim";
 import { closeCommand } from "./close";
 import { addCommand, removeCommand } from "./members";
+import { notesCommand } from "./notes";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
 import { renameCommand } from "./rename";
@@ -25,6 +26,7 @@ export const commands: Command[] = [
   removeCommand,
   renameCommand,
   switchPanelCommand,
+  notesCommand,
 ];
 
 /** Lookup by command name, used by the interaction handler. */

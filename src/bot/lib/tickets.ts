@@ -17,8 +17,10 @@ import {
   type OverwriteResolvable,
   PermissionFlagsBits,
   type StringSelectMenuInteraction,
+  type TextChannel,
   TextInputBuilder,
   TextInputStyle,
+  ThreadAutoArchiveDuration,
 } from "discord.js";
 
 import type { AccessRule, Guild, NewTicketMessage, Panel, Ticket } from "@/db/schema";
@@ -34,6 +36,7 @@ import {
   getTicketByChannel,
   markTicketClosed,
   setTicketClaimedBy,
+  setTicketNotesThread,
   setTicketPanel,
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
@@ -777,6 +780,108 @@ export async function switchTicketPanel(
     `🔀 Ticket #${ticket.number} switched to panel "${panel.title}"` +
       (renamedTo ? ` (renamed to \`${renamedTo}\`)` : "") +
       ` by <@${interaction.user.id}>`,
+  );
+}
+
+/**
+ * Open (or reuse) a private, staff-only thread attached to the ticket channel
+ * for internal discussion. Because it's a *private* thread, the opener — who
+ * only has parent-channel access, not Manage Threads — cannot see it. Staff
+ * only.
+ */
+export async function openStaffNotes(
+  interaction: ChatInputCommandInteraction,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!isStaff(interaction, config)) {
+    await replyError(interaction, "Only staff can open staff notes.");
+    return;
+  }
+
+  const guild = interaction.guild!;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  // Reuse an existing notes thread if one is still live.
+  if (ticket.notesThreadId) {
+    const existing = await guild.channels
+      .fetch(ticket.notesThreadId)
+      .catch(() => null);
+    if (existing?.isThread()) {
+      if (existing.archived) await existing.setArchived(false).catch(() => {});
+      await existing.members.add(interaction.user.id).catch(() => {});
+      await interaction.editReply(`🗒️ Staff notes: <#${existing.id}>`);
+      return;
+    }
+  }
+
+  const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    await interaction.editReply("Couldn't access the ticket channel.");
+    return;
+  }
+
+  let thread;
+  try {
+    thread = await (channel as TextChannel).threads.create({
+      name: `notes-${ticket.number}`,
+      type: ChannelType.PrivateThread,
+      invitable: false,
+      autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+      reason: `Staff notes for ticket #${ticket.number}`,
+    });
+  } catch (err) {
+    console.error("Failed to create staff notes thread:", err);
+    await interaction.editReply(
+      "I couldn't create the notes thread. Check that I can Create Private Threads here.",
+    );
+    return;
+  }
+
+  await setTicketNotesThread(ticket.id, thread.id);
+
+  // Bring in staff: the invoker, plus any cached members of the ticket's
+  // support roles (best-effort — the starter message also pings those roles,
+  // and members with Manage Threads can see private threads regardless).
+  const panel = ticket.panelId ? await getPanel(ticket.panelId) : null;
+  const roleIds = panel?.supportRoleIds.length
+    ? panel.supportRoleIds
+    : config.staffRoleIds;
+
+  await thread.members.add(interaction.user.id).catch(() => {});
+  const added = new Set<string>([interaction.user.id]);
+  for (const roleId of roleIds) {
+    const role = guild.roles.cache.get(roleId);
+    if (!role) continue;
+    for (const member of role.members.values()) {
+      if (member.user.bot || added.has(member.id)) continue;
+      added.add(member.id);
+      await thread.members.add(member.id).catch(() => {});
+    }
+  }
+
+  const mentions = roleIds.map((r) => `<@&${r}>`).join(" ");
+  await thread
+    .send({
+      content:
+        `🗒️ **Private staff notes for ticket #${ticket.number}.**\n` +
+        "The ticket opener can't see this thread — use it for internal discussion." +
+        (mentions ? `\n${mentions}` : ""),
+      allowedMentions: { roles: roleIds },
+    })
+    .catch(() => {});
+
+  await interaction.editReply(`🗒️ Created private staff notes: <#${thread.id}>`);
+  await logAction(
+    guild,
+    config,
+    `🗒️ Staff notes opened for ticket #${ticket.number} by <@${interaction.user.id}>`,
   );
 }
 
