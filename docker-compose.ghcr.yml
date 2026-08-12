@@ -1,0 +1,20 @@
+# Run pre-built images from GHCR instead of building locally.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.ghcr.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+#
+# Pin a release with TICKETS_VERSION (e.g. TICKETS_VERSION=0.2.0); defaults to
+# the latest published images. `build: !reset null` drops the build section from
+# the base compose file so these services are pulled, not built.
+services:
+  migrate:
+    build: !reset null
+    image: ghcr.io/mccitiesclone/tickets-bot:${TICKETS_VERSION:-latest}
+
+  web:
+    build: !reset null
+    image: ghcr.io/mccitiesclone/tickets-web:${TICKETS_VERSION:-latest}
+
+  bot:
+    build: !reset null
+    image: ghcr.io/mccitiesclone/tickets-bot:${TICKETS_VERSION:-latest}

@@ -49,6 +49,21 @@ Inside Compose, `DATABASE_URL` is assembled automatically from `POSTGRES_USER`,
 host (the `DATABASE_URL` in `.env` is only used for non-Docker local dev). Change
 the `POSTGRES_*` values in `.env` to set your own credentials.
 
+## Pre-built images (GHCR)
+
+Every release publishes `web` and `bot` images to the GitHub Container Registry,
+so you can run without building locally via the `docker-compose.ghcr.yml`
+override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+```
+
+Images (`ghcr.io/mccitiesclone/tickets-web`, `ghcr.io/mccitiesclone/tickets-bot`)
+are tagged by version (`x.y.z`, `x.y`) and `latest`. Pin a release with
+`TICKETS_VERSION` (defaults to `latest`). Currently published for `linux/amd64`.
+
 ## Upgrading
 
 ```bash
