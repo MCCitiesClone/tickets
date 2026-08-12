@@ -1,0 +1,72 @@
+export const metadata = {
+  title: "Configuration",
+  description:
+    "Environment variables and per-server (guild) settings.",
+};
+
+# Configuration
+
+There are two layers of configuration: **environment variables** (secrets and
+deployment settings, set once when you host the app) and **per-server settings**
+(configured in the dashboard for each Discord server).
+
+## Environment variables
+
+Defined and validated in `src/lib/env.ts` with Zod — startup fails fast with a
+readable message if a required value is missing or malformed.
+
+| Variable                    | Required | Used by  | Description                                                                |
+| --------------------------- | :------: | -------- | -------------------------------------------------------------------------- |
+| `DATABASE_URL`              |    ✅    | web, bot | Postgres connection string. In Docker it's derived from `POSTGRES_*`.      |
+| `DISCORD_TOKEN`             |    ✅    | bot      | Bot token from the Developer Portal → Bot.                                 |
+| `DISCORD_CLIENT_ID`         |    ✅    | web, bot | Application ID. Used for the invite URL and command registration.          |
+| `DISCORD_CLIENT_SECRET`     |    ✅    | web      | OAuth2 client secret for dashboard sign-in.                                |
+| `BETTER_AUTH_SECRET`        |    ✅    | web      | Session-signing secret. Generate with `openssl rand -base64 32`.           |
+| `BETTER_AUTH_URL`           |    ➖    | web      | Public dashboard URL. Defaults to `http://localhost:3000`.                 |
+| `DISCORD_DEV_GUILD_ID`      |    ➖    | bot      | If set, slash commands register to this guild (instant) instead of global. |
+| `POSTGRES_USER/PASSWORD/DB` |    ➖    | compose  | Credentials for the Compose `postgres` service.                            |
+| `SKIP_ENV_VALIDATION`       |    ➖    | build    | Set during `next build` to skip validation (no real secrets needed).       |
+
+## Per-server (guild) settings
+
+Stored one row per Discord server in the `guild` table and edited from the
+dashboard: sign in, open **Settings**, and pick a server you manage. You need
+**Manage Server** on that server **and** the bot must already be in it. The
+`/setup` slash command is just a deep link to this page.
+
+| Setting               | Meaning                                                                          |
+| --------------------- | -------------------------------------------------------------------------------- |
+| Ticket category       | Category that new ticket channels are created under.                             |
+| Transcript channel    | Channel where closed-ticket transcript links are posted.                         |
+| Log channel           | Channel for audit messages (open, claim, rename, switch, close).                 |
+| DM transcript on close | When on, the opener is DMed the transcript link when their ticket closes.        |
+| Staff roles           | Roles granted access to every ticket channel; treated as staff for permissions.  |
+| Welcome message       | Plain-text first message posted in a new ticket (used when no rich welcome set).  |
+| Ticket limit          | Max simultaneously-open tickets per user. `0` = unlimited (default `1`).          |
+| Naming scheme         | Channel-name template. `{number}` and `{username}` are substituted.              |
+| Message templates     | Rich embed messages for welcome / claim / close DM / transcript post.            |
+
+> **Staff** for a ticket means: a member with one of the configured staff roles,
+> or a member with the **Manage Channels** permission. Staff bypass per-user
+> ticket limits and panel cooldowns.
+
+Message templates are covered in detail in
+[Message templates](/docs/messages), and panels have their own per-panel
+overrides in [Panels & forms](/docs/panels).
+
+## Database tables
+
+The full schema lives in `src/db/schema/`:
+
+| Table            | Purpose                                                              |
+| ---------------- | ------------------------------------------------------------------- |
+| `guild`          | Per-server settings (above) plus the atomic ticket counter.         |
+| `panel`          | Single ticket panels (button messages) and their overrides.         |
+| `multi_panel`    | Grouped panels shown as one message (buttons or dropdown).          |
+| `panel_cooldown` | Per-user, per-panel cooldown expiry.                                |
+| `ticket`         | One row per ticket: number, channel, opener, status, claim, etc.    |
+| `ticket_message` | Captured messages that make up a transcript.                        |
+| `transcript`     | The shareable transcript record (token, message count, reason).     |
+
+Auth tables (`user`, `session`, `account`, `verification`) are managed by
+Better-Auth's Drizzle adapter.

@@ -105,6 +105,6 @@ gateway client intentionally does **not** request that intent by default (doing
 so would block login until it's enabled), so enable it in the portal if you want
 complete transcripts.
 
-Still additive from here (schema already models them): claiming (`ticket.claimedBy`),
-tags, blacklist, and persisting messages into `ticket_message` for an in-dashboard
-transcript viewer.
+Messages are persisted into `ticket_message` (captured live and swept on close)
+and served by the shareable transcript viewer at `/transcripts/<token>`. Still
+additive from here: tags / canned responses and a per-user blacklist.

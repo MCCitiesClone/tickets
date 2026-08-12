@@ -1,0 +1,56 @@
+export const metadata = {
+  title: "Message templates",
+  description:
+    "Design the welcome, claim, close-DM, and transcript-post messages as rich embeds.",
+};
+
+# Message templates
+
+The bot's system messages can be designed as rich Discord messages — optional
+text plus up to **10 embeds** — in the dashboard's **Messages** editor. You edit
+a live preview and the bot renders the template at send time, substituting
+`{placeholder}` tokens for live values. If a template is left empty, the bot
+falls back to a sensible built-in embed, so configuring these is optional.
+
+## The four templates
+
+| Template          | Sent when                                                        |
+| ----------------- | ---------------------------------------------------------------- |
+| **Welcome**       | A ticket opens — posted as the first message in the channel.     |
+| **Claim notice**  | A staff member claims the ticket.                                |
+| **Close DM**      | A ticket closes, if _DM transcript on close_ is enabled.         |
+| **Transcript post** | A ticket closes and a transcript channel is configured.        |
+
+## What an embed can hold
+
+Each embed supports an author (name, icon, url), title, url, description, color,
+up to several fields (name / value / inline), an image, a thumbnail, a footer
+(text + icon), and a timestamp — mirroring Discord's own embed structure. The
+editor's preview reuses the same renderer as the [transcript viewer](/docs/tickets#transcripts),
+so what you see is what gets posted.
+
+## Placeholder tokens
+
+Tokens are replaced at send time. The tokens available depend on the template,
+because each is rendered in a different context:
+
+| Template          | Available tokens                                                            |
+| ----------------- | -------------------------------------------------------------------------- |
+| **Welcome**       | `{ticket}`, `{number}`, `{username}`, `{user}`, `{opener}`, `{server}`, `{channel}` |
+| **Claim notice**  | `{claimer}`, `{ticket}`, `{number}`, `{server}`, `{channel}`               |
+| **Close DM** / **Transcript post** | `{ticket}`, `{number}`, `{server}`, `{opener}`, `{closer}`, `{reason}`, `{transcript_url}` |
+
+Token meanings:
+
+- `{ticket}` / `{number}` — the ticket's number.
+- `{user}` / `{opener}` — a mention of the member who opened the ticket.
+- `{username}` — the opener's plain username (no mention).
+- `{claimer}` — a mention of the staff member who claimed the ticket.
+- `{closer}` — a mention of whoever closed the ticket.
+- `{server}` — the server (guild) name.
+- `{channel}` — a mention of the ticket channel.
+- `{reason}` — the close reason, if one was given.
+- `{transcript_url}` — the shareable transcript link.
+
+> The plain-text **Welcome message** in [guild settings](/docs/configuration) is
+> a simpler alternative used only when no rich Welcome template is configured.

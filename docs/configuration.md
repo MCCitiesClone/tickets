@@ -25,25 +25,33 @@ pick a server you manage (you need Manage Server and the bot must be present),
 and edit its config there. The `/setup` slash command just links you to that
 page. Saving in the dashboard creates/updates the row.
 
-| Field                 | Meaning                                                            |
-| --------------------- | ----------------------------------------------------------------- |
-| `guildId`             | Discord server snowflake (primary key).                           |
-| `ticketCategoryId`    | Category new ticket channels are created under.                   |
-| `transcriptChannelId` | Where closed-ticket transcripts are posted.                       |
-| `logChannelId`        | Channel for audit/log messages (open, close, claim…).             |
-| `staffRoleIds`        | Role IDs granted access to every ticket channel.                  |
-| `welcomeMessage`      | First message posted inside a newly opened ticket.                |
-| `ticketLimit`         | Max simultaneously-open tickets per user (`0` = unlimited).       |
-| `namingScheme`        | Channel name template. `{number}` / `{username}` are substituted. |
+| Field                  | Meaning                                                            |
+| ---------------------- | ----------------------------------------------------------------- |
+| `guildId`              | Discord server snowflake (primary key).                           |
+| `ticketCategoryId`     | Category new ticket channels are created under.                   |
+| `transcriptChannelId`  | Where closed-ticket transcript links are posted.                  |
+| `dmTranscriptOnClose`  | DM the opener the transcript link on close (default off).         |
+| `logChannelId`         | Channel for audit/log messages (open, close, claim, rename…).     |
+| `staffRoleIds`         | Role IDs granted access to every ticket channel.                  |
+| `welcomeMessage`       | Plain-text first message (used when no rich welcome template set).|
+| `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
+| `ticketLimit`          | Max simultaneously-open tickets per user (`0` = unlimited; default `1`). |
+| `namingScheme`         | Channel name template. `{number}` / `{username}` are substituted. |
+| `ticketCounter`        | Atomic per-guild counter that assigns each ticket its number.     |
 
 Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
 (`getGuild`, `upsertGuild`) so the web app and bot stay consistent.
 
 ## Other tables
 
-- `panel` — ticket panels (button messages). See `src/db/schema/panels.ts`.
-- `ticket` / `ticket_message` — tickets and archived transcript messages. See
-  `src/db/schema/tickets.ts`.
+- `panel` / `multi_panel` — ticket panels and grouped panels (button messages).
+  See `src/db/schema/panels.ts`.
+- `panel_cooldown` — per-user, per-panel cooldown expiry.
+- `ticket` — one row per ticket (number, channel, opener, status, claim, close
+  request, form responses). See `src/db/schema/tickets.ts`.
+- `ticket_message` — captured messages that make up a transcript.
+- `transcript` — the shareable transcript record (token, message count, reason).
 
-The lifecycle that populates `ticket`/`ticket_message` is not implemented yet —
-see [architecture.md](architecture.md) for where it plugs in.
+The full ticket lifecycle populates these tables end to end — see
+[architecture.md](architecture.md). Full documentation of every feature lives in
+the in-app docs at `/docs` (source under `src/app/docs/`).

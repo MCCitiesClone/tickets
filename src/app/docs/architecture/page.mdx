@@ -1,0 +1,87 @@
+export const metadata = {
+  title: "Architecture",
+  description: "How the web app and bot fit together over one database.",
+};
+
+# Architecture
+
+## Two processes, one database
+
+Tickets is a single repository that produces **two runtime processes** sharing
+one Postgres database through a common Drizzle layer:
+
+1. **Web** (`next start` / `src/app`) — the dashboard and Better-Auth, built as a
+   Next.js **standalone** server.
+2. **Bot** (`tsx src/bot/index.ts`) — the discord.js gateway connection.
+
+```
+                ┌───────────────┐        ┌──────────────┐
+  Browser  ───▶ │ web (Next.js) │        │ bot (disc.js)│ ◀─── Discord Gateway
+                │  dashboard +  │        │  slash cmds, │
+                │  Better-Auth  │        │  tickets     │
+                └──────┬────────┘        └──────┬───────┘
+                       │   shared src/db (Drizzle) │
+                       └───────────┬───────────────┘
+                                   ▼
+                            ┌────────────┐
+                            │ PostgreSQL │
+                            └────────────┘
+```
+
+## Repository layout
+
+```
+src/
+├── app/                     # Next.js App Router (web)
+│   ├── (auth)/sign-in/      #   Discord sign-in
+│   ├── (dashboard)/         #   session-guarded dashboard + sidebar
+│   ├── docs/                #   these documentation pages (MDX)
+│   ├── transcripts/[token]/ #   public transcript viewer
+│   ├── actions/             #   'use server' mutations (session-verified)
+│   └── api/                 #   Better-Auth handler + bot/guild REST reads
+├── bot/                     # discord.js process
+│   ├── index.ts             #   entry: loads env, logs in
+│   ├── commands/            #   slash-command registry
+│   ├── events/              #   ready + interactionCreate routing
+│   └── lib/                 #   ticket lifecycle, templates, registration
+├── db/                      # SHARED: Drizzle schema + client + migrations
+│   └── schema/              #   auth, guilds, panels, tickets, templates
+├── lib/                     # SHARED: env, auth, queries, discord helpers
+└── proxy.ts                 # optimistic dashboard auth gate (Next "middleware")
+```
+
+## Configuration is web-based
+
+All per-server configuration happens in the dashboard. A user may configure a
+server only when the bot is in it **and** they have Manage Server there —
+computed in `src/lib/guild-access.ts` by intersecting the bot's guilds with the
+user's manageable guilds. The `updateGuildConfig` server action re-checks this
+authorization on every save.
+
+## Why the bot is a separate process
+
+A Discord gateway connection must be **single and long-lived**. Running it inside
+Next.js breaks under dev HMR, doesn't survive serverless, and would open
+duplicate connections if the web app scaled horizontally. A dedicated process is
+also a clean, independently restartable Docker container.
+
+## Request / auth flow (web)
+
+1. `proxy.ts` does a cheap cookie check and redirects signed-out users away from
+   `/dashboard/*` (optimistic only — **not** a security boundary).
+2. The dashboard layout and every server action call `requireSession()`, the
+   real check.
+3. Better-Auth stores sessions and accounts in the same Postgres database via
+   the Drizzle adapter.
+
+## Notes for this Next.js build
+
+This repo pins a customized Next.js 16 (see `AGENTS.md`). Conventions to follow:
+
+- `params` / `searchParams` / `cookies()` / `headers()` are **async** — await
+  them.
+- Middleware is renamed to **`proxy.ts`**.
+- `output: "standalone"` is set for slim Docker images.
+- The docs pages use `@next/mdx`; `.mdx`/`.md` are registered in
+  `pageExtensions` and styled via `src/mdx-components.tsx`.
+- Read `node_modules/next/dist/docs/` before adding framework features.

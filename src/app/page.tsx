@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, LayoutDashboard, MessagesSquare } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  LayoutDashboard,
+  MessagesSquare,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -65,6 +70,12 @@ export default function Home() {
             className={cn(buttonVariants({ size: "lg" }))}
           >
             <LayoutDashboard /> Open dashboard
+          </Link>
+          <Link
+            href="/docs"
+            className={cn(buttonVariants({ size: "lg", variant: "ghost" }))}
+          >
+            <BookOpen /> Read the docs
           </Link>
           {inviteUrl && (
             <a

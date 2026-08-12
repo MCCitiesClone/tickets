@@ -1,0 +1,56 @@
+export const metadata = {
+  title: "Introduction",
+  description:
+    "What Tickets is, how it is structured, and where to go next.",
+};
+
+# Tickets documentation
+
+**Tickets** is a self-hostable Discord support-ticket bot with a companion web
+dashboard. Members open private ticket channels from a button; staff claim,
+manage, and close them; and every conversation is archived to a shareable
+transcript. All configuration lives in the dashboard — you never edit a config
+file to change how a server behaves.
+
+The project is two processes over one PostgreSQL database:
+
+- a **web** dashboard (Next.js) where you configure everything and sign in with
+  Discord, and
+- a **bot** (discord.js) that runs the slash commands and the ticket lifecycle.
+
+See [Architecture](/docs/architecture) for how they fit together and why the bot
+runs as its own process.
+
+## What you can do
+
+- **Channel-based tickets** — each ticket is a private channel under a category
+  with per-user and staff-role permission overwrites, a per-user open limit, and
+  a configurable channel-naming scheme.
+- **Panels** — button messages members click to open a ticket. Every panel is
+  independently configurable: category / naming / welcome overrides, support &
+  mention roles, embed colour and images, access-control rules, per-user
+  cooldowns, button visibility, and a disable toggle.
+- **Panel forms** — attach up to five questions to a panel and collect the
+  answers in a native Discord modal when the ticket opens.
+- **Multi-panels** — combine several panels into one message, shown as buttons
+  or a dropdown.
+- **Full lifecycle** — open → claim → reply → close → transcript, with member
+  add/remove, ticket rename, panel switching, close requests with an optional
+  auto-close timer, and private staff notes threads.
+- **Message templates** — design the welcome, claim-notice, close-DM, and
+  transcript-post messages as rich embeds in the dashboard editor.
+- **Transcripts** — every closed ticket is archived and viewable at a
+  shareable, unguessable link; optionally DMed to the opener on close.
+
+## Start here
+
+1. [Quickstart & self-hosting](/docs/self-hosting) — get it running with Docker
+   Compose (or manually).
+2. [Discord application setup](/docs/discord-setup) — create the bot and OAuth
+   credentials.
+3. [Configuration](/docs/configuration) — environment variables and per-server
+   settings.
+
+Then explore the features: [ticket lifecycle](/docs/tickets),
+[panels & forms](/docs/panels), [message templates](/docs/messages), and the
+[slash-command reference](/docs/commands).
