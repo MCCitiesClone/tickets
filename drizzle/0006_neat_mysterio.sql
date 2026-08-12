@@ -1,0 +1,1 @@
+ALTER TABLE "guild" ADD COLUMN "dm_transcript_on_close" boolean DEFAULT false NOT NULL;

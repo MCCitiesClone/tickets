@@ -43,6 +43,13 @@
       "when": 1786495415878,
       "tag": "0005_chunky_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786496508596,
+      "tag": "0006_neat_mysterio",
+      "breakpoints": true
     }
   ]
 }
