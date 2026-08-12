@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/MCCitiesClone/tickets/compare/v0.3.0...v0.4.0) (2026-08-12)
+
+
+### Features
+
+* archive ticket attachments so transcripts outlive Discord's CDN ([#43](https://github.com/MCCitiesClone/tickets/issues/43)) ([540ff02](https://github.com/MCCitiesClone/tickets/commit/540ff0220f955fbb9796dff660d5a727fc2d7726)), closes [#20](https://github.com/MCCitiesClone/tickets/issues/20)
+
 # [0.3.0](https://github.com/MCCitiesClone/tickets/compare/v0.2.1...v0.3.0) (2026-08-12)
 
 
