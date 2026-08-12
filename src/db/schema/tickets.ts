@@ -1,11 +1,12 @@
 import {
-  bigint,
+  boolean,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -61,27 +62,117 @@ export const ticket = pgTable("ticket", {
   closedBy: text("closed_by"),
 });
 
+/** A file attached to a captured message (snapshot of Discord's CDN URLs). */
+export type TranscriptAttachment = {
+  id: string;
+  url: string;
+  name: string;
+  contentType: string | null;
+  width: number | null;
+  height: number | null;
+  size: number;
+};
+
+export type TranscriptEmbedField = {
+  name: string;
+  value: string;
+  inline?: boolean;
+};
+
+/** A cleaned-up subset of a Discord embed, enough to re-render it faithfully. */
+export type TranscriptEmbed = {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number;
+  author?: { name: string; iconUrl?: string; url?: string };
+  fields?: TranscriptEmbedField[];
+  image?: { url: string };
+  thumbnail?: { url: string };
+  footer?: { text: string; iconUrl?: string };
+  timestamp?: string;
+};
+
+/** A resolved mention so the viewer can render `<@id>` as a readable name. */
+export type TranscriptMention = {
+  id: string;
+  name: string;
+  type: "user" | "role" | "channel";
+};
+
 /**
- * Archived messages captured for a ticket transcript.
+ * Archived messages captured for a ticket transcript. Rows are written in real
+ * time by the bot's message listeners and backfilled by an on-close history
+ * sweep (upserted on `(ticketId, discordMessageId)`).
  *
- * NOTE (scaffold): transcript capture/rendering is a later iteration. This
- * table defines where captured messages will live so the feature drops in
- * cleanly. `authorId` is the Discord user ID; `authorTag` snapshots the
- * display name at send time.
+ * `authorId` is the Discord user ID; `authorTag`/`authorAvatarUrl` snapshot the
+ * author's display name and avatar at send time. `createdAt` is the Discord
+ * message timestamp (the render sort key), not the DB insert time.
  */
-export const ticketMessage = pgTable("ticket_message", {
+export const ticketMessage = pgTable(
+  "ticket_message",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => ticket.id, { onDelete: "cascade" }),
+
+    /** Discord message snowflake (stored as text to avoid BigInt in the UI). */
+    discordMessageId: text("discord_message_id"),
+
+    authorId: text("author_id").notNull(),
+    authorTag: text("author_tag").notNull(),
+    authorAvatarUrl: text("author_avatar_url"),
+    authorBot: boolean("author_bot").notNull().default(false),
+
+    content: text("content").notNull().default(""),
+
+    attachments: jsonb("attachments")
+      .$type<TranscriptAttachment[]>()
+      .notNull()
+      .default([]),
+    embeds: jsonb("embeds").$type<TranscriptEmbed[]>().notNull().default([]),
+    mentions: jsonb("mentions")
+      .$type<TranscriptMention[]>()
+      .notNull()
+      .default([]),
+
+    /** Discord message ID this message replied to, if any. */
+    replyToId: text("reply_to_id"),
+
+    editedAt: timestamp("edited_at"),
+    deletedAt: timestamp("deleted_at"),
+
+    /** The Discord message's creation time (render sort key). */
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.ticketId, t.discordMessageId)],
+);
+
+/**
+ * One transcript per ticket, created when the ticket closes. `token` is an
+ * unguessable slug used for the public share URL (`/transcripts/<token>`).
+ * `closeReason` is snapshotted here since it isn't stored on the ticket.
+ */
+export const transcript = pgTable("transcript", {
   id: uuid("id").primaryKey().defaultRandom(),
 
   ticketId: uuid("ticket_id")
     .notNull()
+    .unique()
     .references(() => ticket.id, { onDelete: "cascade" }),
 
-  /** Discord message snowflake. */
-  discordMessageId: bigint("discord_message_id", { mode: "bigint" }),
+  guildId: text("guild_id")
+    .notNull()
+    .references(() => guild.guildId, { onDelete: "cascade" }),
 
-  authorId: text("author_id").notNull(),
-  authorTag: text("author_tag").notNull(),
-  content: text("content").notNull().default(""),
+  /** Unguessable share slug for the public transcript URL. */
+  token: text("token").notNull().unique(),
+
+  closeReason: text("close_reason"),
+
+  messageCount: integer("message_count").notNull().default(0),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -89,3 +180,6 @@ export const ticketMessage = pgTable("ticket_message", {
 export type Ticket = typeof ticket.$inferSelect;
 export type NewTicket = typeof ticket.$inferInsert;
 export type TicketMessage = typeof ticketMessage.$inferSelect;
+export type NewTicketMessage = typeof ticketMessage.$inferInsert;
+export type Transcript = typeof transcript.$inferSelect;
+export type NewTranscript = typeof transcript.$inferInsert;

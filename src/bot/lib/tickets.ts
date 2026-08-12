@@ -1,6 +1,7 @@
+import { randomBytes } from "node:crypto";
+
 import {
   ActionRowBuilder,
-  AttachmentBuilder,
   type ButtonInteraction,
   ButtonBuilder,
   ButtonStyle,
@@ -20,17 +21,23 @@ import {
   TextInputStyle,
 } from "discord.js";
 
-import type { AccessRule, Guild, Panel, Ticket } from "@/db/schema";
+import type { AccessRule, Guild, NewTicketMessage, Panel, Ticket } from "@/db/schema";
+import { env } from "@/lib/env";
 import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
 import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
 import {
   countOpenTicketsForUser,
+  countTicketMessages,
   createTicket,
+  createTranscript,
   getTicket,
   getTicketByChannel,
   markTicketClosed,
   setTicketClaimedBy,
+  upsertTicketMessages,
 } from "@/lib/queries/tickets";
+import { messageToRow } from "./message-snapshot";
+import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
 
 type Interaction =
   | ButtonInteraction
@@ -403,6 +410,9 @@ export async function openTicket(
     formResponses: answers,
   });
 
+  // Begin capturing this channel's messages for the transcript.
+  trackTicketChannel(channel.id, ticket.id);
+
   if (!openerIsStaff && panel.cooldownSeconds > 0) {
     await startCooldown(panel.id, user.id, panel.cooldownSeconds);
   }
@@ -604,29 +614,39 @@ export async function setTicketMember(
   }
 }
 
-/** Build a plain-text transcript from the channel's recent messages. */
-async function buildTranscript(
+/**
+ * Sweep the channel's entire message history into `ticket_message`, paginating
+ * past Discord's 100-per-fetch limit. Real-time listeners already captured most
+ * messages; this backfills anything they missed (e.g. sent while the bot was
+ * down) and is upserted, so re-runs and overlaps never duplicate rows.
+ */
+async function captureChannelHistory(
   channel: GuildTextBasedChannel,
-  ticket: Ticket,
-  reason: string | undefined,
-): Promise<Buffer> {
-  const messages = await channel.messages.fetch({ limit: 100 });
-  const lines = [...messages.values()].reverse().map((m) => {
-    const when = m.createdAt.toISOString();
-    const content = m.content || (m.embeds.length ? "[embed]" : "");
-    return `[${when}] ${m.author.tag}: ${content}`;
-  });
-  const header =
-    `Transcript for ticket #${ticket.number} (${ticket.id})\n` +
-    `Channel: #${channel.name}\n` +
-    (reason ? `Close reason: ${reason}\n` : "") +
-    `\n`;
-  return Buffer.from(header + lines.join("\n"), "utf8");
+  ticketId: string,
+): Promise<void> {
+  const rows: NewTicketMessage[] = [];
+  let before: string | undefined;
+
+  for (;;) {
+    const batch = await channel.messages.fetch({ limit: 100, before });
+    if (batch.size === 0) break;
+    for (const message of batch.values()) rows.push(messageToRow(message, ticketId));
+    before = batch.last()?.id;
+    if (batch.size < 100) break;
+  }
+
+  await upsertTicketMessages(rows);
+}
+
+/** Base URL for share links, without a trailing slash. */
+function transcriptUrl(token: string): string {
+  return `${env.BETTER_AUTH_URL.replace(/\/+$/, "")}/transcripts/${token}`;
 }
 
 /**
- * Close a ticket: authorize, capture a transcript to the configured transcript
- * channel, mark it closed in the DB, log it, and delete the ticket channel.
+ * Close a ticket: authorize, sweep the full history into the DB, create a
+ * shareable transcript and post its link to the configured transcript channel,
+ * mark it closed, log it, and delete the ticket channel.
  */
 export async function closeTicket(
   interaction: Interaction,
@@ -656,25 +676,45 @@ export async function closeTicket(
 
   const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
 
-  // Post a transcript before deleting the channel.
-  if (config.transcriptChannelId && channel?.isTextBased()) {
+  // Stop live capture before touching the channel, so the bulk message-delete
+  // Discord fires when the channel is removed isn't recorded as user deletions.
+  untrackTicketChannel(ticket.channelId);
+
+  // Sweep the history, then create the shareable transcript record.
+  let url: string | null = null;
+  if (channel?.isTextBased()) {
     try {
-      const file = new AttachmentBuilder(
-        await buildTranscript(channel as GuildTextBasedChannel, ticket, reason),
-        { name: `ticket-${ticket.number}.txt` },
-      );
-      const transcriptChannel = await guild.channels
-        .fetch(config.transcriptChannelId)
-        .catch(() => null);
-      if (transcriptChannel?.isTextBased()) {
-        await transcriptChannel.send({
-          content: `Ticket #${ticket.number} closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).${reason ? `\nReason: ${reason}` : ""}`,
-          files: [file],
-          allowedMentions: { parse: [] },
-        });
-      }
+      await captureChannelHistory(channel as GuildTextBasedChannel, ticket.id);
+      const token = randomBytes(24).toString("base64url");
+      const messageCount = await countTicketMessages(ticket.id);
+      await createTranscript({
+        ticketId: ticket.id,
+        guildId: ticket.guildId,
+        token,
+        closeReason: reason ?? null,
+        messageCount,
+      });
+      url = transcriptUrl(token);
     } catch (err) {
-      console.error("Failed to post transcript:", err);
+      console.error("Failed to build transcript:", err);
+    }
+  }
+
+  // Post the transcript link before deleting the channel.
+  if (url && config.transcriptChannelId) {
+    const transcriptChannel = await guild.channels
+      .fetch(config.transcriptChannelId)
+      .catch(() => null);
+    if (transcriptChannel?.isTextBased()) {
+      await transcriptChannel
+        .send({
+          content:
+            `📄 Transcript for ticket #${ticket.number} — <${url}>\n` +
+            `Closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).` +
+            (reason ? `\nReason: ${reason}` : ""),
+          allowedMentions: { parse: [] },
+        })
+        .catch(() => {});
     }
   }
 
