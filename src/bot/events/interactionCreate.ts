@@ -42,6 +42,30 @@ async function reportInteractionError(
 }
 
 /**
+ * Reset a multi-panel dropdown to its placeholder after a selection.
+ *
+ * The select menu lives on a shared panel message, and Discord keeps the chosen
+ * option highlighted (per viewer) until the message is re-rendered — which stops
+ * the same option from emitting a fresh interaction when picked again. Re-editing
+ * the message with its own components re-renders it, clearing the selection for
+ * everyone (the serialized components carry no selection state). The reset is
+ * idempotent, so concurrent opens racing to re-render the same message are
+ * harmless. Best-effort: a failed reset must not break the open that already
+ * succeeded.
+ */
+async function resetMultiPanelSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  try {
+    await interaction.message.edit({
+      components: interaction.message.components,
+    });
+  } catch (err) {
+    console.error("Failed to reset multi-panel dropdown:", err);
+  }
+}
+
+/**
  * Central interaction router. Handles:
  *  - Chat-input (slash) commands → dispatched via the command registry.
  *  - Button clicks → routed by `customId`. The `open_ticket:<panelId>` button
@@ -119,6 +143,13 @@ export async function onInteractionCreate(
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);
+    } finally {
+      // Clear the dropdown so the same ticket type can be picked again — Discord
+      // otherwise keeps it stuck on the last selection. Runs whether the open
+      // succeeded, was rejected by a precheck, or threw.
+      if (action === "multipanel_select") {
+        await resetMultiPanelSelect(interaction);
+      }
     }
     return;
   }
