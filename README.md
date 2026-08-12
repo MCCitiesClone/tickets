@@ -11,8 +11,8 @@ easy to run yourself and to own your own data.
 > **Status: functional.** Configuration, panels, forms, multi-panels, the full
 > ticket lifecycle (open → claim → reply → close → transcript), rich message
 > templates, canned responses, close requests, staff notes, a user/role
-> blacklist, and a shareable transcript viewer all work end to end. An
-> in-dashboard stats view is still to come — see the [roadmap](#roadmap).
+> blacklist, a stats dashboard, and a shareable transcript viewer all work end
+> to end — see the [roadmap](#roadmap) for what's next.
 
 ---
 
@@ -42,6 +42,9 @@ easy to run yourself and to own your own data.
   confirm, with an optional auto-close timer if nobody responds.
 - **Blacklist** — block specific users or roles from opening tickets, from the
   dashboard or `/blacklist`; enforced before a ticket channel is created.
+- **Stats & analytics** — a dashboard view of ticket volume over time, open/
+  closed counts, average first-response and resolution times, per-panel and
+  per-staff activity, over a 7/30/90-day window.
 - **Message templates** — design the welcome, claim-notice, close-DM, and
   transcript-post messages as rich embeds in the dashboard editor, with
   `{placeholder}` tokens.
@@ -161,12 +164,12 @@ Repository copies of the core setup guides:
 - [x] Overflow categories — auto-route around Discord's 50-per-category limit ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
 - [x] Archived attachments — transcripts keep images/files past Discord's expiring CDN ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 - [x] User & role blacklist — block abusers from opening tickets ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
+- [x] Stats & analytics dashboard — volume, response/resolution times, per-staff ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
 **High priority**
 
-- [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 
 **Medium priority**

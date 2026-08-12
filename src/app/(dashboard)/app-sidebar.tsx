@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Ban,
+  BarChart3,
   BookOpen,
   LayoutDashboard,
   LogOut,
@@ -46,6 +47,7 @@ const navItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
   { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
+  { title: "Stats", href: "/dashboard/stats", icon: BarChart3 },
   { title: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   {
     title: "Canned responses",
