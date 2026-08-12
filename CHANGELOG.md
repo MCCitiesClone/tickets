@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/MCCitiesClone/tickets/compare/v0.5.1...v0.6.0) (2026-08-12)
+
+
+### Features
+
+* stats & analytics dashboard ([#46](https://github.com/MCCitiesClone/tickets/issues/46)) ([f237288](https://github.com/MCCitiesClone/tickets/commit/f237288cd66f138d74e18fd8828fe8438fc2482d)), closes [#3](https://github.com/MCCitiesClone/tickets/issues/3)
+
 ## [0.5.1](https://github.com/MCCitiesClone/tickets/compare/v0.5.0...v0.5.1) (2026-08-12)
 
 
