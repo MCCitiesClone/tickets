@@ -33,24 +33,3 @@ export async function loadOpenTicketChannels(): Promise<number> {
   for (const { id, channelId } of rows) ticketChannels.set(channelId, id);
   return ticketChannels.size;
 }
-
-/**
- * Message IDs the transcript capture should ignore — used for bot messages we
- * create only to fire a notification and immediately delete (the ticket
- * "ghost ping"), so they never appear in the transcript.
- */
-const ignoredMessages = new Set<string>();
-
-/** Mark a message ID so the capture listeners skip its create and delete. */
-export function ignoreMessage(messageId: string): void {
-  ignoredMessages.add(messageId);
-}
-
-export function isMessageIgnored(messageId: string): boolean {
-  return ignoredMessages.has(messageId);
-}
-
-/** Stop ignoring a message ID (called once its delete event has been seen). */
-export function unignoreMessage(messageId: string): void {
-  ignoredMessages.delete(messageId);
-}
