@@ -33,15 +33,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
-        run: npm run typecheck
-
+      # Build before typecheck: `next build` generates the route types
+      # (`.next/types` — LayoutProps/PageProps etc.) that tsconfig includes, so a
+      # standalone `tsc --noEmit` on a fresh checkout would otherwise fail to
+      # find them. The build also validates the app; the separate typecheck then
+      # covers the whole project, including the bot (which the build ignores).
       - name: Build
         run: npm run build
         env:
           # No NEXT_PUBLIC_* secrets are needed to build; skip env validation.
           SKIP_ENV_VALIDATION: "1"
           NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Typecheck
+        run: npm run typecheck
 
   docker:
     name: Docker build (${{ matrix.target }})
