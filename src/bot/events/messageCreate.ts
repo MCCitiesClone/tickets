@@ -1,6 +1,7 @@
 import type { Message } from "discord.js";
 
 import { upsertTicketMessages } from "@/lib/queries/tickets";
+import { archiveMessageAttachments } from "../lib/attachment-archive";
 import { messageToRow } from "../lib/message-snapshot";
 import { getTrackedTicket } from "../lib/ticket-channels";
 
@@ -16,5 +17,15 @@ export async function onMessageCreate(message: Message): Promise<void> {
     await upsertTicketMessages([messageToRow(message, ticketId)]);
   } catch (err) {
     console.error("Failed to capture ticket message:", err);
+    return;
+  }
+
+  // Archive any attachments off Discord's expiring CDN. Fire-and-forget so
+  // capture latency doesn't depend on downloads; the close-time sweep is the
+  // backstop if this misses.
+  if (message.attachments.size > 0) {
+    void archiveMessageAttachments(ticketId, message.id).catch((err) =>
+      console.error("Failed to archive message attachments:", err),
+    );
   }
 }

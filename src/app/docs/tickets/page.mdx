@@ -116,6 +116,13 @@ rendering the conversation with author avatars, timestamps, attachments,
 embeds, and edit/delete markers. The **Tickets** page in the dashboard lists a
 server's tickets with their transcript links.
 
+**Archived attachments:** Discord's file URLs are signed and expire, and closing
+a ticket deletes its channel — so the bot copies images and files sent in a
+ticket into its own storage and the transcript serves them from a token-scoped
+URL, keeping them viewable long after the originals are gone. Files above the
+configured size limit keep their (temporary) Discord link. See
+[self-hosting](/docs/self-hosting) for the storage volume and env vars.
+
 > **Message Content intent:** full message **bodies** require the Message
 > Content privileged intent (see [Discord setup](/docs/discord-setup)). Without
 > it, transcripts still record authors, attachments, and embeds, but text may be

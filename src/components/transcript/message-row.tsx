@@ -25,9 +25,11 @@ function timeLabel(date: Date): string {
 export function MessageRow({
   message,
   replyTo,
+  token,
 }: {
   message: TicketMessage;
   replyTo: ReplyPreview;
+  token: string;
 }) {
   const deleted = message.deletedAt != null;
 
@@ -87,7 +89,7 @@ export function MessageRow({
                 mentions={message.mentions}
               />
             )}
-            <Attachments attachments={message.attachments} />
+            <Attachments attachments={message.attachments} token={token} />
             {message.embeds.map((embed, i) => (
               <Embed key={i} embed={embed} mentions={message.mentions} />
             ))}

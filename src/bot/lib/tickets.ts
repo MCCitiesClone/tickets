@@ -58,6 +58,7 @@ import {
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { getCannedResponse } from "@/lib/queries/canned-responses";
+import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
@@ -1304,6 +1305,16 @@ export async function performClose(
   if (channel?.isTextBased()) {
     try {
       await captureChannelHistory(channel as GuildTextBasedChannel, ticket.id);
+
+      // Archive attachments off Discord's expiring CDN before the channel is
+      // gone, so the transcript stays complete. Best-effort; a failure here must
+      // not block the transcript itself.
+      try {
+        await archiveTicketAttachments(ticket.id);
+      } catch (err) {
+        console.error("Failed to archive ticket attachments:", err);
+      }
+
       const token = randomBytes(24).toString("base64url");
       const messageCount = await countTicketMessages(ticket.id);
       await createTranscript({

@@ -157,6 +157,7 @@ Repository copies of the core setup guides:
 - [x] Pre-built images published to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
 - [x] Automated releases + changelog via semantic-release ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
 - [x] Overflow categories — auto-route around Discord's 50-per-category limit ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
+- [x] Archived attachments — transcripts keep images/files past Discord's expiring CDN ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -165,7 +166,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
-- [ ] Archive images/files from tickets into transcripts ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 
 **Medium priority**
 

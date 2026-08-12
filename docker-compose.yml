@@ -12,6 +12,10 @@ x-app-env: &app-env
   DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-}
   BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
   BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+  # Where archived ticket attachments live. web + bot mount the same volume here.
+  ATTACHMENT_ARCHIVE_DIR: ${ATTACHMENT_ARCHIVE_DIR:-/data/attachments}
+  ATTACHMENT_ARCHIVE_ENABLED: ${ATTACHMENT_ARCHIVE_ENABLED:-true}
+  ATTACHMENT_MAX_BYTES: ${ATTACHMENT_MAX_BYTES:-26214400}
 
 services:
   postgres:
@@ -52,6 +56,10 @@ services:
     environment: *app-env
     ports:
       - "3000:3000"
+    # Shared with `bot`: the bot writes archived attachments, the web app serves
+    # them on the transcript pages.
+    volumes:
+      - attachment-data:/data/attachments
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,6 +72,8 @@ services:
       context: .
       target: bot
     environment: *app-env
+    volumes:
+      - attachment-data:/data/attachments
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,3 +83,4 @@ services:
 
 volumes:
   postgres-data:
+  attachment-data:
