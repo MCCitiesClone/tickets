@@ -1,0 +1,41 @@
+export const metadata = {
+  title: "Stats & analytics",
+  description:
+    "Ticket volume, response and resolution times, and per-staff activity in the dashboard.",
+};
+
+# Stats & analytics
+
+The **Stats** page in the dashboard summarises your server's ticket activity
+over a selectable window — **7, 30, or 90 days**. Everything is computed from
+data the bot already stores (`ticket` and `ticket_message`), so there's nothing
+extra to enable.
+
+## Summary cards
+
+| Metric | Meaning |
+| --- | --- |
+| Opened | Tickets opened within the selected range. |
+| Closed | Tickets closed within the range. |
+| Currently open | Tickets open right now (a live snapshot, not range-bound). |
+| Avg first response | Average time from open to the first staff reply, plus how many opened tickets were answered. |
+| Avg resolution | Average time from open to close, over tickets closed in the range. |
+
+**First response** is measured as the first non-bot message from someone other
+than the ticket's opener — i.e. the first time a staff member replied.
+
+## Charts
+
+- **Ticket volume** — opened vs. closed per day across the range.
+- **Tickets by panel** — how opens break down across your panels (tickets with
+  no panel are grouped as "No panel").
+
+## Staff activity
+
+A per-staff table of tickets **closed**, tickets **claimed**, and each member's
+**average resolution time**, sorted by closes. Staff are shown by their most
+recent display name captured in a ticket.
+
+> Averages ignore tickets with no data (e.g. resolution only counts closed
+> tickets; first response only counts tickets that got a reply). Rating-based
+> stats will appear here once post-close ratings land.
