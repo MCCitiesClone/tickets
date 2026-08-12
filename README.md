@@ -8,8 +8,8 @@ easy to run yourself and to own your own data.
 
 > **Status: functional.** Configuration, panels, forms, multi-panels, the full
 > ticket lifecycle (open → claim → reply → close → transcript), rich message
-> templates, close requests, staff notes, and a shareable transcript viewer all
-> work end to end. Canned responses, a per-user blacklist, and in-dashboard
+> templates, canned responses, close requests, staff notes, and a shareable
+> transcript viewer all work end to end. A per-user blacklist and in-dashboard
 > stats are still to come — see the [roadmap](#roadmap).
 
 ---
@@ -150,12 +150,12 @@ Repository copies of the core setup guides:
 - [x] Rich message templates (welcome, claim, close DM, transcript post)
 - [x] Shareable transcript viewer + optional DM-on-close; tickets list in dashboard
 - [x] MIT licensed
+- [x] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
 **High priority**
 
-- [ ] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
 - [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))

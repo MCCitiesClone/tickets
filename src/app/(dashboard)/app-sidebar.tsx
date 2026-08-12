@@ -8,6 +8,7 @@ import {
   LogOut,
   type LucideIcon,
   MessageSquare,
+  MessageSquareText,
   PanelsTopLeft,
   Settings,
   Ticket,
@@ -45,6 +46,11 @@ const navItems: NavItem[] = [
   { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
   { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
   { title: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+  {
+    title: "Canned responses",
+    href: "/dashboard/canned-responses",
+    icon: MessageSquareText,
+  },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

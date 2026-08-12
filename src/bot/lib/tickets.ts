@@ -53,6 +53,7 @@ import {
   setTicketPanel,
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
+import { getCannedResponse } from "@/lib/queries/canned-responses";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
@@ -770,6 +771,69 @@ function sanitizePrefix(input: string): string {
  * the ticket's identity is never lost (e.g. `/rename bug` on ticket 42 →
  * `bug-42`). Staff only.
  */
+/**
+ * Post a saved canned response into the current channel. Usable by staff in any
+ * channel; if it's a ticket channel, ticket placeholders are also filled.
+ */
+export async function sendCannedResponse(
+  interaction: ChatInputCommandInteraction,
+  responseId: string,
+): Promise<void> {
+  if (!interaction.inCachedGuild()) return;
+
+  const response = await getCannedResponse(responseId);
+  if (!response || response.guildId !== interaction.guildId) {
+    await replyError(interaction, "That canned response no longer exists.");
+    return;
+  }
+
+  const config = await getGuild(interaction.guildId);
+  const member = interaction.member;
+  const isManager = member.permissions.has(PermissionFlagsBits.ManageChannels);
+  const hasStaffRole = (config?.staffRoleIds ?? []).some((r) =>
+    member.roles.cache.has(r),
+  );
+  if (!isManager && !hasStaffRole) {
+    await replyError(interaction, "Only staff can use canned responses.");
+    return;
+  }
+  // Per-response role restriction (empty = any staff; managers always allowed).
+  if (
+    response.accessRoleIds.length > 0 &&
+    !isManager &&
+    !response.accessRoleIds.some((r) => member.roles.cache.has(r))
+  ) {
+    await replyError(
+      interaction,
+      "You don't have access to that canned response.",
+    );
+    return;
+  }
+
+  // Fill placeholders; resolve optional ticket context for the ticket tokens.
+  const ticket = interaction.channelId
+    ? await getTicketByChannel(interaction.channelId)
+    : null;
+  const vars: Record<string, string> = {
+    server: interaction.guild.name,
+    channel: `<#${interaction.channelId}>`,
+  };
+  if (ticket && ticket.guildId === interaction.guildId) {
+    vars.ticket = String(ticket.number);
+    vars.number = String(ticket.number);
+    vars.opener = `<@${ticket.openerId}>`;
+  }
+
+  const payload = renderTemplate(response.template, vars);
+  if (!payload.content && payload.embeds.length === 0) {
+    await replyError(interaction, "That canned response is empty.");
+    return;
+  }
+
+  // Post publicly in the channel as the command's reply.
+  await interaction.reply({ content: payload.content, embeds: payload.embeds });
+}
+
 export async function renameTicket(
   interaction: ChatInputCommandInteraction,
   rawPrefix: string,
