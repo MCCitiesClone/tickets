@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/MCCitiesClone/tickets/compare/v0.2.0...v0.2.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* reset multi-panel dropdown after opening a ticket ([#40](https://github.com/MCCitiesClone/tickets/issues/40)) ([ab5e779](https://github.com/MCCitiesClone/tickets/commit/ab5e779b8bb63367f8ddb331e0563c82f41edb6e)), closes [#18](https://github.com/MCCitiesClone/tickets/issues/18)
+
 # Changelog
 
 ## [0.2.0](https://github.com/MCCitiesClone/tickets/compare/v0.1.0...v0.2.0) (2026-08-12)
