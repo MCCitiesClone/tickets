@@ -22,6 +22,8 @@ import { guildMessageTemplatesSchema } from "@/lib/validation/message-template";
 const configSchema = z.object({
   guildId: z.string().min(1),
   ticketCategoryId: z.string().nullable().optional(),
+  overflowCategoryIds: z.array(z.string()).optional(),
+  autoCreateOverflow: z.boolean().optional(),
   transcriptChannelId: z.string().nullable().optional(),
   dmTranscriptOnClose: z.boolean().optional(),
   logChannelId: z.string().nullable().optional(),

@@ -27,6 +27,35 @@ export const guild = pgTable("guild", {
   /** Category channel that new ticket channels are created under. */
   ticketCategoryId: text("ticket_category_id"),
 
+  /**
+   * Admin-configured fallback categories, tried in order when the primary
+   * category (panel override → `ticketCategoryId`) is full. Discord caps a
+   * category at 50 channels; without a fallback, ticket creation hard-fails once
+   * that's hit. See the bot's `openTicket` overflow resolution.
+   */
+  overflowCategoryIds: jsonb("overflow_category_ids")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+
+  /**
+   * When every configured category is full, auto-create a fresh overflow
+   * category (mirroring the primary's permissions) and route the ticket there,
+   * so ticket creation never fails at the channel limit.
+   */
+  autoCreateOverflow: boolean("auto_create_overflow").notNull().default(true),
+
+  /**
+   * Bot-managed: categories the bot auto-created for overflow, in creation
+   * order. Tried (and reused as tickets close) after the admin-configured
+   * `overflowCategoryIds`, before creating another. Not edited from the
+   * dashboard.
+   */
+  autoOverflowCategoryIds: jsonb("auto_overflow_category_ids")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+
   /** Channel where closed-ticket transcripts are posted. */
   transcriptChannelId: text("transcript_channel_id"),
 

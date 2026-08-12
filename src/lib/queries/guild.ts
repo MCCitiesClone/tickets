@@ -44,6 +44,24 @@ export async function upsertGuild(
 }
 
 /**
+ * Append a bot-auto-created overflow category to the guild's chain. Uses a
+ * jsonb concat (`||`) so concurrent opens each add their category without a
+ * read-modify-write race dropping one.
+ */
+export async function appendAutoOverflowCategory(
+  guildId: string,
+  categoryId: string,
+): Promise<void> {
+  await db
+    .update(guild)
+    .set({
+      autoOverflowCategoryIds: sql`${guild.autoOverflowCategoryIds} || ${JSON.stringify([categoryId])}::jsonb`,
+      updatedAt: new Date(),
+    })
+    .where(eq(guild.guildId, guildId));
+}
+
+/**
  * Atomically increment and return the guild's ticket counter. Used to assign a
  * unique, monotonic `number` to each new ticket without a read-then-write race.
  */
