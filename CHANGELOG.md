@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/MCCitiesClone/tickets/compare/v0.2.0...v0.2.1) (2026-08-12)
+
+
+### CI/CD
+
+* run CI on pull requests only ([f6a5566](https://github.com/MCCitiesClone/tickets/commit/f6a5566c88eee041fc058c98509efb21ac9ca00d))
+* run CI on pull requests only ([fdceea8](https://github.com/MCCitiesClone/tickets/commit/fdceea8a30330393a91c4949523db05953eddd12))
+
 ## [0.2.0](https://github.com/MCCitiesClone/tickets/compare/v0.1.0...v0.2.0) (2026-08-12)
 
 
