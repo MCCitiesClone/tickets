@@ -153,6 +153,9 @@ Repository copies of the core setup guides:
 - [x] Shareable transcript viewer + optional DM-on-close; tickets list in dashboard
 - [x] MIT licensed
 - [x] Canned responses — saved, reusable staff replies ([#1](https://github.com/MCCitiesClone/tickets/issues/1))
+- [x] CI: lint, typecheck & Docker build on every PR ([#15](https://github.com/MCCitiesClone/tickets/issues/15))
+- [x] Pre-built images published to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
+- [x] Automated releases + changelog via semantic-release ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -161,7 +164,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] User & role blacklist ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
-- [ ] CI: GitHub Actions for lint, typecheck & Docker build ([#15](https://github.com/MCCitiesClone/tickets/issues/15))
 - [ ] Fix: multi-panel dropdown keeps the previous selection ([#18](https://github.com/MCCitiesClone/tickets/issues/18))
 - [ ] Archive images/files from tickets into transcripts ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 - [ ] Overflow category when a ticket category is full ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
@@ -173,8 +175,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Ticket priority levels ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
 - [ ] Support hours & response-time expectations ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
 - [ ] Applications module — application forms that convert to tickets ([#11](https://github.com/MCCitiesClone/tickets/issues/11))
-- [ ] Publish Docker images to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
-- [ ] Semantic versioning + auto-generated changelog ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
 - [ ] Improve onboarding & multi-server switching ([#21](https://github.com/MCCitiesClone/tickets/issues/21))
 - [ ] Members can view transcripts for their own tickets ([#22](https://github.com/MCCitiesClone/tickets/issues/22))
 - [ ] Simplify the embed editor for non-technical users ([#23](https://github.com/MCCitiesClone/tickets/issues/23))
