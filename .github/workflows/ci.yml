@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref (e.g. new pushes to a PR branch).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # CI installs with npm from the committed lockfile — the same reproducible
+      # path the Dockerfile uses (`npm ci`), so no need to provision `aube` on
+      # the runner. Local development still uses aube; both read package-lock.json.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Build before typecheck: `next build` generates the route types
+      # (`.next/types` — LayoutProps/PageProps etc.) that tsconfig includes, so a
+      # standalone `tsc --noEmit` on a fresh checkout would otherwise fail to
+      # find them. The build also validates the app; the separate typecheck then
+      # covers the whole project, including the bot (which the build ignores).
+      - name: Build
+        run: npm run build
+        env:
+          # No NEXT_PUBLIC_* secrets are needed to build; skip env validation.
+          SKIP_ENV_VALIDATION: "1"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  docker:
+    name: Docker build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The web and bot runtime images are the two things we ship.
+        target: [web, bot]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build only — publishing images to GHCR is tracked separately (#16).
+      - name: Build ${{ matrix.target }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
