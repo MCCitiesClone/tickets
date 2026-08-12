@@ -1,0 +1,127 @@
+export const metadata = {
+  title: "Ticket lifecycle",
+  description:
+    "How tickets open, get claimed and managed, and close with a transcript.",
+};
+
+# Ticket lifecycle
+
+A ticket moves through **open → (claim) → reply → (close request) → close →
+transcript**. This page walks each stage. The commands referenced here are
+listed in full on the [slash-command reference](/docs/commands).
+
+## Opening a ticket
+
+A member clicks a panel's button (or picks an option from a
+[multi-panel](/docs/panels#multi-panels)). Before the channel is created, the
+bot checks, in order:
+
+1. **Panel enabled** — a disabled panel refuses new tickets.
+2. **Category configured** — the panel's category override, else the guild's
+   ticket category, must exist.
+3. **Access control** — the panel's allow/deny role rules (first match wins;
+   empty = everyone allowed).
+4. **Per-user limit** — the guild `ticket limit` (staff are exempt).
+5. **Cooldown** — the panel's per-user cooldown, if set (staff are exempt).
+
+If the panel has [form questions](/docs/panels#panel-forms), a Discord modal is
+shown first and the answers are stored on the ticket.
+
+The bot then:
+
+- assigns the next per-guild ticket **number** from an atomic counter,
+- creates a **private channel** under the category — `@everyone` denied, opener
+  and staff roles allowed — named from the naming scheme (`{number}` /
+  `{username}`),
+- posts the **welcome message** (the panel or guild
+  [template](/docs/messages), else a built-in embed), with the form answers in
+  their own embed, and
+- adds the control buttons (Claim, Close, Close with reason) subject to the
+  panel's button-visibility settings.
+
+Any **mention roles** on the panel are pinged so staff are notified.
+
+## Claiming
+
+Staff assign a ticket to themselves with the **Claim** button or `/claim`, and
+release it with **Release** or `/unclaim`. Claiming records `claimedBy`, swaps
+the button between Claim and Release, and posts the claim notice (the guild
+[claim template](/docs/messages) or a built-in embed).
+
+## Managing members
+
+- `/add <user>` grants a member access to the ticket channel.
+- `/remove <user>` revokes it.
+
+## Renaming & switching panels
+
+- `/rename <name>` changes the channel's name prefix while keeping the ticket
+  number (e.g. `bug-42`).
+- `/switchpanel <panel>` moves the ticket to a different panel, applying that
+  panel's category, naming scheme, and support roles.
+
+## Staff notes
+
+`/notes` opens a **private thread** attached to the ticket for staff-only
+discussion. The thread auto-archives after a week and the support roles are
+pulled in with a "ghost ping" (a mention that is sent and immediately deleted,
+so the notification fires without leaving a lingering ping). Running `/notes`
+again reuses the existing thread if it's still live.
+
+## Close requests
+
+Rather than closing outright, a staff member can ask the opener to confirm with
+`/closerequest [close_delay] [reason]`:
+
+- `close_delay` (optional, 1–720 hours) sets an **auto-close timer** — if nobody
+  responds in time, a background sweeper closes the ticket automatically.
+- `reason` (optional) is attached to the request and the eventual close.
+
+The request posts an embed with **Confirm** and **Cancel** buttons:
+
+- **Confirm** — any participant, **including the requester**, can confirm; the
+  ticket closes immediately.
+- **Cancel** — the requester, the opener, or staff can cancel the pending
+  request.
+
+## Closing
+
+A ticket closes via the **Close** button, the **Close with reason** button
+(which opens a modal), `/close [reason]`, a confirmed close request, or the
+auto-close timer. Closing is authorized for the opener or staff. On close the
+bot:
+
+1. **Captures history** — paginates the channel's messages into
+   `ticket_message` (author snapshot, content, attachments, embeds, mentions,
+   edits/deletes), on top of what was already captured live.
+2. **Creates a transcript** — generates an unguessable token and a `transcript`
+   record with the message count and close reason.
+3. **Posts the transcript link** to the transcript channel (using the
+   [transcript-post template](/docs/messages) or a built-in embed with a link
+   button).
+4. **DMs the opener** the link, if _DM transcript on close_ is enabled.
+5. **Marks the ticket closed** (`status`, `closedAt`, `closedBy`), logs the
+   action to the log channel, and **deletes the channel**.
+
+Steps 3–4 are best-effort — a failure there won't block the ticket from
+closing.
+
+## Transcripts
+
+Transcripts are captured two ways: **live**, as messages are sent in a tracked
+ticket channel, and by a **history sweep** on close (deduplicated on the Discord
+message id, so nothing is stored twice). Each transcript is viewable at a
+shareable, unguessable URL — `/transcripts/<token>` — with no sign-in required,
+rendering the conversation with author avatars, timestamps, attachments,
+embeds, and edit/delete markers. The **Tickets** page in the dashboard lists a
+server's tickets with their transcript links.
+
+> **Message Content intent:** full message **bodies** require the Message
+> Content privileged intent (see [Discord setup](/docs/discord-setup)). Without
+> it, transcripts still record authors, attachments, and embeds, but text may be
+> empty.
+
+## Audit log
+
+Lifecycle events are written to the configured log channel: ticket opened 🎫,
+claimed 🙋 / released 🙌, renamed ✏️, panel switched 🔀, and closed 📪.

@@ -6,10 +6,11 @@ for configuration and management. Inspired by
 [TicketsBot](https://github.com/orgs/TicketsBot-cloud/repositories) — built to be
 easy to run yourself and to own your own data.
 
-> **Status: early but functional.** Configuration, panels, and the core ticket
-> lifecycle (open → staff reply → close → transcript) work end to end. Claiming,
-> tags, blacklist, and in-dashboard stats/transcript viewing are still to come —
-> see the [roadmap](#roadmap).
+> **Status: functional.** Configuration, panels, forms, multi-panels, the full
+> ticket lifecycle (open → claim → reply → close → transcript), rich message
+> templates, close requests, staff notes, and a shareable transcript viewer all
+> work end to end. Tags/canned responses, a per-user blacklist, and in-dashboard
+> stats are still to come — see the [roadmap](#roadmap).
 
 ---
 
@@ -27,13 +28,24 @@ easy to run yourself and to own your own data.
 - **Panel forms** — optionally attach up to 5 questions to a panel; clicking it
   opens a native Discord modal, and the answers are saved and posted in the
   ticket.
+- **Multi-panels** — combine several panels into one message, shown as buttons
+  or a dropdown, each routing to its own panel configuration.
 - **Web dashboard** — sign in with Discord and configure your servers from a
   browser (built with Next.js + shadcn/ui). All config is web-based.
 - **Ticket management** — staff can `/claim` and `/unclaim` tickets (also via
-  buttons), `/add` and `/remove` members, and `/close [reason]`. Lifecycle
+  buttons), `/add` and `/remove` members, `/rename` a ticket, `/switchpanel` to
+  move it, open a private `/notes` thread, and `/close [reason]`. Lifecycle
   events are logged to a configurable log channel.
-- **Slash commands** — `/ping`, `/close`, `/claim`, `/unclaim`, `/add`,
-  `/remove`; `/setup` and `/panel` link to the dashboard.
+- **Close requests** — `/closerequest [hours] [reason]` asks the opener to
+  confirm, with an optional auto-close timer if nobody responds.
+- **Message templates** — design the welcome, claim-notice, close-DM, and
+  transcript-post messages as rich embeds in the dashboard editor, with
+  `{placeholder}` tokens.
+- **Transcripts** — every closed ticket is archived and viewable at a shareable,
+  unguessable link; optionally DMed to the opener on close.
+- **Slash commands** — `/ping`, `/close`, `/closerequest`, `/claim`, `/unclaim`,
+  `/add`, `/remove`, `/rename`, `/switchpanel`, `/notes`; `/setup` and `/panel`
+  link to the dashboard.
 - **Self-hostable** — one `docker compose up` brings up Postgres, the web app,
   and the bot. Your data stays on your infrastructure.
 
@@ -114,6 +126,12 @@ Useful scripts (run with `aube run <name>`):
 
 ## Documentation
 
+The full documentation — including feature guides for the ticket lifecycle,
+panels & forms, message templates, and a slash-command reference — is built into
+the dashboard as an MDX docs section at **`/docs`** (source in `src/app/docs/`).
+
+Repository copies of the core setup guides:
+
 - [Discord application setup](docs/discord-setup.md) — token, OAuth, invite.
 - [Self-hosting](docs/self-hosting.md) — Docker Compose in depth.
 - [Configuration reference](docs/configuration.md) — env vars & guild settings.
@@ -128,8 +146,11 @@ Useful scripts (run with `aube run <name>`):
 - [x] Multi-panels: combine panels into one message (buttons or dropdown)
 - [x] Ticket lifecycle: open → staff reply → close → transcript
 - [x] Ticket claiming & member management, close reasons, log-channel audit
+- [x] Rename / switch-panel / staff notes / close requests with auto-close
+- [x] Rich message templates (welcome, claim, close DM, transcript post)
+- [x] Shareable transcript viewer + optional DM-on-close; tickets list in dashboard
 - [ ] Tags / canned responses and per-user blacklist
-- [ ] Stats & transcript viewer in the dashboard
+- [ ] Stats in the dashboard
 
 ## License
 

@@ -1,0 +1,82 @@
+export const metadata = {
+  title: "Panels & forms",
+  description:
+    "Create button messages members click to open tickets, attach forms, and group panels.",
+};
+
+# Panels & forms
+
+A **panel** is a button message that members click to open a ticket. You create
+and edit panels in the dashboard under **Panels**, then post (or re-send) them
+to a channel. Each panel is independently configurable, so one server can offer
+distinct "Support", "Billing", and "Report a user" flows — each with its own
+category, staff, questions, and appearance.
+
+## Creating a panel
+
+Open **Panels → New**, fill in the form, choose a target channel, and save. The
+bot posts the embed with its button and remembers the message so you can edit
+and re-send it later. Panel actions include **Edit**, **Delete**, **Resend**,
+and **Reset cooldowns**.
+
+## Appearance
+
+| Field           | Default                  | Notes                                          |
+| --------------- | ------------------------ | ---------------------------------------------- |
+| Title           | `Open a ticket`          | Embed title.                                   |
+| Description     | `Click the button…`      | Embed description.                              |
+| Color           | Discord blurple          | Embed accent color.                            |
+| Large image     | —                        | Optional embed image.                          |
+| Small image     | —                        | Optional embed thumbnail.                      |
+| Button label    | `Open Ticket`            | Text on the button.                            |
+| Button emoji    | —                        | Optional emoji on the button.                  |
+| Button color    | `Primary`                | `Primary`, `Secondary`, `Success`, or `Danger`. |
+| Disabled        | off                      | When on, the panel refuses new tickets.        |
+
+## Per-panel overrides
+
+Any of these override the guild defaults for tickets opened from this panel.
+Leave them blank to inherit the guild [settings](/docs/configuration).
+
+- **Category** — where this panel's ticket channels are created.
+- **Naming scheme** — channel-name template (`{number}`, `{username}`).
+- **Welcome** — a plain-text or rich [template](/docs/messages) override.
+- **Support roles** — staff granted access to tickets from this panel.
+- **Mention roles** — roles pinged when a ticket opens.
+
+## Behaviour
+
+- **Cooldown** — a per-user, per-panel cooldown in seconds (`0` disables it;
+  staff are exempt). Cooldowns can be reset from the panel's actions.
+- **Access control** — an ordered list of allow/deny rules by role. Matching is
+  top-to-bottom, first match wins; an empty list allows everyone.
+- **Button visibility** — independently hide the **Claim**, **Close**, and
+  **Close with reason** buttons on the welcome message.
+
+## Panel forms
+
+Attach up to **five** questions to a panel. When a member clicks the button, a
+native Discord modal collects the answers before the ticket opens; the answers
+are saved on the ticket and shown in the welcome message.
+
+Each question has:
+
+| Property     | Notes                                            |
+| ------------ | ------------------------------------------------ |
+| Label        | The field prompt (Discord caps it at 45 chars).  |
+| Style        | `short` (single line) or `paragraph` (multiline). |
+| Placeholder  | Optional greyed-out hint text.                   |
+| Required     | Whether the member must answer.                  |
+
+## Multi-panels
+
+A **multi-panel** combines several panels into a single message. Create one
+under **Panels → Multi**, give it its own title / description / color / images,
+pick the panels to include, and choose how members select:
+
+- **Buttons** — one button per included panel, or
+- **Dropdown** — a single select menu listing the panels.
+
+Each option opens a ticket using that panel's full configuration — categories,
+forms, roles, and all. This keeps one tidy message in your support channel while
+still routing to distinct ticket types.

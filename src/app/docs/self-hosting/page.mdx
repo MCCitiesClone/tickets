@@ -1,0 +1,115 @@
+export const metadata = {
+  title: "Quickstart & self-hosting",
+  description:
+    "Run Tickets with Docker Compose, or manually as three processes.",
+};
+
+# Quickstart & self-hosting
+
+The recommended way to run Tickets is **Docker Compose**, which brings up three
+services — **postgres**, **web**, and **bot** — plus a one-shot **migrate** job
+that applies the database schema before the app starts.
+
+## Prerequisites
+
+- Docker + Docker Compose v2
+- A Discord application — see [Discord application setup](/docs/discord-setup)
+
+## Docker Compose
+
+```bash
+# 1. Get the code
+git clone <your-fork> tickets && cd tickets
+
+# 2. Configure
+cp .env.example .env
+#   Set at minimum:
+#     DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET
+#     BETTER_AUTH_SECRET   (openssl rand -base64 32)
+#   For a public deployment also set BETTER_AUTH_URL to your domain.
+
+# 3. Build & start
+docker compose up -d --build
+
+# 4. Watch logs
+docker compose logs -f web bot
+```
+
+Then open **http://localhost:3000** and sign in with Discord.
+
+### What each service does
+
+| Service    | Role                                                     |
+| ---------- | -------------------------------------------------------- |
+| `postgres` | Database + named volume `postgres-data`                  |
+| `migrate`  | Runs `src/db/migrate.ts` once, then exits                |
+| `web`      | Next.js standalone dashboard on port 3000                |
+| `bot`      | discord.js gateway process                               |
+
+`web` and `bot` both wait for `migrate` to finish successfully, so the schema
+always exists before they run.
+
+### Database credentials
+
+Inside Compose, `DATABASE_URL` is assembled automatically from `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, and `POSTGRES_DB` and points at the internal `postgres`
+host. (The `DATABASE_URL` in `.env` is only used for non-Docker local dev.)
+Change the `POSTGRES_*` values to set your own credentials.
+
+## Upgrading
+
+```bash
+git pull
+docker compose up -d --build   # migrate re-runs and applies any new migrations
+```
+
+New schema changes ship as SQL files in `drizzle/` (generated with
+`aube run db:generate`). The `migrate` service applies whatever is pending.
+
+## Reverse proxy / TLS
+
+Put the `web` service behind your reverse proxy (Caddy, nginx, Traefik) and
+terminate TLS there. Set `BETTER_AUTH_URL` to the public HTTPS URL and add the
+matching OAuth redirect (`https://your-domain/api/auth/callback/discord`) in the
+Discord Developer Portal.
+
+## Running without Docker
+
+You can run the three pieces manually. You need Node 20.9+, a running Postgres,
+and [aube](https://github.com/) as the package manager.
+
+```bash
+aube install
+cp .env.example .env            # then edit values
+aube run db:migrate:run         # apply migrations to your Postgres
+aube run build && aube run start   # web (or `aube run dev` for development)
+aube run bot                    # bot, in another process/terminal
+```
+
+### Useful scripts
+
+Run with `aube run <name>`:
+
+| Script            | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `dev`             | Next.js dev server                              |
+| `bot`             | Bot (production)                                |
+| `bot:dev`         | Bot with file-watch reload                      |
+| `bot:register`    | Register slash commands (`… <guildId>` for one) |
+| `db:push`         | Push schema straight to the DB (dev)            |
+| `db:generate`     | Generate a SQL migration from schema changes    |
+| `db:migrate:run`  | Apply migrations (used in Docker)               |
+| `db:studio`       | Open Drizzle Studio                             |
+| `db:seed`         | Seed development data                           |
+| `lint` / `build`  | Lint / production build                         |
+
+## Troubleshooting
+
+- **Bot online but commands missing** — global commands take time to propagate;
+  set `DISCORD_DEV_GUILD_ID` and re-run `aube run bot:register <guildId>`.
+- **Dashboard sign-in fails / redirect error** — the OAuth redirect URL in
+  Discord must exactly match `BETTER_AUTH_URL` + `/api/auth/callback/discord`.
+- **`migrate` service fails** — check `DATABASE_URL` / `POSTGRES_*` and that
+  `postgres` became healthy (`docker compose ps`).
+- **Transcripts have empty message bodies** — enable the **Message Content**
+  privileged intent for your app (see [ticket lifecycle](/docs/tickets)).

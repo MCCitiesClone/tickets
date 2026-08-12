@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BookOpen,
   LayoutDashboard,
   LogOut,
   type LucideIcon,
@@ -103,6 +104,15 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Documentation"
+              render={<Link href="/docs" />}
+            >
+              <BookOpen />
+              <span>Documentation</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-2 py-1.5">
               <Avatar className="size-7">
