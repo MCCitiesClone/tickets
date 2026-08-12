@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/MCCitiesClone/tickets/compare/v0.2.1...v0.3.0) (2026-08-12)
+
+
+### Features
+
+* overflow categories so ticket creation never hits the channel cap ([#42](https://github.com/MCCitiesClone/tickets/issues/42)) ([1770298](https://github.com/MCCitiesClone/tickets/commit/1770298bd17c602dbd5464daa09f23ac3e73f869)), closes [#31](https://github.com/MCCitiesClone/tickets/issues/31)
+
 ## [0.2.1](https://github.com/MCCitiesClone/tickets/compare/v0.2.0...v0.2.1) (2026-08-12)
 
 
