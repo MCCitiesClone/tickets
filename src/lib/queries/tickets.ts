@@ -263,6 +263,40 @@ export async function markMessageDeleted(
     .where(eq(ticketMessage.discordMessageId, discordMessageId));
 }
 
+/** A ticket opener resolved to a display name (for the blacklist user picker). */
+export type TicketOpener = { id: string; name: string };
+
+/**
+ * Distinct users who have opened a ticket in this guild, resolved to their most
+ * recent captured display name (falling back to the raw ID). DB-only — no
+ * privileged Discord intent required — so it's a practical source for a "who to
+ * blacklist" picker. Sorted by name.
+ */
+export async function listGuildTicketOpeners(
+  guildId: string,
+): Promise<TicketOpener[]> {
+  const [openers, names] = await Promise.all([
+    db
+      .selectDistinct({ id: ticket.openerId })
+      .from(ticket)
+      .where(eq(ticket.guildId, guildId)),
+    db
+      .selectDistinctOn([ticketMessage.authorId], {
+        id: ticketMessage.authorId,
+        name: ticketMessage.authorTag,
+      })
+      .from(ticketMessage)
+      .innerJoin(ticket, eq(ticket.id, ticketMessage.ticketId))
+      .where(eq(ticket.guildId, guildId))
+      .orderBy(ticketMessage.authorId, desc(ticketMessage.createdAt)),
+  ]);
+
+  const nameMap = new Map(names.map((n) => [n.id, n.name]));
+  return openers
+    .map((o) => ({ id: o.id, name: nameMap.get(o.id) ?? o.id }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Count captured messages for a ticket. */
 export async function countTicketMessages(ticketId: string): Promise<number> {
   const [row] = await db

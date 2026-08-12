@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,48 +9,48 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Role } from "@/components/role-multi-select";
 import { addBlacklist, removeBlacklist } from "@/app/actions/blacklist";
 import type { Blacklist } from "@/db/schema";
+import type { TicketOpener } from "@/lib/queries/tickets";
 import { EmptyState } from "../../page-shell";
+import { UserCombobox } from "./user-combobox";
 
 export function BlacklistManager({
   guildId,
   initial,
+  roles,
+  users,
 }: {
   guildId: string;
   initial: Blacklist[];
+  roles: Role[];
+  users: TicketOpener[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [roles, setRoles] = useState<Role[]>([]);
 
   const [type, setType] = useState<"user" | "role">("user");
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [roleId, setRoleId] = useState("");
   const [reason, setReason] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/guilds/${guildId}/roles`)
-      .then((r) => r.json())
-      .then((data: { roles: Role[] }) => {
-        if (!cancelled) setRoles(data.roles ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) toast.error("Couldn't load roles.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [guildId]);
-
-  const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
+  // value -> label map so the role trigger shows the name, not the id.
+  const roleItems = Object.fromEntries(roles.map((r) => [r.id, r.name]));
+  const roleName = (id: string) => roleItems[id] ?? id;
+  const userName = (id: string) => users.find((u) => u.id === id)?.name ?? id;
 
   function add() {
-    const targetId = type === "user" ? userId.trim() : roleId;
+    const targetId = type === "user" ? userId?.trim() : roleId;
     if (!targetId) {
-      toast.error(type === "user" ? "Enter a user ID." : "Pick a role.");
+      toast.error(type === "user" ? "Pick or paste a user." : "Pick a role.");
       return;
     }
     startTransition(async () => {
@@ -62,7 +62,7 @@ export function BlacklistManager({
           reason: reason.trim() || null,
         });
         toast.success("Added to the blacklist.");
-        setUserId("");
+        setUserId(null);
         setRoleId("");
         setReason("");
         router.refresh();
@@ -114,37 +114,41 @@ export function BlacklistManager({
 
           {type === "user" ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="bl-user">User ID</Label>
-              <Input
-                id="bl-user"
-                inputMode="numeric"
-                placeholder="e.g. 123456789012345678"
+              <Label htmlFor="bl-user">User</Label>
+              <UserCombobox
+                users={users}
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onValueChange={setUserId}
               />
               <p className="text-xs text-muted-foreground">
-                Enable Developer Mode in Discord, then right-click a user → Copy
-                User ID.
+                Lists members who&apos;ve opened tickets here. Not listed? Enable
+                Developer Mode in Discord, right-click a user → Copy User ID, and
+                paste it.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="bl-role">Role</Label>
-              <select
-                id="bl-role"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              <Select
+                items={roleItems}
                 value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
+                onValueChange={(v) => setRoleId(v as string)}
               >
-                <option value="">
-                  {roles.length ? "— Select a role —" : "Loading roles…"}
-                </option>
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="bl-role" className="w-full">
+                  <SelectValue
+                    placeholder={
+                      roles.length ? "— Select a role —" : "No roles available"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -183,8 +187,14 @@ export function BlacklistManager({
                   <p className="font-medium">
                     {entry.targetType === "role"
                       ? `Role: ${roleName(entry.targetId)}`
-                      : `User: ${entry.targetId}`}
+                      : `User: ${userName(entry.targetId)}`}
                   </p>
+                  {entry.targetType === "user" &&
+                    userName(entry.targetId) !== entry.targetId && (
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {entry.targetId}
+                      </p>
+                    )}
                   {entry.reason && (
                     <p className="truncate text-sm text-muted-foreground">
                       {entry.reason}
