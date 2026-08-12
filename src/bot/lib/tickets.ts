@@ -432,7 +432,7 @@ export async function openTicket(
   });
 
   const embed = new EmbedBuilder()
-    .setTitle(`Ticket #${number}`)
+    .setTitle(`${panel.title || "Ticket"} (#${number})`)
     .setDescription(panel.welcomeMessage || config.welcomeMessage)
     .setColor(panel.color);
   if (panel.largeImageUrl) embed.setImage(panel.largeImageUrl);
