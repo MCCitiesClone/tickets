@@ -34,6 +34,7 @@ import {
   getTicketByChannel,
   markTicketClosed,
   setTicketClaimedBy,
+  setTicketPanel,
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { messageToRow } from "./message-snapshot";
@@ -612,6 +613,152 @@ export async function setTicketMember(
     console.error("Failed to update ticket member:", err);
     await replyError(interaction, "I couldn't update that member's access.");
   }
+}
+
+/** Sanitize a staff-supplied prefix into a Discord-safe channel-name segment. */
+function sanitizePrefix(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+/**
+ * Rename a ticket channel's prefix while preserving its `-<number>` suffix, so
+ * the ticket's identity is never lost (e.g. `/rename bug` on ticket 42 →
+ * `bug-42`). Staff only.
+ */
+export async function renameTicket(
+  interaction: ChatInputCommandInteraction,
+  rawPrefix: string,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!isStaff(interaction, config)) {
+    await replyError(interaction, "Only staff can rename tickets.");
+    return;
+  }
+
+  const prefix = sanitizePrefix(rawPrefix);
+  if (!prefix) {
+    await replyError(
+      interaction,
+      "Please provide a valid name using letters, numbers, or dashes.",
+    );
+    return;
+  }
+  const newName = `${prefix}-${ticket.number}`;
+
+  const channel = await interaction
+    .guild!.channels.fetch(ticket.channelId)
+    .catch(() => null);
+  if (!channel || channel.isThread() || !("setName" in channel)) {
+    await replyError(interaction, "Couldn't access the ticket channel.");
+    return;
+  }
+
+  // Channel renames are heavily rate-limited by Discord, so defer first.
+  await interaction.deferReply();
+  try {
+    await channel.setName(newName);
+  } catch (err) {
+    console.error("Failed to rename ticket channel:", err);
+    await interaction.editReply(
+      "I couldn't rename the channel. Check that my role can Manage Channels.",
+    );
+    return;
+  }
+
+  await interaction.editReply(`✏️ Renamed this ticket to **${newName}**.`);
+  await logAction(
+    interaction.guild!,
+    config,
+    `✏️ Ticket #${ticket.number} renamed to \`${newName}\` by <@${interaction.user.id}>`,
+  );
+}
+
+/**
+ * Switch which panel a ticket belongs to. Updates the association and applies
+ * the new panel's meaningful effects: moves the channel to the new panel's
+ * category (preserving the ticket's private overwrites) and grants the new
+ * panel's support roles access. Existing access is left intact. Staff only.
+ */
+export async function switchTicketPanel(
+  interaction: ChatInputCommandInteraction,
+  panelId: string,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!isStaff(interaction, config)) {
+    await replyError(interaction, "Only staff can switch a ticket's panel.");
+    return;
+  }
+
+  const panel = await getPanel(panelId);
+  if (!panel || panel.guildId !== ticket.guildId) {
+    await replyError(interaction, "That panel doesn't exist on this server.");
+    return;
+  }
+  if (ticket.panelId === panel.id) {
+    await replyError(interaction, "This ticket already uses that panel.");
+    return;
+  }
+
+  await interaction.deferReply();
+
+  await setTicketPanel(ticket.id, panel.id);
+
+  const channel = await interaction
+    .guild!.channels.fetch(ticket.channelId)
+    .catch(() => null);
+  if (channel && !channel.isThread() && "permissionOverwrites" in channel) {
+    // Move to the new panel's category. `lockPermissions: false` is essential —
+    // otherwise Discord syncs to the category and wipes the ticket's privacy.
+    const categoryId = panel.categoryId ?? config.ticketCategoryId ?? null;
+    if (categoryId && channel.parentId !== categoryId) {
+      await channel
+        .setParent(categoryId, { lockPermissions: false })
+        .catch((err) => console.error("Failed to move ticket channel:", err));
+    }
+
+    // Grant the new panel's support roles access to the channel.
+    const roleIds = panel.supportRoleIds.length
+      ? panel.supportRoleIds
+      : config.staffRoleIds;
+    for (const roleId of roleIds) {
+      await channel.permissionOverwrites
+        .edit(roleId, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+          AttachFiles: true,
+          EmbedLinks: true,
+        })
+        .catch(() => {});
+    }
+  }
+
+  await interaction.editReply(
+    `🔀 Switched this ticket to the **${panel.title}** panel.`,
+  );
+  await logAction(
+    interaction.guild!,
+    config,
+    `🔀 Ticket #${ticket.number} switched to panel "${panel.title}" by <@${interaction.user.id}>`,
+  );
 }
 
 /**
