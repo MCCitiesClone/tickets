@@ -6,8 +6,10 @@ export const metadata = {
 
 # Stats & analytics
 
-The **Stats** page in the dashboard summarises your server's ticket activity
-over a selectable window — **7, 30, or 90 days**. Everything is computed from
+The dashboard **home page** shows the headline numbers at a glance (last 30
+days) alongside quick links to the rest of the dashboard. The dedicated
+**Stats** page adds a selectable window — **7, 30, or 90 days** — a per-panel
+breakdown, per-staff activity, and **CSV export**. Everything is computed from
 data the bot already stores (`ticket` and `ticket_message`), so there's nothing
 extra to enable.
 
@@ -35,6 +37,11 @@ than the ticket's opener — i.e. the first time a staff member replied.
 A per-staff table of tickets **closed**, tickets **claimed**, and each member's
 **average resolution time**, sorted by closes. Staff are shown by their most
 recent display name captured in a ticket.
+
+## Export
+
+Use **Export CSV** on the Stats page to download the ticket-volume series,
+staff-activity table, or per-panel breakdown for the selected window.
 
 > Averages ignore tickets with no data (e.g. resolution only counts closed
 > tickets; first response only counts tickets that got a reply). Rating-based

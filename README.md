@@ -42,9 +42,10 @@ easy to run yourself and to own your own data.
   confirm, with an optional auto-close timer if nobody responds.
 - **Blacklist** — block specific users or roles from opening tickets, from the
   dashboard or `/blacklist`; enforced before a ticket channel is created.
-- **Stats & analytics** — a dashboard view of ticket volume over time, open/
-  closed counts, average first-response and resolution times, per-panel and
-  per-staff activity, over a 7/30/90-day window.
+- **Stats & analytics** — headline numbers at a glance on the dashboard home,
+  plus a dedicated Stats page with ticket volume over time, open/closed counts,
+  average first-response and resolution times, per-panel and per-staff activity
+  over a 7/30/90-day window, and CSV export.
 - **Message templates** — design the welcome, claim-notice, close-DM, and
   transcript-post messages as rich embeds in the dashboard editor, with
   `{placeholder}` tokens.
