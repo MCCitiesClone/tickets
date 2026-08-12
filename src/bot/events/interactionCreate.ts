@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 
 import { commandMap } from "../commands";
+import { EMBED_COLOR, noticeEmbed } from "../lib/embeds";
 import {
   buildCloseReasonModal,
   claimTicket,
@@ -25,13 +26,15 @@ async function reportInteractionError(
   label: string,
 ) {
   console.error(`Error handling ${label}:`, err);
-  const content = "Something went wrong handling that action.";
+  const embeds = [
+    noticeEmbed("Something went wrong handling that action.", EMBED_COLOR.danger),
+  ];
   // If we already deferred, edit that reply — otherwise it hangs on "thinking…".
   if (interaction.deferred) {
-    await interaction.editReply({ content }).catch(() => {});
+    await interaction.editReply({ embeds }).catch(() => {});
   } else if (!interaction.replied) {
     await interaction
-      .reply({ content, flags: MessageFlags.Ephemeral })
+      .reply({ embeds, flags: MessageFlags.Ephemeral })
       .catch(() => {});
   }
 }
@@ -53,7 +56,12 @@ export async function onInteractionCreate(
     } catch (err) {
       console.error(`Error running /${interaction.commandName}:`, err);
       const reply = {
-        content: "Something went wrong running that command.",
+        embeds: [
+          noticeEmbed(
+            "Something went wrong running that command.",
+            EMBED_COLOR.danger,
+          ),
+        ],
         flags: MessageFlags.Ephemeral as const,
       };
       if (interaction.replied || interaction.deferred) {

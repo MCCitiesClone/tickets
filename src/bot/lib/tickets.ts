@@ -49,6 +49,7 @@ import {
   setTicketPanel,
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
+import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
 
@@ -74,13 +75,6 @@ function pickTemplate(
   for (const t of candidates) if (t && !isTemplateEmpty(t)) return t;
   return null;
 }
-
-/** Accent colours for the bot's built-in (unconfigured) system embeds. */
-const EMBED_COLOR = {
-  info: 0x5865f2,
-  success: 0x57f287,
-  neutral: 0x99aab5,
-} as const;
 
 /** A single-button action row linking out to a URL (e.g. a transcript). */
 function linkButtonRow(
@@ -114,6 +108,7 @@ function buildCloseEmbed(
         value: ticket.claimedBy ? `<@${ticket.claimedBy}>` : "Not claimed",
         inline: true,
       },
+      { name: "         ", value: "         ", inline: true },
       {
         name: "Reason",
         value: reason?.trim() ? reason.slice(0, 1024) : "No reason provided",
@@ -145,7 +140,10 @@ function channelName(scheme: string, number: number, username: string): string {
 }
 
 async function replyError(interaction: Interaction, content: string) {
-  const payload = { content, flags: MessageFlags.Ephemeral as const };
+  const payload = {
+    embeds: [noticeEmbed(content, EMBED_COLOR.danger)],
+    flags: MessageFlags.Ephemeral as const,
+  };
   if (interaction.replied || interaction.deferred) {
     await interaction.followUp(payload).catch(() => {});
   } else {
@@ -276,7 +274,10 @@ async function logAction(
     .catch(() => null);
   if (channel?.isTextBased()) {
     await channel
-      .send({ content, allowedMentions: { parse: [] } })
+      .send({
+        embeds: [noticeEmbed(content, EMBED_COLOR.neutral).setTimestamp()],
+        allowedMentions: { parse: [] },
+      })
       .catch(() => {});
   }
 }
@@ -492,7 +493,9 @@ export async function openTicket(
   // Respond to the opener as soon as the channel exists so the button doesn't
   // sit on "thinking…". The welcome message and audit log are best-effort.
   await interaction.editReply({
-    content: `Your ticket is ready: <#${channel.id}>`,
+    embeds: [
+      noticeEmbed(`Your ticket is ready: <#${channel.id}>`, EMBED_COLOR.success),
+    ],
   });
 
   // Form answers are shown as embed fields regardless of which path builds the
@@ -727,10 +730,21 @@ export async function setTicketMember(
         SendMessages: true,
         ReadMessageHistory: true,
       });
-      await interaction.reply(`➕ Added <@${targetId}> to the ticket.`);
+      await interaction.reply({
+        embeds: [
+          noticeEmbed(`➕ Added <@${targetId}> to the ticket.`, EMBED_COLOR.success),
+        ],
+      });
     } else {
       await channel.permissionOverwrites.delete(targetId);
-      await interaction.reply(`➖ Removed <@${targetId}> from the ticket.`);
+      await interaction.reply({
+        embeds: [
+          noticeEmbed(
+            `➖ Removed <@${targetId}> from the ticket.`,
+            EMBED_COLOR.neutral,
+          ),
+        ],
+      });
     }
   } catch (err) {
     console.error("Failed to update ticket member:", err);
@@ -793,13 +807,22 @@ export async function renameTicket(
     await channel.setName(newName);
   } catch (err) {
     console.error("Failed to rename ticket channel:", err);
-    await interaction.editReply(
-      "I couldn't rename the channel. Check that my role can Manage Channels.",
-    );
+    await interaction.editReply({
+      embeds: [
+        noticeEmbed(
+          "I couldn't rename the channel. Check that my role can Manage Channels.",
+          EMBED_COLOR.danger,
+        ),
+      ],
+    });
     return;
   }
 
-  await interaction.editReply(`✏️ Renamed this ticket to **${newName}**.`);
+  await interaction.editReply({
+    embeds: [
+      noticeEmbed(`✏️ Renamed this ticket to **${newName}**.`, EMBED_COLOR.success),
+    ],
+  });
   await logAction(
     interaction.guild!,
     config,
@@ -890,10 +913,15 @@ export async function switchTicketPanel(
     }
   }
 
-  await interaction.editReply(
-    `🔀 Switched this ticket to the **${panel.title}** panel` +
-      (renamedTo ? ` and renamed it to **${renamedTo}**.` : "."),
-  );
+  await interaction.editReply({
+    embeds: [
+      noticeEmbed(
+        `🔀 Switched this ticket to the **${panel.title}** panel` +
+          (renamedTo ? ` and renamed it to **${renamedTo}**.` : "."),
+        EMBED_COLOR.success,
+      ),
+    ],
+  });
   await logAction(
     interaction.guild!,
     config,
@@ -936,14 +964,20 @@ export async function openStaffNotes(
     if (existing?.isThread()) {
       if (existing.archived) await existing.setArchived(false).catch(() => {});
       await existing.members.add(interaction.user.id).catch(() => {});
-      await interaction.editReply(`🗒️ Staff notes: <#${existing.id}>`);
+      await interaction.editReply({
+        embeds: [noticeEmbed(`🗒️ Staff notes: <#${existing.id}>`)],
+      });
       return;
     }
   }
 
   const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
   if (!channel || channel.type !== ChannelType.GuildText) {
-    await interaction.editReply("Couldn't access the ticket channel.");
+    await interaction.editReply({
+      embeds: [
+        noticeEmbed("Couldn't access the ticket channel.", EMBED_COLOR.danger),
+      ],
+    });
     return;
   }
 
@@ -958,9 +992,14 @@ export async function openStaffNotes(
     });
   } catch (err) {
     console.error("Failed to create staff notes thread:", err);
-    await interaction.editReply(
-      "I couldn't create the notes thread. Check that I can Create Private Threads here.",
-    );
+    await interaction.editReply({
+      embeds: [
+        noticeEmbed(
+          "I couldn't create the notes thread. Check that I can Create Private Threads here.",
+          EMBED_COLOR.danger,
+        ),
+      ],
+    });
     return;
   }
 
@@ -991,9 +1030,14 @@ export async function openStaffNotes(
     }
   }
 
-  await interaction.editReply(
-    `A notes thread has been created for this ticket: <#${thread.id}>`,
-  );
+  await interaction.editReply({
+    embeds: [
+      noticeEmbed(
+        `A notes thread has been created for this ticket: <#${thread.id}>`,
+        EMBED_COLOR.success,
+      ),
+    ],
+  });
   await logAction(
     guild,
     config,
@@ -1058,7 +1102,12 @@ export async function closeTicket(
   }
 
   await interaction.reply({
-    content: reason ? `Closing this ticket: ${reason}` : "Closing this ticket…",
+    embeds: [
+      noticeEmbed(
+        reason ? `Closing this ticket: ${reason}` : "Closing this ticket…",
+        EMBED_COLOR.danger,
+      ),
+    ],
   });
 
   const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
