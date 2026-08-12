@@ -473,11 +473,22 @@ export async function openTicket(
       server: guild.name,
       channel: `<#${channel.id}>`,
     });
+    // Show the form answers in their own embed, kept separate from the rich
+    // welcome. If we're already at Discord's 10-embed limit, fall back to
+    // appending them to the last embed rather than dropping them.
     if (answerFields.length > 0) {
-      if (rendered.embeds.length === 0) rendered.embeds.push(new EmbedBuilder());
-      const target = rendered.embeds[0];
-      const used = target.data.fields?.length ?? 0;
-      target.addFields(answerFields.slice(0, Math.max(0, 25 - used)));
+      if (rendered.embeds.length < 10) {
+        rendered.embeds.push(
+          new EmbedBuilder()
+            .setTitle("Form responses")
+            .setColor(panel.color)
+            .addFields(answerFields.slice(0, 25)),
+        );
+      } else {
+        const target = rendered.embeds[rendered.embeds.length - 1];
+        const used = target.data.fields?.length ?? 0;
+        target.addFields(answerFields.slice(0, Math.max(0, 25 - used)));
+      }
     }
     welcomePayload = { content: rendered.content, embeds: rendered.embeds };
   } else {
