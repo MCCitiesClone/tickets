@@ -10,8 +10,10 @@ import { commandMap } from "../commands";
 import { EMBED_COLOR, noticeEmbed } from "../lib/embeds";
 import {
   buildCloseReasonModal,
+  cancelCloseRequest,
   claimTicket,
   closeTicket,
+  confirmCloseRequest,
   openTicketFromPanel,
   submitTicketForm,
   unclaimTicket,
@@ -96,6 +98,10 @@ export async function onInteractionCreate(
         await claimTicket(interaction, id);
       } else if (action === "unclaim_ticket") {
         await unclaimTicket(interaction, id);
+      } else if (action === "close_confirm") {
+        await confirmCloseRequest(interaction, id);
+      } else if (action === "close_cancel") {
+        await cancelCloseRequest(interaction, id);
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);

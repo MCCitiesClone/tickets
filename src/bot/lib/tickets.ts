@@ -7,6 +7,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
   ChannelType,
+  type Client,
   EmbedBuilder,
   type Guild as DiscordGuild,
   type GuildMember,
@@ -37,13 +38,16 @@ import { renderTemplate } from "./message-template";
 import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
 import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
 import {
+  clearCloseRequest,
   countOpenTicketsForUser,
   countTicketMessages,
   createTicket,
   createTranscript,
   getTicket,
   getTicketByChannel,
+  listDueCloseRequests,
   markTicketClosed,
+  setCloseRequest,
   setTicketClaimedBy,
   setTicketNotesThread,
   setTicketPanel,
@@ -1075,41 +1079,19 @@ function transcriptUrl(token: string): string {
 }
 
 /**
- * Close a ticket: authorize, sweep the full history into the DB, create a
- * shareable transcript and post its link to the configured transcript channel,
- * mark it closed, log it, and delete the ticket channel.
+ * Core close routine, independent of any interaction: sweep the full history
+ * into the DB, create a shareable transcript and post its link to the transcript
+ * channel, optionally DM the opener, mark the ticket closed, log it, and delete
+ * the channel. Used by `/close`, the close-request confirm button, and the
+ * auto-close sweeper.
  */
-export async function closeTicket(
-  interaction: Interaction,
-  ticketId?: string,
+export async function performClose(
+  guild: DiscordGuild,
+  ticket: Ticket,
+  config: Guild,
+  closerId: string,
   reason?: string,
 ): Promise<void> {
-  const resolved = await resolveTicket(interaction, ticketId);
-  if (!resolved) return;
-  const { ticket, config } = resolved;
-  const guild = interaction.guild!;
-
-  if (ticket.status === "closed") {
-    await replyError(interaction, "This ticket is already closed.");
-    return;
-  }
-  if (!canManageTicket(interaction, config, ticket)) {
-    await replyError(
-      interaction,
-      "Only the ticket opener or staff can close this ticket.",
-    );
-    return;
-  }
-
-  await interaction.reply({
-    embeds: [
-      noticeEmbed(
-        reason ? `Closing this ticket: ${reason}` : "Closing this ticket…",
-        EMBED_COLOR.danger,
-      ),
-    ],
-  });
-
   const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
 
   // Stop live capture before touching the channel, so the bulk message-delete
@@ -1142,7 +1124,7 @@ export async function closeTicket(
     number: String(ticket.number),
     server: guild.name,
     opener: `<@${ticket.openerId}>`,
-    closer: `<@${interaction.user.id}>`,
+    closer: `<@${closerId}>`,
     reason: reason ?? "",
     transcript_url: url ?? "",
   };
@@ -1157,9 +1139,7 @@ export async function closeTicket(
       const payload = tmpl
         ? renderTemplate(tmpl, closeVars)
         : {
-            embeds: [
-              buildCloseEmbed(guild, ticket, interaction.user.id, reason),
-            ],
+            embeds: [buildCloseEmbed(guild, ticket, closerId, reason)],
             components: [linkButtonRow("View Online Transcript", url)],
           };
       await transcriptChannel
@@ -1177,9 +1157,7 @@ export async function closeTicket(
       const payload = tmpl
         ? renderTemplate(tmpl, closeVars)
         : {
-            embeds: [
-              buildCloseEmbed(guild, ticket, interaction.user.id, reason),
-            ],
+            embeds: [buildCloseEmbed(guild, ticket, closerId, reason)],
             components: [linkButtonRow("View Online Transcript", url)],
           };
       await opener.send(payload);
@@ -1188,15 +1166,234 @@ export async function closeTicket(
     }
   }
 
-  await markTicketClosed(ticket.id, interaction.user.id);
+  await markTicketClosed(ticket.id, closerId);
 
   await logAction(
     guild,
     config,
-    `📪 Ticket #${ticket.number} closed by <@${interaction.user.id}>${reason ? ` — ${reason}` : ""}`,
+    `📪 Ticket #${ticket.number} closed by <@${closerId}>${reason ? ` — ${reason}` : ""}`,
   );
 
   if (channel && !channel.isThread() && channel.deletable) {
     await channel.delete(`Ticket #${ticket.number} closed`).catch(() => {});
+  }
+}
+
+/**
+ * Close a ticket via an interaction: authorize, acknowledge, then run the core
+ * close routine.
+ */
+export async function closeTicket(
+  interaction: Interaction,
+  ticketId?: string,
+  reason?: string,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, ticketId);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+  const guild = interaction.guild!;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is already closed.");
+    return;
+  }
+  if (!canManageTicket(interaction, config, ticket)) {
+    await replyError(
+      interaction,
+      "Only the ticket opener or staff can close this ticket.",
+    );
+    return;
+  }
+
+  await interaction.reply({
+    embeds: [
+      noticeEmbed(
+        reason ? `Closing this ticket: ${reason}` : "Closing this ticket…",
+        EMBED_COLOR.danger,
+      ),
+    ],
+  });
+
+  await performClose(guild, ticket, config, interaction.user.id, reason);
+}
+
+/** Confirm / cancel buttons shown on a close request. */
+function buildCloseRequestButtons(
+  ticketId: string,
+): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`close_confirm:${ticketId}`)
+      .setLabel("Confirm & close")
+      .setEmoji("🔒")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`close_cancel:${ticketId}`)
+      .setLabel("Keep open")
+      .setStyle(ButtonStyle.Secondary),
+  );
+}
+
+/**
+ * `/closerequest` — post a message asking another member to confirm closing the
+ * ticket. Anyone but the requester can confirm; if `close_delay` hours are set,
+ * the ticket auto-closes when the request goes unconfirmed for that long.
+ */
+export async function requestClose(
+  interaction: ChatInputCommandInteraction,
+  reason: string | undefined,
+  closeDelayHours: number | undefined,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket } = resolved;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is already closed.");
+    return;
+  }
+
+  const expiresAt = closeDelayHours
+    ? new Date(Date.now() + closeDelayHours * 3_600_000)
+    : null;
+  await setCloseRequest(ticket.id, interaction.user.id, reason ?? null, expiresAt);
+
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLOR.info)
+    .setTitle("Close request")
+    .setDescription(
+      `<@${interaction.user.id}> has requested to close this ticket.\n` +
+        "Another member can confirm below to close it" +
+        (expiresAt
+          ? `, otherwise it will auto-close <t:${Math.floor(expiresAt.getTime() / 1000)}:R>.`
+          : "."),
+    );
+  if (reason) embed.addFields({ name: "Reason", value: reason.slice(0, 1024) });
+
+  // Ping the opener (usually the one expected to respond) unless they requested.
+  const pingOpener = interaction.user.id !== ticket.openerId;
+
+  await interaction.reply({
+    content: pingOpener ? `<@${ticket.openerId}>` : undefined,
+    embeds: [embed],
+    components: [buildCloseRequestButtons(ticket.id)],
+    allowedMentions: { users: pingOpener ? [ticket.openerId] : [] },
+  });
+}
+
+/** Confirm a pending close request — must be a different user than requested. */
+export async function confirmCloseRequest(
+  interaction: ButtonInteraction,
+  ticketId: string,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, ticketId);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+  const guild = interaction.guild!;
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is already closed.");
+    return;
+  }
+  if (!ticket.closeRequestedBy) {
+    await replyError(
+      interaction,
+      "There's no active close request for this ticket.",
+    );
+    return;
+  }
+  if (interaction.user.id === ticket.closeRequestedBy) {
+    await replyError(
+      interaction,
+      "Someone else must confirm your close request.",
+    );
+    return;
+  }
+
+  await interaction.reply({
+    embeds: [
+      noticeEmbed(
+        `<@${interaction.user.id}> confirmed the close request. Closing…`,
+        EMBED_COLOR.danger,
+      ),
+    ],
+  });
+
+  await performClose(
+    guild,
+    ticket,
+    config,
+    interaction.user.id,
+    ticket.closeRequestReason ?? undefined,
+  );
+}
+
+/** Cancel a pending close request (requester, opener, or staff). */
+export async function cancelCloseRequest(
+  interaction: ButtonInteraction,
+  ticketId: string,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, ticketId);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  if (!ticket.closeRequestedBy) {
+    await replyError(
+      interaction,
+      "There's no active close request for this ticket.",
+    );
+    return;
+  }
+  if (
+    interaction.user.id !== ticket.closeRequestedBy &&
+    !canManageTicket(interaction, config, ticket)
+  ) {
+    await replyError(interaction, "You can't cancel this close request.");
+    return;
+  }
+
+  await clearCloseRequest(ticket.id);
+  await interaction.update({
+    embeds: [
+      noticeEmbed(
+        `Close request cancelled by <@${interaction.user.id}>.`,
+        EMBED_COLOR.neutral,
+      ),
+    ],
+    components: [],
+  });
+}
+
+/**
+ * Auto-close tickets whose close request has passed its delay unconfirmed.
+ * Runs on a timer; the requester is recorded as the closer.
+ */
+export async function sweepDueCloseRequests(client: Client): Promise<void> {
+  let due: Ticket[];
+  try {
+    due = await listDueCloseRequests();
+  } catch (err) {
+    console.error("Failed to list due close requests:", err);
+    return;
+  }
+
+  for (const ticket of due) {
+    try {
+      const guild = await client.guilds.fetch(ticket.guildId).catch(() => null);
+      const config = guild ? await getGuild(ticket.guildId) : null;
+      if (!guild || !config) {
+        await clearCloseRequest(ticket.id);
+        continue;
+      }
+      await performClose(
+        guild,
+        ticket,
+        config,
+        ticket.closeRequestedBy ?? client.user!.id,
+        ticket.closeRequestReason ?? undefined,
+      );
+    } catch (err) {
+      console.error(`Auto-close failed for ticket ${ticket.id}:`, err);
+    }
   }
 }

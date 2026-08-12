@@ -53,6 +53,14 @@ export const ticket = pgTable("ticket", {
   /** Private staff-only notes thread attached to this ticket, if created. */
   notesThreadId: text("notes_thread_id"),
 
+  // --- Close request (via /closerequest) -----------------------------------
+  /** Discord user ID who requested the close; null when there's no request. */
+  closeRequestedBy: text("close_requested_by"),
+  /** Reason attached to the pending close request, if any. */
+  closeRequestReason: text("close_request_reason"),
+  /** When to auto-close if the request goes unconfirmed (null = never). */
+  closeRequestExpiresAt: timestamp("close_request_expires_at"),
+
   /** Answers the opener gave to the panel's form questions (may be empty). */
   formResponses: jsonb("form_responses")
     .$type<{ question: string; answer: string }[]>()

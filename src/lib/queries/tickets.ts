@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -81,8 +81,58 @@ export async function markTicketClosed(
 ): Promise<void> {
   await db
     .update(ticket)
-    .set({ status: "closed", closedAt: new Date(), closedBy })
+    .set({
+      status: "closed",
+      closedAt: new Date(),
+      closedBy,
+      // A closed ticket can't have a pending close request.
+      closeRequestedBy: null,
+      closeRequestReason: null,
+      closeRequestExpiresAt: null,
+    })
     .where(eq(ticket.id, id));
+}
+
+/** Record a pending close request on a ticket (from `/closerequest`). */
+export async function setCloseRequest(
+  id: string,
+  requestedBy: string,
+  reason: string | null,
+  expiresAt: Date | null,
+): Promise<void> {
+  await db
+    .update(ticket)
+    .set({
+      closeRequestedBy: requestedBy,
+      closeRequestReason: reason,
+      closeRequestExpiresAt: expiresAt,
+    })
+    .where(eq(ticket.id, id));
+}
+
+/** Clear a ticket's pending close request (cancelled or resolved). */
+export async function clearCloseRequest(id: string): Promise<void> {
+  await db
+    .update(ticket)
+    .set({
+      closeRequestedBy: null,
+      closeRequestReason: null,
+      closeRequestExpiresAt: null,
+    })
+    .where(eq(ticket.id, id));
+}
+
+/** Open tickets whose unconfirmed close request is now due for auto-close. */
+export async function listDueCloseRequests(): Promise<Ticket[]> {
+  return db
+    .select()
+    .from(ticket)
+    .where(
+      and(
+        eq(ticket.status, "open"),
+        lte(ticket.closeRequestExpiresAt, new Date()),
+      ),
+    );
 }
 
 /** Set (claim) or clear (`null` = release) a ticket's assigned staff member. */
