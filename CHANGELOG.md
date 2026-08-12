@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/MCCitiesClone/tickets/compare/v0.4.0...v0.5.0) (2026-08-12)
+
+
+### Features
+
+* user & role blacklist to block ticket opens ([#44](https://github.com/MCCitiesClone/tickets/issues/44)) ([a512937](https://github.com/MCCitiesClone/tickets/commit/a512937184eec3dcfc9068961c596a8ec230fa75)), closes [#2](https://github.com/MCCitiesClone/tickets/issues/2)
+
 # [0.4.0](https://github.com/MCCitiesClone/tickets/compare/v0.3.0...v0.4.0) (2026-08-12)
 
 
