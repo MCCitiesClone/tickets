@@ -32,6 +32,9 @@ export function GuildSettingsForm({
   const [transcriptChannelId, setTranscriptChannelId] = useState(
     config?.transcriptChannelId ?? CHANNEL_NONE,
   );
+  const [dmTranscriptOnClose, setDmTranscriptOnClose] = useState(
+    config?.dmTranscriptOnClose ?? false,
+  );
   const [logChannelId, setLogChannelId] = useState(
     config?.logChannelId ?? CHANNEL_NONE,
   );
@@ -66,6 +69,7 @@ export function GuildSettingsForm({
           guildId,
           ticketCategoryId: orNull(ticketCategoryId),
           transcriptChannelId: orNull(transcriptChannelId),
+          dmTranscriptOnClose,
           logChannelId: orNull(logChannelId),
           staffRoleIds,
           welcomeMessage,
@@ -111,6 +115,13 @@ export function GuildSettingsForm({
             onValueChange={setTranscriptChannelId}
             allowNone
           />
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={dmTranscriptOnClose}
+              onCheckedChange={(v) => setDmTranscriptOnClose(v === true)}
+            />
+            <span>DM the transcript link to the opener when a ticket closes</span>
+          </label>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="log">Log channel</Label>

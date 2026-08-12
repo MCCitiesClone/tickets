@@ -718,6 +718,22 @@ export async function closeTicket(
     }
   }
 
+  // Optionally DM the opener their transcript link (best-effort: they may have
+  // DMs disabled, or no longer share a server with the bot).
+  if (url && config.dmTranscriptOnClose) {
+    try {
+      const opener = await guild.client.users.fetch(ticket.openerId);
+      await opener.send({
+        content:
+          `Your ticket #${ticket.number} in **${guild.name}** was closed.` +
+          (reason ? `\nReason: ${reason}` : "") +
+          `\nTranscript: ${url}`,
+      });
+    } catch (err) {
+      console.error("Failed to DM transcript to opener:", err);
+    }
+  }
+
   await markTicketClosed(ticket.id, interaction.user.id);
 
   await logAction(

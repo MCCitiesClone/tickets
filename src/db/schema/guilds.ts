@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   integer,
   jsonb,
   pgTable,
@@ -26,6 +27,11 @@ export const guild = pgTable("guild", {
 
   /** Channel where closed-ticket transcripts are posted. */
   transcriptChannelId: text("transcript_channel_id"),
+
+  /** DM the ticket opener a link to the transcript when their ticket closes. */
+  dmTranscriptOnClose: boolean("dm_transcript_on_close")
+    .notNull()
+    .default(false),
 
   /** Channel for audit/log messages (open, close, claim, …). */
   logChannelId: text("log_channel_id"),
