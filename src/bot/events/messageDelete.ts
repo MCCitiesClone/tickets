@@ -1,7 +1,11 @@
 import type { Message, PartialMessage } from "discord.js";
 
 import { markMessageDeleted } from "@/lib/queries/tickets";
-import { getTrackedTicket } from "../lib/ticket-channels";
+import {
+  getTrackedTicket,
+  isMessageIgnored,
+  unignoreMessage,
+} from "../lib/ticket-channels";
 
 /**
  * Mark a captured ticket message as deleted. The ticket's channel is untracked
@@ -13,6 +17,11 @@ export async function onMessageDelete(
 ): Promise<void> {
   const ticketId = getTrackedTicket(message.channelId);
   if (!ticketId) return;
+  // A throwaway ghost-ping we deleted ourselves — never captured, so skip.
+  if (isMessageIgnored(message.id)) {
+    unignoreMessage(message.id);
+    return;
+  }
 
   try {
     await markMessageDeleted(message.id, new Date());
