@@ -1,6 +1,6 @@
 # 🎫 Tickets
 
-[![CI](https://github.com/MCCitiesClone/tickets/actions/workflows/ci.yml/badge.svg)](https://github.com/MCCitiesClone/tickets/actions/workflows/ci.yml)
+[![CI](https://github.com/MCCitiesClone/tickets/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/MCCitiesClone/tickets/actions/workflows/ci.yml)
 
 A self-hostable **Discord support-ticket bot** with a companion **web dashboard**
 for configuration and management. Inspired by
