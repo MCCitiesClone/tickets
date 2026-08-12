@@ -1,11 +1,12 @@
 name: CI
 
+# Run only on pull requests. Every change reaches `main` through a PR, so a
+# separate `push: main` trigger would just re-run the same checks a second time
+# on merge. The `release` workflow owns `main` (versioning + the publish build).
 on:
-  push:
-    branches: [main]
   pull_request:
 
-# Cancel superseded runs on the same ref (e.g. new pushes to a PR branch).
+# Cancel superseded runs on the same PR.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -17,6 +18,10 @@ jobs:
   check:
     name: Lint, typecheck & build
     runs-on: ubuntu-latest
+    # Skip release-please's version-bump PR — it changes no code. (Harmless with
+    # the default GITHUB_TOKEN, which doesn't trigger CI on its PRs anyway; this
+    # keeps it correct if a PAT is ever used for release-please.)
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +56,7 @@ jobs:
   docker:
     name: Docker build (${{ matrix.target }})
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     strategy:
       fail-fast: false
       matrix:
