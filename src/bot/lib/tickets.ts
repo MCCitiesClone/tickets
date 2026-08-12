@@ -686,9 +686,10 @@ export async function renameTicket(
 
 /**
  * Switch which panel a ticket belongs to. Updates the association and applies
- * the new panel's meaningful effects: moves the channel to the new panel's
- * category (preserving the ticket's private overwrites) and grants the new
- * panel's support roles access. Existing access is left intact. Staff only.
+ * the new panel's meaningful effects: renames the channel to the new panel's
+ * naming scheme, moves it to the new panel's category (preserving the ticket's
+ * private overwrites), and grants the new panel's support roles access.
+ * Existing access is left intact. Staff only.
  */
 export async function switchTicketPanel(
   interaction: ChatInputCommandInteraction,
@@ -721,10 +722,25 @@ export async function switchTicketPanel(
 
   await setTicketPanel(ticket.id, panel.id);
 
+  let renamedTo: string | null = null;
   const channel = await interaction
     .guild!.channels.fetch(ticket.channelId)
     .catch(() => null);
   if (channel && !channel.isThread() && "permissionOverwrites" in channel) {
+    // Rename to the new panel's naming scheme (needs the opener's username for
+    // `{username}` schemes; fall back if they've since left the server).
+    const opener = await interaction
+      .guild!.client.users.fetch(ticket.openerId)
+      .catch(() => null);
+    const scheme = panel.namingScheme || config.namingScheme;
+    const newName = channelName(scheme, ticket.number, opener?.username ?? "user");
+    try {
+      await channel.setName(newName);
+      renamedTo = newName;
+    } catch (err) {
+      console.error("Failed to rename ticket channel on panel switch:", err);
+    }
+
     // Move to the new panel's category. `lockPermissions: false` is essential —
     // otherwise Discord syncs to the category and wipes the ticket's privacy.
     const categoryId = panel.categoryId ?? config.ticketCategoryId ?? null;
@@ -752,12 +768,15 @@ export async function switchTicketPanel(
   }
 
   await interaction.editReply(
-    `🔀 Switched this ticket to the **${panel.title}** panel.`,
+    `🔀 Switched this ticket to the **${panel.title}** panel` +
+      (renamedTo ? ` and renamed it to **${renamedTo}**.` : "."),
   );
   await logAction(
     interaction.guild!,
     config,
-    `🔀 Ticket #${ticket.number} switched to panel "${panel.title}" by <@${interaction.user.id}>`,
+    `🔀 Ticket #${ticket.number} switched to panel "${panel.title}"` +
+      (renamedTo ? ` (renamed to \`${renamedTo}\`)` : "") +
+      ` by <@${interaction.user.id}>`,
   );
 }
 
