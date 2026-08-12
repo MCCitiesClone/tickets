@@ -35,7 +35,11 @@ import {
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import { renderTemplate } from "./message-template";
-import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
+import {
+  appendAutoOverflowCategory,
+  getGuild,
+  nextTicketNumber,
+} from "@/lib/queries/guild";
 import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
 import {
   clearCloseRequest,
@@ -427,6 +431,133 @@ export async function submitTicketForm(
   await openTicket(interaction, panel, answers);
 }
 
+/** Discord's hard cap on channels nested under a single category. */
+const CATEGORY_CHANNEL_LIMIT = 50;
+
+/**
+ * Discord JSON error code for "Maximum number of channels in category reached".
+ * Used as a reactive backstop to our proactive channel counting.
+ */
+const CATEGORY_FULL_ERROR_CODE = 30030;
+
+function isCategoryFullError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const { code, message } = err as { code?: number; message?: string };
+  return (
+    code === CATEGORY_FULL_ERROR_CODE ||
+    /maximum number of channels/i.test(message ?? "")
+  );
+}
+
+/** Number of channels currently nested under a category (0 if it's gone). */
+function categoryChildCount(guild: DiscordGuild, categoryId: string): number {
+  const category = guild.channels.cache.get(categoryId);
+  if (category?.type === ChannelType.GuildCategory) {
+    return category.children.cache.size;
+  }
+  return guild.channels.cache.filter((c) => c.parentId === categoryId).size;
+}
+
+/**
+ * Create a fresh overflow category mirroring the primary category's name and
+ * permission overwrites (so staff visibility stays consistent), returning its
+ * id.
+ */
+async function createOverflowCategory(
+  guild: DiscordGuild,
+  primaryCategoryId: string,
+  config: Guild,
+): Promise<string> {
+  const primary = guild.channels.cache.get(primaryCategoryId);
+  const category =
+    primary?.type === ChannelType.GuildCategory ? primary : null;
+  const baseName = category?.name ?? "Tickets";
+  const overwrites: OverwriteResolvable[] = category
+    ? category.permissionOverwrites.cache.map((o) => ({
+        id: o.id,
+        type: o.type,
+        allow: o.allow.toArray(),
+        deny: o.deny.toArray(),
+      }))
+    : [];
+  const n = config.autoOverflowCategoryIds.length + 1;
+  const created = await guild.channels.create({
+    name: `${baseName} (overflow ${n})`.slice(0, 100),
+    type: ChannelType.GuildCategory,
+    permissionOverwrites: overwrites,
+  });
+  return created.id;
+}
+
+/**
+ * Create the ticket channel, routing around Discord's 50-channels-per-category
+ * limit. Tries the primary category, then the admin-configured overflow chain,
+ * then any previously auto-created overflow categories — preferring ones with
+ * apparent room but falling back reactively if a create still reports "full"
+ * (cached counts can lag reality). If everything is full and auto-create is on,
+ * spins up a fresh overflow category and uses it; otherwise returns null so the
+ * caller can report that tickets are full.
+ */
+async function createTicketChannel(
+  guild: DiscordGuild,
+  config: Guild,
+  primaryCategoryId: string,
+  opts: { name: string; overwrites: OverwriteResolvable[]; topic: string },
+): Promise<TextChannel | null> {
+  // Ordered, de-duplicated chain of existing categories to try.
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  for (const id of [
+    primaryCategoryId,
+    ...config.overflowCategoryIds,
+    ...config.autoOverflowCategoryIds,
+  ]) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    if (guild.channels.cache.get(id)?.type === ChannelType.GuildCategory) {
+      chain.push(id);
+    }
+  }
+
+  // Prefer categories that look like they have room, keeping the rest as
+  // reactive fallbacks. Trying the primary first means capacity freed by closed
+  // tickets is naturally reclaimed before overflow categories fill.
+  const hasRoom = (id: string) =>
+    categoryChildCount(guild, id) < CATEGORY_CHANNEL_LIMIT;
+  const ordered = [
+    ...chain.filter(hasRoom),
+    ...chain.filter((id) => !hasRoom(id)),
+  ];
+
+  const create = (parent: string) =>
+    guild.channels.create({
+      name: opts.name,
+      type: ChannelType.GuildText,
+      parent,
+      permissionOverwrites: opts.overwrites,
+      topic: opts.topic,
+    });
+
+  for (const categoryId of ordered) {
+    try {
+      return await create(categoryId);
+    } catch (err) {
+      if (isCategoryFullError(err)) continue; // full — try the next category
+      throw err; // real failure (perms, invalid) — bubble to the caller
+    }
+  }
+
+  // Everything is full. Auto-create a fresh overflow category if allowed.
+  if (!config.autoCreateOverflow) return null;
+  const overflowId = await createOverflowCategory(
+    guild,
+    primaryCategoryId,
+    config,
+  );
+  await appendAutoOverflowCategory(guild.id, overflowId);
+  return create(overflowId);
+}
+
 /**
  * Create a ticket: a private channel under the (panel or server) category with
  * per-user/staff overwrites, persist it (with any form answers), post a welcome
@@ -461,15 +592,21 @@ export async function openTicket(
 
   const scheme = panel.namingScheme || config.namingScheme;
 
-  let channel;
+  let channel: TextChannel;
   try {
-    channel = await guild.channels.create({
+    const created = await createTicketChannel(guild, config, categoryId, {
       name: channelName(scheme, number, user.username),
-      type: ChannelType.GuildText,
-      parent: categoryId,
-      permissionOverwrites: overwrites,
+      overwrites,
       topic: `Ticket #${number} · opened by ${user.tag} <@${user.id}>`,
     });
+    if (!created) {
+      await replyError(
+        interaction,
+        "Every ticket category is full — Discord allows 50 channels per category. Ask an admin to add an overflow category or turn on auto-overflow in the dashboard.",
+      );
+      return;
+    }
+    channel = created;
   } catch (err) {
     console.error("Failed to create ticket channel:", err);
     await replyError(

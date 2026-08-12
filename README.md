@@ -156,6 +156,7 @@ Repository copies of the core setup guides:
 - [x] CI: lint, typecheck & Docker build on every PR ([#15](https://github.com/MCCitiesClone/tickets/issues/15))
 - [x] Pre-built images published to GHCR ([#16](https://github.com/MCCitiesClone/tickets/issues/16))
 - [x] Automated releases + changelog via semantic-release ([#17](https://github.com/MCCitiesClone/tickets/issues/17))
+- [x] Overflow categories — auto-route around Discord's 50-per-category limit ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -165,7 +166,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Stats & analytics dashboard ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 - [ ] Archive images/files from tickets into transcripts ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
-- [ ] Overflow category when a ticket category is full ([#31](https://github.com/MCCitiesClone/tickets/issues/31))
 
 **Medium priority**
 

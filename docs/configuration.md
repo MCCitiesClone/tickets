@@ -29,6 +29,9 @@ page. Saving in the dashboard creates/updates the row.
 | ---------------------- | ----------------------------------------------------------------- |
 | `guildId`              | Discord server snowflake (primary key).                           |
 | `ticketCategoryId`     | Category new ticket channels are created under.                   |
+| `overflowCategoryIds`  | Fallback categories used (in order) when the primary is full (Discord caps a category at 50 channels). |
+| `autoCreateOverflow`   | Auto-create a new overflow category when every category is full (default on) so opens never fail. |
+| `autoOverflowCategoryIds` | Bot-managed list of auto-created overflow categories (reused as tickets close). Not edited in the dashboard. |
 | `transcriptChannelId`  | Where closed-ticket transcript links are posted.                  |
 | `dmTranscriptOnClose`  | DM the opener the transcript link on close (default off).         |
 | `logChannelId`         | Channel for audit/log messages (open, close, claim, rename…).     |

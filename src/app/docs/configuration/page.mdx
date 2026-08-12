@@ -37,6 +37,8 @@ dashboard: sign in, open **Settings**, and pick a server you manage. You need
 | Setting               | Meaning                                                                          |
 | --------------------- | -------------------------------------------------------------------------------- |
 | Ticket category       | Category that new ticket channels are created under.                             |
+| Overflow categories   | Fallback categories used (in order) when the ticket category hits Discord's 50-channel cap. |
+| Auto-create overflow  | When every category is full, spin up a fresh overflow category so opens never fail (recommended). |
 | Transcript channel    | Channel where closed-ticket transcript links are posted.                         |
 | Log channel           | Channel for audit messages (open, claim, rename, switch, close).                 |
 | DM transcript on close | When on, the opener is DMed the transcript link when their ticket closes.        |

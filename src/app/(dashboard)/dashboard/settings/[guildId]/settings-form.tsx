@@ -29,6 +29,12 @@ export function GuildSettingsForm({
   const [ticketCategoryId, setTicketCategoryId] = useState(
     config?.ticketCategoryId ?? CHANNEL_NONE,
   );
+  const [overflowCategoryIds, setOverflowCategoryIds] = useState<string[]>(
+    config?.overflowCategoryIds ?? [],
+  );
+  const [autoCreateOverflow, setAutoCreateOverflow] = useState(
+    config?.autoCreateOverflow ?? true,
+  );
   const [transcriptChannelId, setTranscriptChannelId] = useState(
     config?.transcriptChannelId ?? CHANNEL_NONE,
   );
@@ -59,6 +65,18 @@ export function GuildSettingsForm({
     );
   }
 
+  function toggleOverflow(id: string, checked: boolean) {
+    setOverflowCategoryIds((prev) =>
+      checked ? [...prev, id] : prev.filter((c) => c !== id),
+    );
+  }
+
+  // The primary category is always tried first, so exclude it from the manual
+  // overflow list to avoid a confusing self-reference.
+  const overflowCandidates = categories.filter(
+    (c) => c.id !== ticketCategoryId,
+  );
+
   const orNull = (v: string) => (v === CHANNEL_NONE ? null : v);
 
   function onSubmit(e: React.FormEvent) {
@@ -68,6 +86,10 @@ export function GuildSettingsForm({
         await updateGuildConfig({
           guildId,
           ticketCategoryId: orNull(ticketCategoryId),
+          overflowCategoryIds: overflowCategoryIds.filter(
+            (id) => id !== ticketCategoryId,
+          ),
+          autoCreateOverflow,
           transcriptChannelId: orNull(transcriptChannelId),
           dmTranscriptOnClose,
           logChannelId: orNull(logChannelId),
@@ -100,6 +122,48 @@ export function GuildSettingsForm({
         <p className="text-xs text-muted-foreground">
           New ticket channels are created under this category.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Overflow categories</Label>
+        <p className="text-xs text-muted-foreground">
+          Discord caps a category at 50 channels. When the ticket category is
+          full, new tickets fall back to the categories you pick here (in order),
+          then to any auto-created overflow categories.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={autoCreateOverflow}
+            onCheckedChange={(v) => setAutoCreateOverflow(v === true)}
+          />
+          <span>
+            Auto-create a new overflow category when every category is full
+            (recommended — tickets never fail to open)
+          </span>
+        </label>
+        {overflowCandidates.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No other categories available to use as manual fallbacks.
+          </p>
+        ) : (
+          <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2">
+            {overflowCandidates.map((cat) => {
+              const checked = overflowCategoryIds.includes(cat.id);
+              return (
+                <label
+                  key={cat.id}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(v) => toggleOverflow(cat.id, v === true)}
+                  />
+                  <span className="truncate">{cat.name}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
