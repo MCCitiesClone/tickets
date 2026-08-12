@@ -23,8 +23,17 @@ import {
   ThreadAutoArchiveDuration,
 } from "discord.js";
 
-import type { AccessRule, Guild, NewTicketMessage, Panel, Ticket } from "@/db/schema";
+import {
+  isTemplateEmpty,
+  type AccessRule,
+  type Guild,
+  type MessageTemplate,
+  type NewTicketMessage,
+  type Panel,
+  type Ticket,
+} from "@/db/schema";
 import { env } from "@/lib/env";
+import { renderTemplate } from "./message-template";
 import { getGuild, nextTicketNumber } from "@/lib/queries/guild";
 import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
 import {
@@ -57,6 +66,14 @@ export type FormAnswer = { question: string; answer: string };
 /** Promise-based delay. */
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+/** First configured (non-empty) template among the candidates, else null. */
+function pickTemplate(
+  ...candidates: (MessageTemplate | null | undefined)[]
+): MessageTemplate | null {
+  for (const t of candidates) if (t && !isTemplateEmpty(t)) return t;
+  return null;
+}
 
 /** Permissions granted to a member with access to a ticket channel. */
 const TICKET_MEMBER_PERMS = [
@@ -431,26 +448,52 @@ export async function openTicket(
     content: `Your ticket is ready: <#${channel.id}>`,
   });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${panel.title || "Ticket"} (#${number})`)
-    .setDescription(panel.welcomeMessage || config.welcomeMessage)
-    .setColor(panel.color);
-  if (panel.largeImageUrl) embed.setImage(panel.largeImageUrl);
-  if (panel.smallImageUrl) embed.setThumbnail(panel.smallImageUrl);
+  // Form answers are shown as embed fields regardless of which path builds the
+  // welcome message.
+  const answerFields = answers.map((a) => ({
+    name: a.question.slice(0, 256),
+    value: (a.answer || "—").slice(0, 1024),
+  }));
 
-  // Include the form answers, if any, as embed fields.
-  if (answers.length > 0) {
-    embed.addFields(
-      answers.map((a) => ({
-        name: a.question.slice(0, 256),
-        value: (a.answer || "—").slice(0, 1024),
-      })),
-    );
+  // Prefer a configured rich welcome template (panel override → server default);
+  // otherwise fall back to the legacy embed built from the plain-text fields.
+  const welcomeTemplate = pickTemplate(
+    panel.welcomeTemplate,
+    config.messageTemplates?.welcome,
+  );
+
+  let welcomePayload: { content?: string; embeds: EmbedBuilder[] };
+  if (welcomeTemplate) {
+    const rendered = renderTemplate(welcomeTemplate, {
+      ticket: String(number),
+      number: String(number),
+      username: user.username,
+      user: `<@${user.id}>`,
+      opener: `<@${user.id}>`,
+      server: guild.name,
+      channel: `<#${channel.id}>`,
+    });
+    if (answerFields.length > 0) {
+      if (rendered.embeds.length === 0) rendered.embeds.push(new EmbedBuilder());
+      const target = rendered.embeds[0];
+      const used = target.data.fields?.length ?? 0;
+      target.addFields(answerFields.slice(0, Math.max(0, 25 - used)));
+    }
+    welcomePayload = { content: rendered.content, embeds: rendered.embeds };
+  } else {
+    const embed = new EmbedBuilder()
+      .setTitle(`${panel.title || "Ticket"} (#${number})`)
+      .setDescription(panel.welcomeMessage || config.welcomeMessage)
+      .setColor(panel.color);
+    if (panel.largeImageUrl) embed.setImage(panel.largeImageUrl);
+    if (panel.smallImageUrl) embed.setThumbnail(panel.smallImageUrl);
+    if (answerFields.length > 0) embed.addFields(answerFields);
+    welcomePayload = { embeds: [embed] };
   }
 
   try {
     await channel.send({
-      embeds: [embed],
+      ...welcomePayload,
       components: buildControls(buttonVisibility(panel), ticket.id, null),
     });
   } catch (err) {
@@ -528,9 +571,24 @@ async function setClaim(
 
   await setTicketClaimedBy(ticket.id, claim ? userId : null);
 
-  const notice = claim
-    ? `🙋 <@${userId}> claimed this ticket.`
-    : `🙌 <@${userId}> released this ticket.`;
+  // Claiming can use a configured template; releasing keeps the plain notice.
+  const claimTemplate = claim
+    ? pickTemplate(config.messageTemplates?.claimNotice)
+    : null;
+  const noticePayload: { content?: string; embeds?: EmbedBuilder[] } =
+    claimTemplate
+      ? renderTemplate(claimTemplate, {
+          claimer: `<@${userId}>`,
+          ticket: String(ticket.number),
+          number: String(ticket.number),
+          server: interaction.guild?.name ?? "",
+          channel: `<#${ticket.channelId}>`,
+        })
+      : {
+          content: claim
+            ? `🙋 <@${userId}> claimed this ticket.`
+            : `🙌 <@${userId}> released this ticket.`,
+        };
 
   // Update the opening message's buttons when acting via them; otherwise post.
   if (interaction.isButton()) {
@@ -545,10 +603,10 @@ async function setClaim(
       })
       .catch(() => {});
     if (interaction.channel?.isSendable()) {
-      await interaction.channel.send(notice).catch(() => {});
+      await interaction.channel.send(noticePayload).catch(() => {});
     }
   } else {
-    await interaction.reply(notice);
+    await interaction.reply(noticePayload);
   }
 
   await logAction(
@@ -965,20 +1023,34 @@ export async function closeTicket(
     }
   }
 
+  // Values available to the close DM / transcript-post templates.
+  const closeVars = {
+    ticket: String(ticket.number),
+    number: String(ticket.number),
+    server: guild.name,
+    opener: `<@${ticket.openerId}>`,
+    closer: `<@${interaction.user.id}>`,
+    reason: reason ?? "",
+    transcript_url: url ?? "",
+  };
+
   // Post the transcript link before deleting the channel.
   if (url && config.transcriptChannelId) {
     const transcriptChannel = await guild.channels
       .fetch(config.transcriptChannelId)
       .catch(() => null);
     if (transcriptChannel?.isTextBased()) {
+      const tmpl = pickTemplate(config.messageTemplates?.transcriptPost);
+      const payload = tmpl
+        ? renderTemplate(tmpl, closeVars)
+        : {
+            content:
+              `📄 Transcript for ticket #${ticket.number} — <${url}>\n` +
+              `Closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).` +
+              (reason ? `\nReason: ${reason}` : ""),
+          };
       await transcriptChannel
-        .send({
-          content:
-            `📄 Transcript for ticket #${ticket.number} — <${url}>\n` +
-            `Closed by <@${interaction.user.id}> (opened by <@${ticket.openerId}>).` +
-            (reason ? `\nReason: ${reason}` : ""),
-          allowedMentions: { parse: [] },
-        })
+        .send({ ...payload, allowedMentions: { parse: [] } })
         .catch(() => {});
     }
   }
@@ -988,12 +1060,16 @@ export async function closeTicket(
   if (url && config.dmTranscriptOnClose) {
     try {
       const opener = await guild.client.users.fetch(ticket.openerId);
-      await opener.send({
-        content:
-          `Your ticket #${ticket.number} in **${guild.name}** was closed.` +
-          (reason ? `\nReason: ${reason}` : "") +
-          `\nTranscript: ${url}`,
-      });
+      const tmpl = pickTemplate(config.messageTemplates?.closeDm);
+      const payload = tmpl
+        ? renderTemplate(tmpl, closeVars)
+        : {
+            content:
+              `Your ticket #${ticket.number} in **${guild.name}** was closed.` +
+              (reason ? `\nReason: ${reason}` : "") +
+              `\nTranscript: ${url}`,
+          };
+      await opener.send(payload);
     } catch (err) {
       console.error("Failed to DM transcript to opener:", err);
     }

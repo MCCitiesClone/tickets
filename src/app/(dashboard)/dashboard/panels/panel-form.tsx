@@ -25,8 +25,23 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, CHANNEL_NONE, type Channel } from "@/components/channel-select";
 import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
-import { DEFAULT_PANEL_COLOR, type AccessRule, type Panel } from "@/db/schema";
+import {
+  DEFAULT_PANEL_COLOR,
+  isTemplateEmpty,
+  type AccessRule,
+  type MessageTemplate,
+  type Panel,
+} from "@/db/schema";
+import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
 import { createPanel, updatePanel } from "@/app/actions/panel";
+
+const WELCOME_PLACEHOLDERS = [
+  "ticket",
+  "username",
+  "user",
+  "server",
+  "channel",
+];
 
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
 const MAX_QUESTIONS = 5;
@@ -100,6 +115,9 @@ export function PanelForm({
   const [categoryId, setCategoryId] = useState(panel?.categoryId ?? CHANNEL_NONE);
   const [namingScheme, setNamingScheme] = useState(panel?.namingScheme ?? "");
   const [welcomeMessage, setWelcomeMessage] = useState(panel?.welcomeMessage ?? "");
+  const [welcomeTemplate, setWelcomeTemplate] = useState<MessageTemplate>(
+    panel?.welcomeTemplate ?? { embeds: [] },
+  );
   const [supportRoleIds, setSupportRoleIds] = useState<string[]>(
     panel?.supportRoleIds ?? [],
   );
@@ -207,6 +225,7 @@ export function PanelForm({
       categoryId: categoryId === CHANNEL_NONE ? null : categoryId,
       namingScheme: namingScheme.trim() || null,
       welcomeMessage: welcomeMessage.trim() || null,
+      welcomeTemplate: isTemplateEmpty(welcomeTemplate) ? null : welcomeTemplate,
       supportRoleIds,
       mentionRoleIds,
       cooldownSeconds,
@@ -403,6 +422,20 @@ export function PanelForm({
               maxLength={4096}
             />
           </Field>
+          <details className="rounded-lg border p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Rich welcome (embed editor)
+            </summary>
+            <p className="mb-3 mt-2 text-xs text-muted-foreground">
+              When set, this overrides the plain welcome above and the server
+              default. Leave empty to inherit.
+            </p>
+            <MessageTemplateEditor
+              value={welcomeTemplate}
+              onChange={setWelcomeTemplate}
+              placeholders={WELCOME_PLACEHOLDERS}
+            />
+          </details>
           <Field
             label="Support roles"
             hint="Roles that can see/handle tickets from this panel. Blank = server staff roles."

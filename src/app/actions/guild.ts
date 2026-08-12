@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import type { GuildMessageTemplates } from "@/db/schema";
 import { canManageGuild } from "@/lib/guild-access";
 import { getGuild, upsertGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { guildMessageTemplatesSchema } from "@/lib/validation/message-template";
 
 /**
  * Server actions for guild configuration.
@@ -27,6 +29,7 @@ const configSchema = z.object({
   welcomeMessage: z.string().max(2000).optional(),
   ticketLimit: z.number().int().min(0).max(100).optional(),
   namingScheme: z.string().min(1).max(100).optional(),
+  messageTemplates: guildMessageTemplatesSchema.optional(),
 });
 
 export type GuildConfigInput = z.infer<typeof configSchema>;
@@ -39,10 +42,17 @@ async function authorize(guildId: string) {
 }
 
 export async function updateGuildConfig(input: GuildConfigInput) {
-  const { guildId, ...values } = configSchema.parse(input);
+  const { guildId, messageTemplates, ...values } = configSchema.parse(input);
   await authorize(guildId);
 
-  const row = await upsertGuild(guildId, values);
+  const row = await upsertGuild(guildId, {
+    ...values,
+    // Validated above; the lenient schema's inferred type is structurally
+    // looser than the stored type, so cast at this boundary.
+    ...(messageTemplates
+      ? { messageTemplates: messageTemplates as GuildMessageTemplates }
+      : {}),
+  });
 
   revalidatePath(`/dashboard/settings/${guildId}`);
   revalidatePath("/dashboard");

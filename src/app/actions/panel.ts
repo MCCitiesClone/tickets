@@ -18,8 +18,9 @@ import {
   setPanelMessage,
   updatePanel as updatePanelRow,
 } from "@/lib/queries/panels";
-import type { Panel } from "@/db/schema";
+import type { MessageTemplate, Panel } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 /**
  * Panel server actions. Each re-verifies the session and that the user may
@@ -55,6 +56,7 @@ const panelFields = {
   categoryId: z.string().nullable().optional(),
   namingScheme: z.string().max(100).nullable().optional(),
   welcomeMessage: z.string().max(4096).nullable().optional(),
+  welcomeTemplate: messageTemplateSchema.nullable().optional(),
   supportRoleIds: z.array(z.string()).optional().default([]),
   mentionRoleIds: z.array(z.string()).optional().default([]),
   cooldownSeconds: z.number().int().min(0).max(86_400).optional().default(0),
@@ -100,6 +102,7 @@ function toRow(data: z.infer<typeof createSchema>) {
     categoryId: emptyToNull(data.categoryId),
     namingScheme: emptyToNull(data.namingScheme),
     welcomeMessage: emptyToNull(data.welcomeMessage),
+    welcomeTemplate: (data.welcomeTemplate ?? null) as MessageTemplate | null,
     supportRoleIds: data.supportRoleIds,
     mentionRoleIds: data.mentionRoleIds,
     cooldownSeconds: data.cooldownSeconds,

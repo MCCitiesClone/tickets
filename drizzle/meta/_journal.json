@@ -57,6 +57,13 @@
       "when": 1786499072846,
       "tag": "0007_grey_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786502707356,
+      "tag": "0008_famous_the_stranger",
+      "breakpoints": true
     }
   ]
 }

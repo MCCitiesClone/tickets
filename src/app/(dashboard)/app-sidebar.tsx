@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LogOut,
   type LucideIcon,
+  MessageSquare,
   PanelsTopLeft,
   Settings,
   Ticket,
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
   { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
+  { title: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
