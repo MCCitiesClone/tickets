@@ -82,6 +82,13 @@ export type TranscriptAttachment = {
   width: number | null;
   height: number | null;
   size: number;
+  /**
+   * Storage key of our own archived copy, set once the bot downloads the file
+   * off Discord's (expiring) CDN. When present, the transcript viewer serves it
+   * from our storage instead of `url`. Absent = not archived (too large, skipped,
+   * or failed) and the viewer falls back to the Discord `url`.
+   */
+  archiveKey?: string | null;
 };
 
 export type TranscriptEmbedField = {

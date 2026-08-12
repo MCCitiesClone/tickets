@@ -82,7 +82,12 @@ export function TranscriptView({
             </p>
           ) : (
             messages.map((m) => (
-              <MessageRow key={m.id} message={m} replyTo={replyPreview(m)} />
+              <MessageRow
+                key={m.id}
+                message={m}
+                replyTo={replyPreview(m)}
+                token={transcript.token}
+              />
             ))
           )}
         </main>

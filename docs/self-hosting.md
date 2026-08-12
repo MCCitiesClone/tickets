@@ -36,11 +36,30 @@ Then open **http://localhost:3000** and sign in with Discord.
 | ---------- | ------------ | -------------------------------------------------------- |
 | `postgres` | postgres:16  | Database + named volume `postgres-data`                  |
 | `migrate`  | `bot`        | Runs `src/db/migrate.ts` once, then exits                |
-| `web`      | `web`        | Next.js standalone dashboard on port 3000                |
-| `bot`      | `bot`        | discord.js gateway process                               |
+| `web`      | `web`        | Next.js standalone dashboard on port 3000; serves archived attachments |
+| `bot`      | `bot`        | discord.js gateway process; archives attachments to `attachment-data`  |
 
 `web` and `bot` both wait for `migrate` to complete successfully
 (`service_completed_successfully`) so the schema always exists before they run.
+
+## Attachment archiving
+
+Discord's attachment URLs are signed and expire, and deleting a closed ticket's
+channel removes the originals — so transcripts would slowly rot into broken
+links. To prevent that, the **bot downloads images and files sent in a ticket
+into its own storage**, and the **web app serves them** on the transcript page
+from a token-scoped URL (`/transcripts/<token>/attachments/<id>`).
+
+Storage is a shared named volume, `attachment-data`, mounted into both `web` and
+`bot` at `/data/attachments`. It persists across upgrades like `postgres-data`;
+back it up alongside the database. Tune behaviour with these optional env vars
+(defaults shown):
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ATTACHMENT_ARCHIVE_DIR` | `/data/attachments` (Docker) | Where archived files are stored/served. Both processes need the same path. |
+| `ATTACHMENT_ARCHIVE_ENABLED` | `true` | Set `false` to keep the original (expiring) Discord URLs instead. |
+| `ATTACHMENT_MAX_BYTES` | `26214400` | Skip archiving files larger than this (25 MiB); they keep their Discord URL. |
 
 ## Database credentials
 

@@ -10,6 +10,7 @@ import {
   type NewTranscript,
   type Ticket,
   type TicketMessage,
+  type TranscriptAttachment,
   type Transcript,
 } from "@/db/schema";
 
@@ -187,6 +188,56 @@ export async function upsertTicketMessages(
     .onConflictDoNothing({
       target: [ticketMessage.ticketId, ticketMessage.discordMessageId],
     });
+}
+
+/** A captured message reduced to what the attachment archiver needs. */
+export type ArchivableMessage = {
+  id: string;
+  attachments: TranscriptAttachment[];
+};
+
+/** Captured messages for a ticket that carry at least one attachment. */
+export async function listArchivableTicketMessages(
+  ticketId: string,
+): Promise<ArchivableMessage[]> {
+  return db
+    .select({ id: ticketMessage.id, attachments: ticketMessage.attachments })
+    .from(ticketMessage)
+    .where(
+      and(
+        eq(ticketMessage.ticketId, ticketId),
+        sql`jsonb_array_length(${ticketMessage.attachments}) > 0`,
+      ),
+    );
+}
+
+/** A single captured message (by Discord ID) for live attachment archiving. */
+export async function getArchivableTicketMessage(
+  ticketId: string,
+  discordMessageId: string,
+): Promise<ArchivableMessage | null> {
+  const [row] = await db
+    .select({ id: ticketMessage.id, attachments: ticketMessage.attachments })
+    .from(ticketMessage)
+    .where(
+      and(
+        eq(ticketMessage.ticketId, ticketId),
+        eq(ticketMessage.discordMessageId, discordMessageId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/** Replace a captured message's attachments (used to stamp archive keys). */
+export async function setMessageAttachments(
+  id: string,
+  attachments: TranscriptAttachment[],
+): Promise<void> {
+  await db
+    .update(ticketMessage)
+    .set({ attachments })
+    .where(eq(ticketMessage.id, id));
 }
 
 /** Record an edit to a captured message (matched by Discord message ID). */

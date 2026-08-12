@@ -33,6 +33,24 @@ const schema = z.object({
   /** Public base URL of the web app, e.g. http://localhost:3000 */
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
 
+  // --- Attachment archiving ----------------------------------------------
+  /**
+   * Directory where the bot stores archived ticket attachments and the web app
+   * serves them from. Both processes need the SAME path; in Docker this is a
+   * shared volume. Relative paths resolve from the process working directory.
+   */
+  ATTACHMENT_ARCHIVE_DIR: z.string().min(1).default(".data/attachments"),
+  /**
+   * Set to "false" to disable archiving entirely — transcripts then keep the
+   * original Discord CDN URLs (which expire). Defaults on.
+   */
+  ATTACHMENT_ARCHIVE_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  /** Skip archiving attachments larger than this many bytes (default 25 MiB). */
+  ATTACHMENT_MAX_BYTES: z.coerce.number().int().positive().default(26_214_400),
+
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

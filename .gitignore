@@ -20,6 +20,9 @@
 # production
 /build
 
+# local attachment archive (dev)
+/.data/
+
 # misc
 .DS_Store
 *.pem
