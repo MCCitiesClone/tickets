@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/MCCitiesClone/tickets/compare/v0.5.0...v0.5.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* proper Select + user combobox on the blacklist page ([#45](https://github.com/MCCitiesClone/tickets/issues/45)) ([0396393](https://github.com/MCCitiesClone/tickets/commit/0396393926c64d9bc6b889b7aaa100531afce4a1))
+
 # [0.5.0](https://github.com/MCCitiesClone/tickets/compare/v0.4.0...v0.5.0) (2026-08-12)
 
 
