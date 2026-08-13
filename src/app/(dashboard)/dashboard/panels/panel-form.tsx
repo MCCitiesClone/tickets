@@ -444,6 +444,7 @@ export function PanelForm({
               onChange={setWelcomeTemplate}
               placeholders={WELCOME_PLACEHOLDERS}
               presets={presetsFor("panelWelcome")}
+              guildId={guildId}
             />
           </details>
           <Field

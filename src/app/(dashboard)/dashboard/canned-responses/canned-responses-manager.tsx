@@ -242,6 +242,7 @@ function Editor({
           onChange={setTemplate}
           placeholders={PLACEHOLDERS}
           presets={presetsFor("cannedResponse")}
+          guildId={guildId}
         />
       </div>
 
