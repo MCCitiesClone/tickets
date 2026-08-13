@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, type Channel } from "@/components/channel-select";
-import { RoleMultiSelect } from "@/components/role-multi-select";
+import { DiscordEmoji } from "@/components/discord-emoji";
 import { DEFAULT_PANEL_COLOR, type MultiPanel } from "@/db/schema";
 import {
   createMultiPanel,
@@ -21,7 +21,20 @@ import {
 const intToHex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
 const hexToInt = (h: string) => parseInt(h.replace("#", ""), 16) || 0;
 
-export type PanelOption = { id: string; name: string };
+export type PanelOption = {
+  id: string;
+  name: string;
+  emoji?: string | null;
+  color?: string;
+};
+
+/** Discord button style → a preview background class. */
+const BUTTON_COLORS: Record<string, string> = {
+  Primary: "bg-indigo-500",
+  Secondary: "bg-neutral-600",
+  Success: "bg-green-600",
+  Danger: "bg-red-600",
+};
 
 function Field({
   label,
@@ -146,6 +159,16 @@ export function MultiPanelForm({
     });
   }
 
+  function togglePanel(id: string, checked: boolean) {
+    setPanelIds((prev) =>
+      checked ? [...prev, id] : prev.filter((p) => p !== id),
+    );
+  }
+
+  const selectedPanels = panelIds
+    .map((id) => availablePanels.find((p) => p.id === id))
+    .filter((p): p is PanelOption => Boolean(p));
+
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <Card>
@@ -217,11 +240,21 @@ export function MultiPanelForm({
                 No panels yet — create individual panels first.
               </p>
             ) : (
-              <RoleMultiSelect
-                roles={availablePanels}
-                value={panelIds}
-                onChange={setPanelIds}
-              />
+              <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2">
+                {availablePanels.map((p) => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <Checkbox
+                      checked={panelIds.includes(p.id)}
+                      onCheckedChange={(v) => togglePanel(p.id, v === true)}
+                    />
+                    <DiscordEmoji emoji={p.emoji} />
+                    <span className="truncate">{p.name}</span>
+                  </label>
+                ))}
+              </div>
             )}
           </Field>
           <label className="flex w-fit items-center gap-2 text-sm">
@@ -231,6 +264,43 @@ export function MultiPanelForm({
             />
             Show options as a dropdown menu (instead of buttons)
           </label>
+
+          <Field label="Preview" hint="How the options appear in Discord.">
+            {selectedPanels.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Select panels to preview.
+              </p>
+            ) : useDropdown ? (
+              <div className="w-full max-w-sm overflow-hidden rounded-lg border text-sm">
+                <div className="border-b px-3 py-2 text-muted-foreground">
+                  Select a ticket type…
+                </div>
+                {selectedPanels.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-2 px-3 py-2"
+                  >
+                    <DiscordEmoji emoji={p.emoji} />
+                    <span className="truncate">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {selectedPanels.map((p) => (
+                  <span
+                    key={p.id}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-white ${
+                      BUTTON_COLORS[p.color ?? "Primary"] ?? BUTTON_COLORS.Primary
+                    }`}
+                  >
+                    <DiscordEmoji emoji={p.emoji} />
+                    {p.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Field>
         </CardContent>
       </Card>
 

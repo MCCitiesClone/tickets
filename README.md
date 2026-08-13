@@ -172,6 +172,7 @@ Repository copies of the core setup guides:
 - [x] Stats & analytics dashboard — volume, response/resolution times, per-staff ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [x] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
 - [x] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
+- [x] Custom emoji in multi-panel dropdown options ([#14](https://github.com/MCCitiesClone/tickets/issues/14))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -195,7 +196,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 
 - [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
 - [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
-- [ ] Custom emoji in multi-panel dropdown options ([#14](https://github.com/MCCitiesClone/tickets/issues/14))
 - [ ] Docs: comparison page vs other ticket bots ([#19](https://github.com/MCCitiesClone/tickets/issues/19))
 - [ ] Dynamic date/time placeholders in messages ([#27](https://github.com/MCCitiesClone/tickets/issues/27))
 - [ ] Autocomplete close-request reasons ([#32](https://github.com/MCCitiesClone/tickets/issues/32))

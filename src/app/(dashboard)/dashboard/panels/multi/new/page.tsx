@@ -30,6 +30,8 @@ export default async function NewMultiPanelPage() {
           availablePanels={panels.map((p) => ({
             id: p.id,
             name: p.buttonLabel || p.title,
+            emoji: p.buttonEmoji,
+            color: p.buttonColor,
           }))}
         />
       ) : (
