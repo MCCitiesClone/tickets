@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  guild,
   ticket,
   ticketMessage,
   transcript,
@@ -295,6 +296,53 @@ export async function listGuildTicketOpeners(
   return openers
     .map((o) => ({ id: o.id, name: nameMap.get(o.id) ?? o.id }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Record human activity in a ticket: bump the inactivity clock and clear any
+ * pending auto-close warning so the countdown restarts.
+ */
+export async function markTicketActivity(
+  ticketId: string,
+  at: Date,
+): Promise<void> {
+  await db
+    .update(ticket)
+    .set({ lastActivityAt: at, autoCloseWarnedAt: null })
+    .where(eq(ticket.id, ticketId));
+}
+
+/** Record that the inactivity auto-close warning was posted. */
+export async function markTicketAutoCloseWarned(
+  ticketId: string,
+  at: Date,
+): Promise<void> {
+  await db
+    .update(ticket)
+    .set({ autoCloseWarnedAt: at })
+    .where(eq(ticket.id, ticketId));
+}
+
+/** An open ticket paired with its guild's auto-close settings. */
+export type AutoCloseCandidate = {
+  ticket: Ticket;
+  autoCloseHours: number;
+  autoCloseWarningHours: number;
+  autoCloseExcludeClaimed: boolean;
+};
+
+/** Open tickets in guilds that have inactivity auto-close enabled. */
+export async function listAutoCloseCandidates(): Promise<AutoCloseCandidate[]> {
+  return db
+    .select({
+      ticket,
+      autoCloseHours: guild.autoCloseHours,
+      autoCloseWarningHours: guild.autoCloseWarningHours,
+      autoCloseExcludeClaimed: guild.autoCloseExcludeClaimed,
+    })
+    .from(ticket)
+    .innerJoin(guild, eq(guild.guildId, ticket.guildId))
+    .where(and(eq(ticket.status, "open"), gt(guild.autoCloseHours, 0)));
 }
 
 /** Count captured messages for a ticket. */

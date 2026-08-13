@@ -101,6 +101,19 @@ export const guild = pgTable("guild", {
   ticketLimit: bigint("ticket_limit", { mode: "number" }).notNull().default(1),
 
   /**
+   * Auto-close a ticket after this many hours with no human message (0 = off).
+   * `autoCloseWarningHours` posts a heads-up that many hours before closing (0 =
+   * no warning); claimed tickets can be exempted via `autoCloseExcludeClaimed`.
+   */
+  autoCloseHours: integer("auto_close_hours").notNull().default(0),
+  autoCloseWarningHours: integer("auto_close_warning_hours")
+    .notNull()
+    .default(0),
+  autoCloseExcludeClaimed: boolean("auto_close_exclude_claimed")
+    .notNull()
+    .default(false),
+
+  /**
    * Naming scheme for ticket channels. `{number}` and `{username}` are
    * substituted, e.g. "ticket-{number}" -> "ticket-42".
    */

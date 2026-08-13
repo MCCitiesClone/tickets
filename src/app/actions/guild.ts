@@ -31,6 +31,9 @@ const configSchema = z.object({
   staffRoleIds: z.array(z.string()).optional(),
   welcomeMessage: z.string().max(2000).optional(),
   ticketLimit: z.number().int().min(0).max(100).optional(),
+  autoCloseHours: z.number().int().min(0).max(8760).optional(),
+  autoCloseWarningHours: z.number().int().min(0).max(8760).optional(),
+  autoCloseExcludeClaimed: z.boolean().optional(),
   namingScheme: z.string().min(1).max(100).optional(),
   messageTemplates: guildMessageTemplatesSchema.optional(),
 });

@@ -46,6 +46,7 @@ dashboard: sign in, open **Settings**, and pick a server you manage. You need
 | Staff roles           | Roles granted access to every ticket channel; treated as staff for permissions.  |
 | Welcome message       | Plain-text first message posted in a new ticket (used when no rich welcome set).  |
 | Ticket limit          | Max simultaneously-open tickets per user. `0` = unlimited (default `1`).          |
+| Auto-close on inactivity | Close idle tickets after N hours of no human message, with an optional warning first; claimed tickets can be exempted. See [ticket lifecycle](/docs/tickets#auto-close). |
 | Naming scheme         | Channel-name template. `{number}` and `{username}` are substituted.              |
 | Message templates     | Rich embed messages for welcome / claim / close DM / transcript post.            |
 

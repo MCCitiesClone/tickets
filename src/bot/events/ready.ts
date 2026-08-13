@@ -1,11 +1,11 @@
 import type { Client } from "discord.js";
 
 import { registerCommands } from "../lib/register-commands";
-import { sweepDueCloseRequests } from "../lib/tickets";
+import { sweepDueCloseRequests, sweepInactiveTickets } from "../lib/tickets";
 import { loadOpenTicketChannels } from "../lib/ticket-channels";
 
-/** How often to check for close requests that are due to auto-close. */
-const CLOSE_REQUEST_SWEEP_MS = 60_000;
+/** How often to run the auto-close sweeps (close requests + inactivity). */
+const SWEEP_MS = 60_000;
 
 /**
  * Fired once when the gateway connection is ready. We (re)register slash
@@ -31,10 +31,12 @@ export async function onReady(client: Client<true>): Promise<void> {
     console.error("Failed to warm ticket-channel cache:", err);
   }
 
-  // Periodically auto-close tickets whose close request went unconfirmed.
+  // Periodically auto-close tickets: those whose close request went unconfirmed,
+  // and those that have gone inactive past the guild's threshold.
   const sweep = () => {
     void sweepDueCloseRequests(client);
+    void sweepInactiveTickets(client);
   };
   sweep();
-  setInterval(sweep, CLOSE_REQUEST_SWEEP_MS);
+  setInterval(sweep, SWEEP_MS);
 }

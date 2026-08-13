@@ -40,6 +40,7 @@ page. Saving in the dashboard creates/updates the row.
 | `welcomeMessage`       | Plain-text first message (used when no rich welcome template set).|
 | `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
 | `ticketLimit`          | Max simultaneously-open tickets per user (`0` = unlimited; default `1`). |
+| `autoCloseHours` / `autoCloseWarningHours` / `autoCloseExcludeClaimed` | Auto-close idle tickets after N hours (0 = off), warning M hours before; optionally skip claimed tickets. |
 | `namingScheme`         | Channel name template. `{number}` / `{username}` are substituted. |
 | `ticketCounter`        | Atomic per-guild counter that assigns each ticket its number.     |
 
