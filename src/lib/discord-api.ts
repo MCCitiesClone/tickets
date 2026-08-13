@@ -87,6 +87,58 @@ export function fetchBotGuildsFresh(): Promise<BotGuildsResult> {
   return fetchBotGuildsUncached();
 }
 
+export type DiscordUser = { id: string; name: string; avatarUrl: string };
+
+// Users change rarely; cache resolutions (including misses) so pasting an ID in
+// a picker — or resolving blacklist entries on render — doesn't re-hit Discord.
+const userCache = ttlCache<DiscordUser | null>(10 * 60_000);
+
+/** The user's avatar URL, falling back to their default (id-derived) avatar. */
+function userAvatarUrl(id: string, avatar: string | null): string {
+  if (avatar) {
+    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=64`;
+  }
+  const index = Number((BigInt(id) >> BigInt(22)) % BigInt(6));
+  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+}
+
+/**
+ * Resolve a Discord user ID to their display name + avatar via the bot token.
+ * Returns null if the ID doesn't resolve (unknown user, or Discord unreachable).
+ * Cached per ID for 10 minutes.
+ */
+export const fetchDiscordUser = cache(
+  async (id: string): Promise<DiscordUser | null> => {
+    if (!/^\d{17,20}$/.test(id)) return null;
+    const cached = userCache.get(id);
+    if (cached !== undefined) return cached;
+    try {
+      const res = await discordFetch(`${DISCORD_API}/users/${id}`, {
+        headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` },
+      });
+      if (!res.ok) {
+        userCache.set(id, null);
+        return null;
+      }
+      const u = (await res.json()) as {
+        id: string;
+        username: string;
+        global_name: string | null;
+        avatar: string | null;
+      };
+      const user: DiscordUser = {
+        id: u.id,
+        name: u.global_name || u.username,
+        avatarUrl: userAvatarUrl(u.id, u.avatar),
+      };
+      userCache.set(id, user);
+      return user;
+    } catch {
+      return null;
+    }
+  },
+);
+
 // Discord channel types we care about for configuration dropdowns.
 const CHANNEL_TYPE_TEXT = 0;
 const CHANNEL_TYPE_CATEGORY = 4;
