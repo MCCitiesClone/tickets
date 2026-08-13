@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { presetsFor } from "@/components/message-editor/presets";
 import type {
   GuildMessageTemplates,
   MessageTemplate,
@@ -99,6 +100,7 @@ export function MessagesForm({
         value={value}
         onChange={setValue}
         placeholders={active.placeholders}
+        presets={presetsFor(tab)}
       />
 
       <div className="flex justify-end">
