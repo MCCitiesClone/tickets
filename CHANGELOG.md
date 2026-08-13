@@ -1,3 +1,10 @@
+## [0.14.1](https://github.com/MCCitiesClone/tickets/compare/v0.14.0...v0.14.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* render emoji/markdown in embed titles & fields, multi-line field values ([#57](https://github.com/MCCitiesClone/tickets/issues/57)) ([30892d5](https://github.com/MCCitiesClone/tickets/commit/30892d54b27e1dc0030086ffbb1d18d4466f7148))
+
 # [0.14.0](https://github.com/MCCitiesClone/tickets/compare/v0.13.0...v0.14.0) (2026-08-13)
 
 
