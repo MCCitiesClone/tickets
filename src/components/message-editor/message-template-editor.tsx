@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Code2, Plus } from "lucide-react";
+import { useRef, useState } from "react";
+import { Code2, Hash, LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,25 +13,60 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { MessageTemplate, TemplateEmbed } from "@/db/schema";
+import {
+  DEFAULT_PANEL_COLOR,
+  type MessageTemplate,
+  type TemplateEmbed,
+} from "@/db/schema";
 import { EmbedCard } from "./embed-card";
+import { CharCount, insertAtCaret } from "./editor-utils";
 import { fromDiscordJson, toDiscordJson } from "./discord-json";
 import { MessagePreview } from "./message-preview";
+import type { EmbedPreset } from "./presets";
 
 const MAX_EMBEDS = 10;
+
+/** Human-readable descriptions for every placeholder token, for the legend. */
+export const PLACEHOLDER_META: Record<string, string> = {
+  ticket: "The ticket's number",
+  number: "The ticket's number",
+  username: "The opener's plain username (no mention)",
+  user: "A mention of the member who opened the ticket",
+  opener: "A mention of the member who opened the ticket",
+  server: "The server (guild) name",
+  channel: "A mention of the ticket channel",
+  claimer: "A mention of the staff member who claimed it",
+  closer: "A mention of whoever closed the ticket",
+  reason: "The close reason, if one was given",
+  transcript_url: "The shareable transcript link",
+};
 
 export function MessageTemplateEditor({
   value,
   onChange,
   placeholders,
+  presets,
 }: {
   value: MessageTemplate;
   onChange: (next: MessageTemplate) => void;
   /** Placeholder tokens (without braces) available for this message. */
   placeholders: string[];
+  /** Optional starter templates offered via "Start from a template". */
+  presets?: EmbedPreset[];
 }) {
+  // The last text field the user focused anywhere in the editor. The token
+  // menu inserts into this so admins never type {tokens} by hand.
+  const lastField = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
+
   const setContent = (content: string) => onChange({ ...value, content });
 
   const setEmbed = (i: number, next: TemplateEmbed) => {
@@ -40,7 +75,10 @@ export function MessageTemplateEditor({
     onChange({ ...value, embeds });
   };
   const addEmbed = () =>
-    onChange({ ...value, embeds: [...value.embeds, {}] });
+    onChange({
+      ...value,
+      embeds: [...value.embeds, { color: DEFAULT_PANEL_COLOR }],
+    });
   const removeEmbed = (i: number) =>
     onChange({ ...value, embeds: value.embeds.filter((_, j) => j !== i) });
   const moveEmbed = (i: number, dir: -1 | 1) => {
@@ -51,40 +89,73 @@ export function MessageTemplateEditor({
     onChange({ ...value, embeds });
   };
 
-  const insertPlaceholder = (token: string) =>
-    setContent(`${value.content ?? ""}{${token}}`);
+  // Insert into whichever field was last focused; fall back to the content box.
+  const insertToken = (token: string) => {
+    const target = lastField.current ?? contentRef.current;
+    if (target) {
+      insertAtCaret(target, `{${token}}`);
+    } else {
+      setContent(`${value.content ?? ""}{${token}}`);
+    }
+  };
+
+  const onFocusCapture = (e: React.FocusEvent) => {
+    const el = e.target;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      lastField.current = el;
+    }
+  };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 lg:grid-cols-2" onFocusCapture={onFocusCapture}>
       {/* Editor */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Label>Message content</Label>
-            <ImportExport value={value} onImport={onChange} />
+            <div className="flex flex-wrap items-center gap-2">
+              {presets && presets.length > 0 && (
+                <PresetMenu presets={presets} onApply={onChange} />
+              )}
+              {placeholders.length > 0 && (
+                <TokenMenu tokens={placeholders} onInsert={insertToken} />
+              )}
+              <ImportExport value={value} onImport={onChange} />
+            </div>
           </div>
           <Textarea
+            ref={contentRef}
             rows={3}
             value={value.content ?? ""}
             maxLength={2000}
             placeholder="Optional text shown above the embeds."
             onChange={(e) => setContent(e.target.value)}
           />
-          {placeholders.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {placeholders.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => insertPlaceholder(p)}
-                  className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted/70"
-                  title={`Insert {${p}}`}
-                >
-                  {`{${p}}`}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            {placeholders.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {placeholders.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      if (contentRef.current)
+                        insertAtCaret(contentRef.current, `{${p}}`);
+                      else setContent(`${value.content ?? ""}{${p}}`);
+                    }}
+                    className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted/70"
+                    title={PLACEHOLDER_META[p] ?? `Insert {${p}}`}
+                  >
+                    {`{${p}}`}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span />
+            )}
+            <CharCount value={value.content ?? ""} max={2000} />
+          </div>
         </div>
 
         {value.embeds.map((embed, i) => (
@@ -116,8 +187,87 @@ export function MessageTemplateEditor({
           Preview
         </Label>
         <MessagePreview template={value} />
+        {placeholders.length > 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tokens like <code className="font-mono">{"{ticket}"}</code> are filled
+            in when the message is sent.
+          </p>
+        )}
       </div>
     </div>
+  );
+}
+
+/** "Start from a template" menu: applies a preset to the whole editor. */
+function PresetMenu({
+  presets,
+  onApply,
+}: {
+  presets: EmbedPreset[];
+  onApply: (next: MessageTemplate) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button type="button" variant="outline" size="sm" />}
+      >
+        <LayoutTemplate className="size-3.5" /> Start from a template
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        {presets.map((preset) => (
+          <DropdownMenuItem
+            key={preset.label}
+            className="flex-col items-start gap-0.5"
+            onClick={() =>
+              onApply({
+                content: preset.template.content,
+                embeds: preset.template.embeds.map((e) => ({ ...e })),
+              })
+            }
+          >
+            <span className="text-sm font-medium">{preset.label}</span>
+            <span className="text-xs text-muted-foreground">
+              {preset.description}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** "Insert token" menu: inserts a placeholder into the last-focused field. */
+function TokenMenu({
+  tokens,
+  onInsert,
+}: {
+  tokens: string[];
+  onInsert: (token: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button type="button" variant="outline" size="sm" />}
+      >
+        <Hash className="size-3.5" /> Insert token
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        {tokens.map((token) => (
+          <DropdownMenuItem
+            key={token}
+            className="flex-col items-start gap-0.5"
+            onClick={() => onInsert(token)}
+          >
+            <span className="font-mono text-xs">{`{${token}}`}</span>
+            {PLACEHOLDER_META[token] && (
+              <span className="text-xs text-muted-foreground">
+                {PLACEHOLDER_META[token]}
+              </span>
+            )}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

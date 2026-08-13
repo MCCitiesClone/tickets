@@ -45,19 +45,23 @@ export type GuildMessageTemplates = {
 /** Keys of the configurable guild-level system messages. */
 export type MessageTemplateKey = keyof GuildMessageTemplates;
 
+/** True when an individual embed would render nothing visible. */
+export function isEmbedEmpty(e: TemplateEmbed): boolean {
+  return !(
+    e.title ||
+    e.description ||
+    e.author?.name ||
+    e.footer?.text ||
+    e.image?.url ||
+    e.thumbnail?.url ||
+    (e.fields && e.fields.length > 0)
+  );
+}
+
 /** True when a template would actually render something. */
 export function isTemplateEmpty(t: MessageTemplate | null | undefined): boolean {
   if (!t) return true;
   const hasContent = Boolean(t.content && t.content.trim());
-  const hasEmbed = t.embeds.some(
-    (e) =>
-      e.title ||
-      e.description ||
-      e.author?.name ||
-      e.footer?.text ||
-      e.image?.url ||
-      e.thumbnail?.url ||
-      (e.fields && e.fields.length > 0),
-  );
+  const hasEmbed = t.embeds.some((e) => !isEmbedEmpty(e));
   return !hasContent && !hasEmbed;
 }

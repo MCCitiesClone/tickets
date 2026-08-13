@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { presetsFor } from "@/components/message-editor/presets";
 import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
 import {
   createCannedResponse,
@@ -240,6 +241,7 @@ function Editor({
           value={template}
           onChange={setTemplate}
           placeholders={PLACEHOLDERS}
+          presets={presetsFor("cannedResponse")}
         />
       </div>
 

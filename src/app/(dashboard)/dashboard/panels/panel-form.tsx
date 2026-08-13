@@ -34,6 +34,7 @@ import {
   type Panel,
 } from "@/db/schema";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { presetsFor } from "@/components/message-editor/presets";
 import { createPanel, updatePanel } from "@/app/actions/panel";
 
 const WELCOME_PLACEHOLDERS = [
@@ -442,6 +443,7 @@ export function PanelForm({
               value={welcomeTemplate}
               onChange={setWelcomeTemplate}
               placeholders={WELCOME_PLACEHOLDERS}
+              presets={presetsFor("panelWelcome")}
             />
           </details>
           <Field

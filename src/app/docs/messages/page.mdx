@@ -29,6 +29,24 @@ up to several fields (name / value / inline), an image, a thumbnail, a footer
 editor's preview reuses the same renderer as the [transcript viewer](/docs/tickets#transcripts),
 so what you see is what gets posted.
 
+## Designing a message
+
+The editor is built to be approachable, not just powerful:
+
+- **Simple first.** Each embed shows **Title**, **Description**, **Colour**, and
+  **Image** up front. The rest — author, title link, thumbnail, fields, footer,
+  and timestamp — live under **Advanced options**, which summarises what's
+  filled in (e.g. _"Advanced options · 2 fields · footer"_) so nothing is
+  hidden.
+- **Start from a template.** Use **Start from a template** to drop in a
+  ready-made message (a friendly welcome, a closed-ticket summary, a simple
+  announcement) and tweak it, instead of building from a blank slate.
+- **Insert tokens, don't memorise them.** Click **Insert token** to place a
+  placeholder into whichever field you're editing, or use the token chips under
+  the message content. Hover any token to see what it becomes.
+- **Live hints.** Character counters warn as you approach Discord's limits, and
+  an empty embed is flagged inline.
+
 ## Placeholder tokens
 
 Tokens are replaced at send time. The tokens available depend on the template,
