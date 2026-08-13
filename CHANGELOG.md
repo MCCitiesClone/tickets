@@ -1,3 +1,10 @@
+## [0.14.2](https://github.com/MCCitiesClone/tickets/compare/v0.14.1...v0.14.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* render headings, lists, subtext & spoilers in message markdown preview ([#58](https://github.com/MCCitiesClone/tickets/issues/58)) ([7f24f31](https://github.com/MCCitiesClone/tickets/commit/7f24f31509930dff0278c4f8d1dee388a6ec262a))
+
 ## [0.14.1](https://github.com/MCCitiesClone/tickets/compare/v0.14.0...v0.14.1) (2026-08-13)
 
 
