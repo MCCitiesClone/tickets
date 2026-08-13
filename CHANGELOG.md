@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/MCCitiesClone/tickets/compare/v0.14.2...v0.15.0) (2026-08-13)
+
+
+### Features
+
+* configurable multi-panel dropdown placeholder ([#59](https://github.com/MCCitiesClone/tickets/issues/59)) ([5702c98](https://github.com/MCCitiesClone/tickets/commit/5702c9890d72594b9018ab2bf603258c81ddaa04))
+
 ## [0.14.2](https://github.com/MCCitiesClone/tickets/compare/v0.14.1...v0.14.2) (2026-08-13)
 
 
