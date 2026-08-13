@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/MCCitiesClone/tickets/compare/v0.11.1...v0.12.0) (2026-08-13)
+
+
+### Features
+
+* simplify the embed editor for non-technical users ([#54](https://github.com/MCCitiesClone/tickets/issues/54)) ([17fb851](https://github.com/MCCitiesClone/tickets/commit/17fb851e6a97069c59d1e4ce1a790e508c3de740)), closes [#23](https://github.com/MCCitiesClone/tickets/issues/23)
+
 ## [0.11.1](https://github.com/MCCitiesClone/tickets/compare/v0.11.0...v0.11.1) (2026-08-13)
 
 
