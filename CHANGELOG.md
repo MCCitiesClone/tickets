@@ -1,3 +1,10 @@
+# [0.14.0](https://github.com/MCCitiesClone/tickets/compare/v0.13.0...v0.14.0) (2026-08-13)
+
+
+### Features
+
+* configure the multi-panel message with the embed editor ([#56](https://github.com/MCCitiesClone/tickets/issues/56)) ([06ffe71](https://github.com/MCCitiesClone/tickets/commit/06ffe71dd061ac11dc1ad1e73aff096ab7ea3a24))
+
 # [0.13.0](https://github.com/MCCitiesClone/tickets/compare/v0.12.0...v0.13.0) (2026-08-13)
 
 
