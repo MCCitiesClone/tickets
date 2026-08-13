@@ -212,9 +212,9 @@ export function MessageTemplateEditor({
         )}
         {guildId && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Custom emoji render in the message content, embed descriptions, and
-            field values — Discord shows them as plain text in titles and
-            footers.
+            Custom emoji and markdown render in the message content, embed
+            titles, descriptions, and fields — Discord shows author and footer
+            text plain.
           </p>
         )}
       </div>

@@ -1,5 +1,5 @@
 import type { TranscriptEmbed, TranscriptMention } from "@/db/schema";
-import { MarkdownContent } from "./markdown";
+import { InlineMarkdown, MarkdownContent } from "./markdown";
 
 /** Render a captured Discord embed with its accent colour and fields. */
 export function Embed({
@@ -45,10 +45,12 @@ export function Embed({
                 rel="noreferrer noopener"
                 className="font-semibold text-sky-400 hover:underline"
               >
-                {embed.title}
+                <InlineMarkdown content={embed.title} mentions={mentions} />
               </a>
             ) : (
-              <div className="font-semibold text-white">{embed.title}</div>
+              <div className="font-semibold text-white">
+                <InlineMarkdown content={embed.title} mentions={mentions} />
+              </div>
             ))}
 
           {embed.description && (
@@ -65,7 +67,7 @@ export function Embed({
                   className={f.inline ? "min-w-[8rem] flex-1" : "w-full"}
                 >
                   <div className="text-xs font-semibold text-white">
-                    {f.name}
+                    <InlineMarkdown content={f.name} mentions={mentions} />
                   </div>
                   <div className="text-white/80">
                     <MarkdownContent content={f.value} mentions={mentions} />

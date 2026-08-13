@@ -199,10 +199,16 @@ export function MultiPanelForm({
               placeholder={loading ? "Loading…" : "Select a channel"}
             />
           </Field>
-          <Field label="Title">
+          <Field
+            label="Title"
+            hint="Optional when you design a rich message below."
+          >
             <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
           </Field>
-          <Field label="Content">
+          <Field
+            label="Content"
+            hint="Optional when you design a rich message below."
+          >
             <Textarea
               rows={3}
               value={description}
