@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/MCCitiesClone/tickets/compare/v0.9.0...v0.10.0) (2026-08-13)
+
+
+### Features
+
+* avatars & role colors in the blacklist list ([#51](https://github.com/MCCitiesClone/tickets/issues/51)) ([833e30f](https://github.com/MCCitiesClone/tickets/commit/833e30f39aaecfb169b176d0b3f0b5166038a1ce))
+
 # [0.9.0](https://github.com/MCCitiesClone/tickets/compare/v0.8.0...v0.9.0) (2026-08-13)
 
 
