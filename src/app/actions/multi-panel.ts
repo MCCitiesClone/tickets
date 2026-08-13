@@ -33,6 +33,7 @@ const fields = {
   smallImageUrl: z.string().max(2048).nullable().optional(),
   messageTemplate: messageTemplateSchema.nullable().optional(),
   useDropdown: z.boolean().optional().default(false),
+  dropdownPlaceholder: z.string().max(150).nullable().optional(),
   panelIds: z.array(z.string()).min(1).max(25),
 };
 
@@ -86,6 +87,7 @@ function toRow(data: z.infer<typeof createSchema>) {
     smallImageUrl: emptyToNull(data.smallImageUrl),
     messageTemplate: (data.messageTemplate ?? null) as MessageTemplate | null,
     useDropdown: data.useDropdown,
+    dropdownPlaceholder: emptyToNull(data.dropdownPlaceholder),
     panelIds: data.panelIds,
   };
 }
