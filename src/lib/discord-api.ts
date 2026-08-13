@@ -246,6 +246,42 @@ export const fetchGuildRoles = cache(
   },
 );
 
+export type GuildEmoji = { id: string; name: string; animated: boolean };
+
+const guildEmojisCache = ttlCache<GuildEmoji[]>(5 * 60_000);
+
+/**
+ * Fetch a guild's custom emojis via the bot token, for the emoji picker. Cached
+ * per guild; returns an empty list on failure.
+ */
+export const fetchGuildEmojis = cache(
+  async (guildId: string): Promise<GuildEmoji[]> => {
+    const cached = guildEmojisCache.get(guildId);
+    if (cached) return cached;
+    try {
+      const res = await discordFetch(
+        `${DISCORD_API}/guilds/${guildId}/emojis`,
+        { headers: { Authorization: `Bot ${env.DISCORD_TOKEN}` } },
+      );
+      if (!res.ok) return [];
+      const emojis = (await res.json()) as {
+        id: string | null;
+        name: string | null;
+        animated?: boolean;
+      }[];
+      const result = emojis.flatMap((e) =>
+        e.id && e.name
+          ? [{ id: e.id, name: e.name, animated: Boolean(e.animated) }]
+          : [],
+      );
+      guildEmojisCache.set(guildId, result);
+      return result;
+    } catch {
+      return [];
+    }
+  },
+);
+
 /**
  * Create a channel in a guild via the bot token. `type` maps to a text channel
  * or a category. Invalidates the channel cache so the new channel shows up.
