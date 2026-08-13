@@ -38,6 +38,8 @@ export default async function EditMultiPanelPage({
         availablePanels={panels.map((p) => ({
           id: p.id,
           name: p.buttonLabel || p.title,
+          emoji: p.buttonEmoji,
+          color: p.buttonColor,
         }))}
       />
     </div>
