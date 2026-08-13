@@ -49,7 +49,9 @@ import {
   createTranscript,
   getTicket,
   getTicketByChannel,
+  listAutoCloseCandidates,
   listDueCloseRequests,
+  markTicketAutoCloseWarned,
   markTicketClosed,
   saveTicketRating,
   setCloseRequest,
@@ -1730,6 +1732,87 @@ export async function sweepDueCloseRequests(client: Client): Promise<void> {
       );
     } catch (err) {
       console.error(`Auto-close failed for ticket ${ticket.id}:`, err);
+    }
+  }
+}
+
+const HOUR_MS = 3_600_000;
+
+/**
+ * Auto-close tickets that have gone quiet. For each open ticket in a guild with
+ * inactivity auto-close enabled: if it's been silent past the threshold, close
+ * it; otherwise, once it enters the warning window, post a one-time heads-up.
+ * Any human reply resets the clock (see `markTicketActivity`). Runs on the same
+ * timer as the close-request sweep.
+ */
+export async function sweepInactiveTickets(client: Client): Promise<void> {
+  let candidates: Awaited<ReturnType<typeof listAutoCloseCandidates>>;
+  try {
+    candidates = await listAutoCloseCandidates();
+  } catch (err) {
+    console.error("Failed to list auto-close candidates:", err);
+    return;
+  }
+
+  const now = Date.now();
+  for (const {
+    ticket,
+    autoCloseHours,
+    autoCloseWarningHours,
+    autoCloseExcludeClaimed,
+  } of candidates) {
+    try {
+      if (autoCloseExcludeClaimed && ticket.claimedBy) continue;
+
+      const lastActivity = (ticket.lastActivityAt ?? ticket.openedAt).getTime();
+      const inactiveMs = now - lastActivity;
+      const thresholdMs = autoCloseHours * HOUR_MS;
+      const warnLeadMs = autoCloseWarningHours * HOUR_MS;
+      const willWarn = warnLeadMs > 0 && warnLeadMs < thresholdMs;
+
+      if (inactiveMs >= thresholdMs) {
+        const guild = await client.guilds
+          .fetch(ticket.guildId)
+          .catch(() => null);
+        const config = guild ? await getGuild(ticket.guildId) : null;
+        if (!guild || !config) continue;
+        await performClose(
+          guild,
+          ticket,
+          config,
+          client.user!.id,
+          "Auto-closed due to inactivity",
+        );
+      } else if (
+        willWarn &&
+        inactiveMs >= thresholdMs - warnLeadMs &&
+        !ticket.autoCloseWarnedAt
+      ) {
+        const guild = await client.guilds
+          .fetch(ticket.guildId)
+          .catch(() => null);
+        const channel = await guild?.channels
+          .fetch(ticket.channelId)
+          .catch(() => null);
+        const closesAt = Math.floor((lastActivity + thresholdMs) / 1000);
+        if (channel?.isTextBased()) {
+          await channel
+            .send({
+              content: `<@${ticket.openerId}>`,
+              embeds: [
+                noticeEmbed(
+                  `⏳ This ticket has been quiet for a while and will auto-close <t:${closesAt}:R> unless someone replies.`,
+                  EMBED_COLOR.neutral,
+                ),
+              ],
+              allowedMentions: { users: [ticket.openerId] },
+            })
+            .catch(() => {});
+        }
+        await markTicketAutoCloseWarned(ticket.id, new Date());
+      }
+    } catch (err) {
+      console.error(`Inactivity auto-close failed for ${ticket.id}:`, err);
     }
   }
 }

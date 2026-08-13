@@ -40,6 +40,8 @@ easy to run yourself and to own your own data.
   events are logged to a configurable log channel.
 - **Close requests** — `/closerequest [hours] [reason]` asks the opener to
   confirm, with an optional auto-close timer if nobody responds.
+- **Auto-close on inactivity** — optionally close idle tickets after N hours of
+  no human reply, with a warning first; claimed tickets can be exempted.
 - **Blacklist** — block specific users or roles from opening tickets, from the
   dashboard or `/blacklist`; enforced before a ticket channel is created.
 - **Ratings** — optionally DM the opener a 1–5 star rating prompt on close; the
@@ -169,12 +171,9 @@ Repository copies of the core setup guides:
 - [x] User & role blacklist — block abusers from opening tickets ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [x] Stats & analytics dashboard — volume, response/resolution times, per-staff ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
 - [x] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
+- [x] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
-
-**High priority**
-
-- [ ] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 
 **Medium priority**
 

@@ -67,6 +67,14 @@ export const ticket = pgTable("ticket", {
     .notNull()
     .default([]),
 
+  /**
+   * Last time a human (non-bot) message was sent in the ticket — the inactivity
+   * clock for auto-close. Set on open, updated by the message listener.
+   */
+  lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
+  /** When the inactivity auto-close warning was posted; cleared on new activity. */
+  autoCloseWarnedAt: timestamp("auto_close_warned_at"),
+
   openedAt: timestamp("opened_at").notNull().defaultNow(),
   closedAt: timestamp("closed_at"),
   /** Discord user ID of whoever closed the ticket. */

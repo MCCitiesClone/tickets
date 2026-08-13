@@ -106,6 +106,25 @@ bot:
 Steps 3–4 are best-effort — a failure there won't block the ticket from
 closing.
 
+## Auto-close
+
+Enable **auto-close on inactivity** in [Settings](/docs/configuration) to close
+tickets that go quiet:
+
+- **Close after (hours)** — hours with no human message before the ticket
+  auto-closes (`0` disables it). Any reply from the opener or staff resets the
+  clock; the bot's own messages (welcome, warnings, canned responses) don't
+  count.
+- **Warn before (hours)** — post a one-time heads-up this many hours before the
+  close, pinging the opener with the auto-close time (`0` skips the warning).
+  Must be less than the close time.
+- **Never auto-close claimed tickets** — exempt tickets a staff member has
+  claimed.
+
+A background sweep (every ~60s) checks open tickets against their guild's
+threshold; auto-closed tickets go through the same close path above (recorded as
+closed by the bot, reason "Auto-closed due to inactivity").
+
 ## Transcripts
 
 Transcripts are captured two ways: **live**, as messages are sent in a tracked

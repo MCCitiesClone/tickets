@@ -57,6 +57,15 @@ export function GuildSettingsForm({
   const [namingScheme, setNamingScheme] = useState(
     config?.namingScheme ?? "ticket-{number}",
   );
+  const [autoCloseHours, setAutoCloseHours] = useState(
+    config?.autoCloseHours ?? 0,
+  );
+  const [autoCloseWarningHours, setAutoCloseWarningHours] = useState(
+    config?.autoCloseWarningHours ?? 0,
+  );
+  const [autoCloseExcludeClaimed, setAutoCloseExcludeClaimed] = useState(
+    config?.autoCloseExcludeClaimed ?? false,
+  );
 
   const [pending, startTransition] = useTransition();
 
@@ -101,6 +110,9 @@ export function GuildSettingsForm({
           welcomeMessage,
           ticketLimit,
           namingScheme,
+          autoCloseHours,
+          autoCloseWarningHours,
+          autoCloseExcludeClaimed,
         });
         toast.success("Settings saved.");
       } catch {
@@ -280,6 +292,52 @@ export function GuildSettingsForm({
             substituted.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Auto-close on inactivity</Label>
+        <p className="text-xs text-muted-foreground">
+          Automatically close tickets that go quiet. A human reply resets the
+          clock; bot messages don&apos;t count.
+        </p>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="auto-close-hours">Close after (hours)</Label>
+            <Input
+              id="auto-close-hours"
+              type="number"
+              min={0}
+              max={8760}
+              value={autoCloseHours}
+              onChange={(e) => setAutoCloseHours(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Hours of inactivity before closing. 0 = off.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="auto-close-warning">Warn before (hours)</Label>
+            <Input
+              id="auto-close-warning"
+              type="number"
+              min={0}
+              max={8760}
+              value={autoCloseWarningHours}
+              onChange={(e) => setAutoCloseWarningHours(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Post a heads-up this many hours before closing (must be less than
+              the close time). 0 = no warning.
+            </p>
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={autoCloseExcludeClaimed}
+            onCheckedChange={(v) => setAutoCloseExcludeClaimed(v === true)}
+          />
+          <span>Never auto-close claimed tickets</span>
+        </label>
       </div>
 
       <div className="flex justify-end gap-2">

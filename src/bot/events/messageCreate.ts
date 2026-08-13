@@ -1,6 +1,6 @@
 import type { Message } from "discord.js";
 
-import { upsertTicketMessages } from "@/lib/queries/tickets";
+import { markTicketActivity, upsertTicketMessages } from "@/lib/queries/tickets";
 import { archiveMessageAttachments } from "../lib/attachment-archive";
 import { messageToRow } from "../lib/message-snapshot";
 import { getTrackedTicket } from "../lib/ticket-channels";
@@ -15,6 +15,11 @@ export async function onMessageCreate(message: Message): Promise<void> {
 
   try {
     await upsertTicketMessages([messageToRow(message, ticketId)]);
+    // Human messages reset the inactivity clock (bot posts — welcome, warnings,
+    // canned responses — don't count, so an auto-close warning can't self-defer).
+    if (!message.author.bot) {
+      await markTicketActivity(ticketId, message.createdAt);
+    }
   } catch (err) {
     console.error("Failed to capture ticket message:", err);
     return;
