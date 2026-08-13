@@ -37,6 +37,8 @@ export function BlacklistManager({
 
   const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
   const userName = (id: string) => users.find((u) => u.id === id)?.name ?? id;
+  const userAvatar = (id: string) =>
+    users.find((u) => u.id === id)?.avatarUrl ?? null;
 
   // Resolve a pasted user ID to a name + avatar via the bot (guarded route).
   async function resolveUser(id: string): Promise<ComboEntity | null> {
@@ -179,27 +181,38 @@ export function BlacklistManager({
           {initial.map((entry) => (
             <Card key={entry.id}>
               <CardContent className="flex items-center justify-between gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {entry.targetType === "role"
-                      ? `Role: ${roleName(entry.targetId)}`
-                      : `User: ${userName(entry.targetId)}`}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
                   {entry.targetType === "user" &&
-                    userName(entry.targetId) !== entry.targetId && (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {entry.targetId}
+                    userAvatar(entry.targetId) && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={userAvatar(entry.targetId)!}
+                        alt=""
+                        className="size-8 shrink-0 rounded-full"
+                      />
+                    )}
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {entry.targetType === "role"
+                        ? `Role: ${roleName(entry.targetId)}`
+                        : `User: ${userName(entry.targetId)}`}
+                    </p>
+                    {entry.targetType === "user" &&
+                      userName(entry.targetId) !== entry.targetId && (
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {entry.targetId}
+                        </p>
+                      )}
+                    {entry.reason && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {entry.reason}
                       </p>
                     )}
-                  {entry.reason && (
-                    <p className="truncate text-sm text-muted-foreground">
-                      {entry.reason}
+                    <p className="text-xs text-muted-foreground">
+                      {entry.addedBy ? `Added by ${entry.addedBy} · ` : ""}
+                      {new Date(entry.createdAt).toLocaleDateString()}
                     </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {entry.addedBy ? `Added by ${entry.addedBy} · ` : ""}
-                    {new Date(entry.createdAt).toLocaleDateString()}
-                  </p>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
