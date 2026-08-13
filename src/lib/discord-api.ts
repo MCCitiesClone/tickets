@@ -2,6 +2,8 @@ import { cache } from "react";
 import * as nodeEmoji from "node-emoji";
 
 import { env } from "@/lib/env";
+import { renderTemplateToJson } from "@/lib/message-embed";
+import { isTemplateEmpty, type MessageTemplate } from "@/db/schema";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -451,6 +453,8 @@ type MultiPanelMessageInput = {
   largeImageUrl: string | null;
   smallImageUrl: string | null;
   useDropdown: boolean;
+  /** Rich embed from the editor; when non-empty it replaces the simple embed. */
+  messageTemplate?: MessageTemplate | null;
 };
 export type PanelButtonInput = {
   id: string;
@@ -465,14 +469,6 @@ function multiPanelPayload(
   mp: MultiPanelMessageInput,
   panels: PanelButtonInput[],
 ) {
-  const embed: Record<string, unknown> = {
-    title: mp.title,
-    description: mp.description,
-    color: mp.color,
-  };
-  if (mp.largeImageUrl) embed.image = { url: mp.largeImageUrl };
-  if (mp.smallImageUrl) embed.thumbnail = { url: mp.smallImageUrl };
-
   let components: unknown[];
   if (mp.useDropdown) {
     // A single string-select menu (max 25 options).
@@ -514,6 +510,21 @@ function multiPanelPayload(
       components.push({ type: 1, components: buttons.slice(i, i + 5) });
     }
   }
+
+  // A rich template designed in the editor takes over the whole message body;
+  // otherwise fall back to the simple title/description/colour/image embed.
+  if (mp.messageTemplate && !isTemplateEmpty(mp.messageTemplate)) {
+    const { content, embeds } = renderTemplateToJson(mp.messageTemplate);
+    return { ...(content ? { content } : {}), embeds, components };
+  }
+
+  const embed: Record<string, unknown> = {
+    title: mp.title,
+    description: mp.description,
+    color: mp.color,
+  };
+  if (mp.largeImageUrl) embed.image = { url: mp.largeImageUrl };
+  if (mp.smallImageUrl) embed.thumbnail = { url: mp.smallImageUrl };
 
   return { embeds: [embed], components };
 }
