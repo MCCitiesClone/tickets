@@ -1,3 +1,10 @@
+## [0.11.1](https://github.com/MCCitiesClone/tickets/compare/v0.11.0...v0.11.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* server-emoji picker so custom emoji work on panels & dropdowns ([#53](https://github.com/MCCitiesClone/tickets/issues/53)) ([ba919d3](https://github.com/MCCitiesClone/tickets/commit/ba919d39f623c8072939cae3b69107e279bec585)), closes [#14](https://github.com/MCCitiesClone/tickets/issues/14)
+
 # [0.11.0](https://github.com/MCCitiesClone/tickets/compare/v0.10.0...v0.11.0) (2026-08-13)
 
 
