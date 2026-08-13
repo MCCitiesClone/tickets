@@ -18,14 +18,16 @@ import {
   setMultiPanelMessage,
   updateMultiPanel as updateRow,
 } from "@/lib/queries/panels";
-import type { MessageTemplate, MultiPanel } from "@/db/schema";
+import { isTemplateEmpty, type MessageTemplate, type MultiPanel } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 const fields = {
   channelId: z.string().min(1),
-  title: z.string().min(1).max(255),
-  description: z.string().min(1).max(1024),
+  // Title/description are optional: when a rich `messageTemplate` is set it
+  // replaces the simple embed, so the simple fields may be left blank.
+  title: z.string().max(255),
+  description: z.string().max(1024),
   color: z.number().int().min(0).max(0xffffff),
   largeImageUrl: z.string().max(2048).nullable().optional(),
   smallImageUrl: z.string().max(2048).nullable().optional(),
@@ -33,12 +35,34 @@ const fields = {
   useDropdown: z.boolean().optional().default(false),
   panelIds: z.array(z.string()).min(1).max(25),
 };
-const createSchema = z.object({ guildId: z.string().min(1), ...fields });
-const updateSchema = z.object({
-  guildId: z.string().min(1),
-  multiPanelId: z.string().min(1),
-  ...fields,
-});
+
+/** A multi-panel must render something: a rich template or a simple message. */
+function hasMessageBody(d: {
+  title: string;
+  description: string;
+  messageTemplate?: unknown;
+}): boolean {
+  return (
+    !isTemplateEmpty((d.messageTemplate ?? null) as MessageTemplate | null) ||
+    d.title.trim().length > 0 ||
+    d.description.trim().length > 0
+  );
+}
+const bodyError = {
+  message: "Add a message or design a rich embed for the multi-panel.",
+  path: ["description"],
+};
+
+const createSchema = z
+  .object({ guildId: z.string().min(1), ...fields })
+  .refine(hasMessageBody, bodyError);
+const updateSchema = z
+  .object({
+    guildId: z.string().min(1),
+    multiPanelId: z.string().min(1),
+    ...fields,
+  })
+  .refine(hasMessageBody, bodyError);
 
 export type CreateMultiPanelInput = z.infer<typeof createSchema>;
 export type UpdateMultiPanelInput = z.infer<typeof updateSchema>;

@@ -235,30 +235,14 @@ export function EmbedCard({
               </Button>
             </div>
             {(embed.fields ?? []).map((field, i) => (
-              <div
-                key={i}
-                className="grid gap-2 rounded-md border p-2 sm:grid-cols-[1fr_1fr_auto]"
-              >
-                <Input
-                  placeholder="Name"
-                  value={field.name}
-                  maxLength={256}
-                  onChange={(e) => setField(i, { name: e.target.value })}
-                />
-                <Input
-                  placeholder="Value"
-                  value={field.value}
-                  maxLength={1024}
-                  onChange={(e) => setField(i, { value: e.target.value })}
-                />
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1 text-xs">
-                    <Checkbox
-                      checked={field.inline ?? false}
-                      onCheckedChange={(v) => setField(i, { inline: v === true })}
-                    />
-                    Inline
-                  </label>
+              <div key={i} className="flex flex-col gap-2 rounded-md border p-2">
+                <div className="flex items-start gap-2">
+                  <Input
+                    placeholder="Name"
+                    value={field.name}
+                    maxLength={256}
+                    onChange={(e) => setField(i, { name: e.target.value })}
+                  />
                   <Button
                     type="button"
                     variant="ghost"
@@ -267,6 +251,23 @@ export function EmbedCard({
                   >
                     <Trash2 className="size-4 text-destructive" />
                   </Button>
+                </div>
+                <Textarea
+                  placeholder="Value"
+                  rows={2}
+                  value={field.value}
+                  maxLength={1024}
+                  onChange={(e) => setField(i, { value: e.target.value })}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-1 text-xs">
+                    <Checkbox
+                      checked={field.inline ?? false}
+                      onCheckedChange={(v) => setField(i, { inline: v === true })}
+                    />
+                    Inline
+                  </label>
+                  <CharCount value={field.value} max={1024} />
                 </div>
               </div>
             ))}

@@ -7,106 +7,161 @@ type MentionMap = Map<string, TranscriptMention>;
 /** Inline formatting rules, tried earliest-match-wins (order breaks ties). */
 type InlineRule = {
   regex: RegExp;
-  render: (m: RegExpExecArray, mentions: MentionMap, key: string) => ReactNode;
+  render: (
+    m: RegExpExecArray,
+    mentions: MentionMap,
+    key: string,
+    rules: InlineRule[],
+  ) => ReactNode;
 };
 
 const CDN_EMOJI = "https://cdn.discordapp.com/emojis";
 
-const INLINE_RULES: InlineRule[] = [
-  // Inline code — no nested formatting inside.
-  {
-    regex: /`([^`]+)`/,
-    render: (m, _mn, key) => (
-      <code
+// Inline code — no nested formatting inside.
+const CODE_RULE: InlineRule = {
+  regex: /`([^`]+)`/,
+  render: (m, _mn, key) => (
+    <code
+      key={key}
+      className="rounded bg-black/40 px-1 py-0.5 font-mono text-[0.85em]"
+    >
+      {m[1]}
+    </code>
+  ),
+};
+
+// Custom emoji <:name:id> / <a:name:id>. Discord renders these everywhere it
+// renders text — including embed titles and field names.
+const EMOJI_RULE: InlineRule = {
+  regex: /<(a)?:(\w+):(\d+)>/,
+  render: (m, _mn, key) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={key}
+      src={`${CDN_EMOJI}/${m[3]}.${m[1] ? "gif" : "png"}?size=32`}
+      alt={`:${m[2]}:`}
+      title={`:${m[2]}:`}
+      className="inline-block h-[1.25em] w-[1.25em] align-[-0.2em]"
+    />
+  ),
+};
+
+// Mentions <@id> <@!id> <@&id> <#id>
+const MENTION_RULE: InlineRule = {
+  regex: /<(@!?|@&|#)(\d+)>/,
+  render: (m, mentions, key) => {
+    const sigil = m[1];
+    const id = m[2];
+    const mention = mentions.get(id);
+    const prefix = sigil === "#" ? "#" : "@";
+    const label = mention?.name ?? id;
+    return (
+      <span
         key={key}
-        className="rounded bg-black/40 px-1 py-0.5 font-mono text-[0.85em]"
+        className="rounded bg-indigo-500/25 px-1 font-medium text-indigo-200"
       >
-        {m[1]}
-      </code>
-    ),
+        {prefix}
+        {label}
+      </span>
+    );
   },
-  // Custom emoji <:name:id> / <a:name:id>
-  {
-    regex: /<(a)?:(\w+):(\d+)>/,
-    render: (m, _mn, key) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        key={key}
-        src={`${CDN_EMOJI}/${m[3]}.${m[1] ? "gif" : "png"}?size=32`}
-        alt={`:${m[2]}:`}
-        title={`:${m[2]}:`}
-        className="inline-block h-[1.25em] w-[1.25em] align-[-0.2em]"
-      />
-    ),
-  },
-  // Mentions <@id> <@!id> <@&id> <#id>
-  {
-    regex: /<(@!?|@&|#)(\d+)>/,
-    render: (m, mentions, key) => {
-      const sigil = m[1];
-      const id = m[2];
-      const mention = mentions.get(id);
-      const prefix = sigil === "#" ? "#" : "@";
-      const label = mention?.name ?? id;
-      return (
-        <span
-          key={key}
-          className="rounded bg-indigo-500/25 px-1 font-medium text-indigo-200"
-        >
-          {prefix}
-          {label}
-        </span>
-      );
-    },
-  },
-  // [text](url)
-  {
-    regex: /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/,
-    render: (m, mn, key) => (
-      <a
-        key={key}
-        href={m[2]}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="text-sky-400 hover:underline"
-      >
-        {renderInline(m[1], mn, key)}
-      </a>
-    ),
-  },
+};
+
+// [text](url)
+const MASKED_LINK_RULE: InlineRule = {
+  regex: /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/,
+  render: (m, mn, key, rules) => (
+    <a
+      key={key}
+      href={m[2]}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="text-sky-400 hover:underline"
+    >
+      {renderInline(m[1], mn, key, rules)}
+    </a>
+  ),
+};
+
+// Bare URL
+const BARE_URL_RULE: InlineRule = {
+  regex: /(https?:\/\/[^\s<]+)/,
+  render: (m, _mn, key) => (
+    <a
+      key={key}
+      href={m[1]}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="text-sky-400 hover:underline"
+    >
+      {m[1]}
+    </a>
+  ),
+};
+
+const STYLE_RULES: InlineRule[] = [
   { regex: /\*\*([\s\S]+?)\*\*/, render: strong },
   { regex: /__([\s\S]+?)__/, render: underline },
   { regex: /~~([\s\S]+?)~~/, render: strike },
   { regex: /\*([\s\S]+?)\*/, render: em },
   { regex: /_([\s\S]+?)_/, render: em },
-  // Bare URL
-  {
-    regex: /(https?:\/\/[^\s<]+)/,
-    render: (m, _mn, key) => (
-      <a
-        key={key}
-        href={m[1]}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="text-sky-400 hover:underline"
-      >
-        {m[1]}
-      </a>
-    ),
-  },
 ];
 
-function strong(m: RegExpExecArray, mn: MentionMap, key: string): ReactNode {
-  return <strong key={key}>{renderInline(m[1], mn, key)}</strong>;
+/**
+ * Full inline rule set — for embed descriptions, field values, and message
+ * content, where Discord renders masked/bare links in addition to text styles.
+ */
+const INLINE_RULES: InlineRule[] = [
+  CODE_RULE,
+  EMOJI_RULE,
+  MENTION_RULE,
+  MASKED_LINK_RULE,
+  ...STYLE_RULES,
+  BARE_URL_RULE,
+];
+
+/**
+ * Inline rules without links — for embed titles and field names, where Discord
+ * renders text styles and emoji but shows masked/bare links as raw text.
+ */
+const INLINE_RULES_NO_LINKS: InlineRule[] = [
+  CODE_RULE,
+  EMOJI_RULE,
+  MENTION_RULE,
+  ...STYLE_RULES,
+];
+
+function strong(
+  m: RegExpExecArray,
+  mn: MentionMap,
+  key: string,
+  rules: InlineRule[],
+): ReactNode {
+  return <strong key={key}>{renderInline(m[1], mn, key, rules)}</strong>;
 }
-function underline(m: RegExpExecArray, mn: MentionMap, key: string): ReactNode {
-  return <u key={key}>{renderInline(m[1], mn, key)}</u>;
+function underline(
+  m: RegExpExecArray,
+  mn: MentionMap,
+  key: string,
+  rules: InlineRule[],
+): ReactNode {
+  return <u key={key}>{renderInline(m[1], mn, key, rules)}</u>;
 }
-function strike(m: RegExpExecArray, mn: MentionMap, key: string): ReactNode {
-  return <s key={key}>{renderInline(m[1], mn, key)}</s>;
+function strike(
+  m: RegExpExecArray,
+  mn: MentionMap,
+  key: string,
+  rules: InlineRule[],
+): ReactNode {
+  return <s key={key}>{renderInline(m[1], mn, key, rules)}</s>;
 }
-function em(m: RegExpExecArray, mn: MentionMap, key: string): ReactNode {
-  return <em key={key}>{renderInline(m[1], mn, key)}</em>;
+function em(
+  m: RegExpExecArray,
+  mn: MentionMap,
+  key: string,
+  rules: InlineRule[],
+): ReactNode {
+  return <em key={key}>{renderInline(m[1], mn, key, rules)}</em>;
 }
 
 /** Recursively render inline markdown into React nodes. */
@@ -114,12 +169,13 @@ function renderInline(
   text: string,
   mentions: MentionMap,
   keyPrefix: string,
+  rules: InlineRule[] = INLINE_RULES,
 ): ReactNode {
   if (!text) return null;
 
   // Find the earliest-starting match across all rules.
   let best: { rule: InlineRule; match: RegExpExecArray } | null = null;
-  for (const rule of INLINE_RULES) {
+  for (const rule of rules) {
     const match = rule.regex.exec(text);
     if (match && (!best || match.index < best.match.index)) {
       best = { rule, match };
@@ -136,9 +192,31 @@ function renderInline(
   return (
     <Fragment key={keyPrefix}>
       {before}
-      {rule.render(match, mentions, key)}
-      {renderInline(after, mentions, `${key}b`)}
+      {rule.render(match, mentions, key, rules)}
+      {renderInline(after, mentions, `${key}b`, rules)}
     </Fragment>
+  );
+}
+
+/**
+ * Render a single line of Discord-flavored inline markdown (text styles, code,
+ * custom emoji, mentions) without the block-level wrapper `MarkdownContent`
+ * adds. Used for embed titles and field names — where Discord renders emoji and
+ * text styles but not masked links, so `links` defaults to false.
+ */
+export function InlineMarkdown({
+  content,
+  mentions = [],
+  links = false,
+}: {
+  content: string;
+  mentions?: TranscriptMention[];
+  links?: boolean;
+}) {
+  if (!content) return null;
+  const map: MentionMap = new Map(mentions.map((m) => [m.id, m]));
+  return (
+    <>{renderInline(content, map, "inline", links ? INLINE_RULES : INLINE_RULES_NO_LINKS)}</>
   );
 }
 
