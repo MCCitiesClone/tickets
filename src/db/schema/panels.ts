@@ -143,6 +143,13 @@ export const multiPanel = pgTable("multi_panel", {
   color: integer("color").notNull().default(DEFAULT_PANEL_COLOR),
   largeImageUrl: text("large_image_url"),
   smallImageUrl: text("small_image_url"),
+  /**
+   * Rich message designed in the embed editor. When set (non-empty), it
+   * replaces the simple `title`/`description`/`color`/image embed above — the
+   * selector buttons/dropdown are still appended. The simple fields are kept as
+   * a fallback for multi-panels created before the editor existed.
+   */
+  messageTemplate: jsonb("message_template").$type<MessageTemplate | null>(),
   /** Show the options as a dropdown (true) or buttons (false). */
   useDropdown: boolean("use_dropdown").notNull().default(false),
   /** Ordered ids of the panels included in this multi-panel. */

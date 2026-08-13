@@ -1,0 +1,1 @@
+ALTER TABLE "multi_panel" ADD COLUMN "message_template" jsonb;

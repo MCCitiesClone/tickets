@@ -18,8 +18,9 @@ import {
   setMultiPanelMessage,
   updateMultiPanel as updateRow,
 } from "@/lib/queries/panels";
-import type { MultiPanel } from "@/db/schema";
+import type { MessageTemplate, MultiPanel } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 const fields = {
   channelId: z.string().min(1),
@@ -28,6 +29,7 @@ const fields = {
   color: z.number().int().min(0).max(0xffffff),
   largeImageUrl: z.string().max(2048).nullable().optional(),
   smallImageUrl: z.string().max(2048).nullable().optional(),
+  messageTemplate: messageTemplateSchema.nullable().optional(),
   useDropdown: z.boolean().optional().default(false),
   panelIds: z.array(z.string()).min(1).max(25),
 };
@@ -58,6 +60,7 @@ function toRow(data: z.infer<typeof createSchema>) {
     color: data.color,
     largeImageUrl: emptyToNull(data.largeImageUrl),
     smallImageUrl: emptyToNull(data.smallImageUrl),
+    messageTemplate: (data.messageTemplate ?? null) as MessageTemplate | null,
     useDropdown: data.useDropdown,
     panelIds: data.panelIds,
   };

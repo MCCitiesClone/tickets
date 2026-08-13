@@ -331,6 +331,40 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
       },
     },
   ],
+  multiPanel: [
+    {
+      label: "Pick a ticket type",
+      description: "A heading that prompts members to choose an option below.",
+      template: {
+        embeds: [
+          {
+            title: "How can we help?",
+            description:
+              "Choose the type of ticket you'd like to open below and we'll route you to the right team.",
+            color: BRAND,
+          },
+        ],
+      },
+    },
+    {
+      label: "Support desk",
+      description: "A branded card listing what each option is for.",
+      template: {
+        embeds: [
+          {
+            title: "🎫 Open a ticket",
+            description: "Select the option that best matches what you need:",
+            color: BRAND,
+            fields: [
+              { name: "General support", value: "Questions and account help." },
+              { name: "Report a problem", value: "Bugs, abuse, or something broken." },
+            ],
+            footer: { text: "Pick an option below to get started." },
+          },
+        ],
+      },
+    },
+  ],
   panelWelcome: [
     {
       label: "Friendly welcome",

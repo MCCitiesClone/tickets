@@ -12,7 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, type Channel } from "@/components/channel-select";
 import { DiscordEmoji } from "@/components/discord-emoji";
-import { DEFAULT_PANEL_COLOR, type MultiPanel } from "@/db/schema";
+import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { presetsFor } from "@/components/message-editor/presets";
+import {
+  DEFAULT_PANEL_COLOR,
+  isTemplateEmpty,
+  type MessageTemplate,
+  type MultiPanel,
+} from "@/db/schema";
 import {
   createMultiPanel,
   updateMultiPanel,
@@ -89,6 +96,9 @@ export function MultiPanelForm({
   const [smallImageUrl, setSmallImageUrl] = useState(
     multiPanel?.smallImageUrl ?? "",
   );
+  const [messageTemplate, setMessageTemplate] = useState<MessageTemplate>(
+    multiPanel?.messageTemplate ?? { embeds: [] },
+  );
 
   const [pending, startTransition] = useTransition();
 
@@ -137,6 +147,7 @@ export function MultiPanelForm({
       color,
       largeImageUrl: largeImageUrl.trim() || null,
       smallImageUrl: smallImageUrl.trim() || null,
+      messageTemplate: isTemplateEmpty(messageTemplate) ? null : messageTemplate,
       useDropdown,
       panelIds,
     };
@@ -223,6 +234,23 @@ export function MultiPanelForm({
               />
             </Field>
           </div>
+          <details className="rounded-lg border p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Rich message (embed editor)
+            </summary>
+            <p className="mb-3 mt-2 text-xs text-muted-foreground">
+              When set, this replaces the simple message above with a full embed
+              designed in the editor. The selector buttons or dropdown are still
+              added below it. Leave empty to use the simple fields.
+            </p>
+            <MessageTemplateEditor
+              value={messageTemplate}
+              onChange={setMessageTemplate}
+              placeholders={[]}
+              presets={presetsFor("multiPanel")}
+              guildId={guildId}
+            />
+          </details>
         </CardContent>
       </Card>
 
