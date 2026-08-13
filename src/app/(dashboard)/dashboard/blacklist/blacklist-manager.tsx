@@ -39,6 +39,10 @@ export function BlacklistManager({
   const userName = (id: string) => users.find((u) => u.id === id)?.name ?? id;
   const userAvatar = (id: string) =>
     users.find((u) => u.id === id)?.avatarUrl ?? null;
+  const roleColorHex = (id: string) => {
+    const color = roles.find((r) => r.id === id)?.color ?? 0;
+    return color ? `#${color.toString(16).padStart(6, "0")}` : null;
+  };
 
   // Resolve a pasted user ID to a name + avatar via the bot (guarded route).
   async function resolveUser(id: string): Promise<ComboEntity | null> {
@@ -182,15 +186,28 @@ export function BlacklistManager({
             <Card key={entry.id}>
               <CardContent className="flex items-center justify-between gap-4 py-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  {entry.targetType === "user" &&
-                    userAvatar(entry.targetId) && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={userAvatar(entry.targetId)!}
-                        alt=""
-                        className="size-8 shrink-0 rounded-full"
-                      />
-                    )}
+                  {entry.targetType === "user"
+                    ? userAvatar(entry.targetId) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={userAvatar(entry.targetId)!}
+                          alt=""
+                          className="size-8 shrink-0 rounded-full"
+                        />
+                      )
+                    : (
+                        <span
+                          className="size-8 shrink-0 rounded-full border bg-muted"
+                          style={
+                            roleColorHex(entry.targetId)
+                              ? {
+                                  backgroundColor: roleColorHex(entry.targetId)!,
+                                }
+                              : undefined
+                          }
+                          title="Role color"
+                        />
+                      )}
                   <div className="min-w-0">
                     <p className="font-medium">
                       {entry.targetType === "role"

@@ -2,7 +2,7 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 
-export type Role = { id: string; name: string };
+export type Role = { id: string; name: string; color?: number };
 
 /** A scrollable checkbox list for selecting multiple Discord roles. */
 export function RoleMultiSelect({
