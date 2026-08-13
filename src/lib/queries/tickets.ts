@@ -264,14 +264,18 @@ export async function markMessageDeleted(
     .where(eq(ticketMessage.discordMessageId, discordMessageId));
 }
 
-/** A ticket opener resolved to a display name (for the blacklist user picker). */
-export type TicketOpener = { id: string; name: string };
+/** A ticket opener resolved to a display name + avatar (blacklist user picker). */
+export type TicketOpener = {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+};
 
 /**
  * Distinct users who have opened a ticket in this guild, resolved to their most
- * recent captured display name (falling back to the raw ID). DB-only — no
- * privileged Discord intent required — so it's a practical source for a "who to
- * blacklist" picker. Sorted by name.
+ * recent captured display name + avatar (falling back to the raw ID). DB-only —
+ * no privileged Discord intent required — so it's a practical source for a "who
+ * to blacklist" picker. Sorted by name.
  */
 export async function listGuildTicketOpeners(
   guildId: string,
@@ -285,6 +289,7 @@ export async function listGuildTicketOpeners(
       .selectDistinctOn([ticketMessage.authorId], {
         id: ticketMessage.authorId,
         name: ticketMessage.authorTag,
+        avatarUrl: ticketMessage.authorAvatarUrl,
       })
       .from(ticketMessage)
       .innerJoin(ticket, eq(ticket.id, ticketMessage.ticketId))
@@ -292,9 +297,13 @@ export async function listGuildTicketOpeners(
       .orderBy(ticketMessage.authorId, desc(ticketMessage.createdAt)),
   ]);
 
-  const nameMap = new Map(names.map((n) => [n.id, n.name]));
+  const byId = new Map(names.map((n) => [n.id, n]));
   return openers
-    .map((o) => ({ id: o.id, name: nameMap.get(o.id) ?? o.id }))
+    .map((o) => ({
+      id: o.id,
+      name: byId.get(o.id)?.name ?? o.id,
+      avatarUrl: byId.get(o.id)?.avatarUrl ?? null,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

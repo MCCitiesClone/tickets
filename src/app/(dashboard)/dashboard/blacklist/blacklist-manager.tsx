@@ -9,19 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox, type ComboEntity } from "@/components/entity-combobox";
 import type { Role } from "@/components/role-multi-select";
 import { addBlacklist, removeBlacklist } from "@/app/actions/blacklist";
 import type { Blacklist } from "@/db/schema";
 import type { TicketOpener } from "@/lib/queries/tickets";
 import { EmptyState } from "../../page-shell";
-import { UserCombobox } from "./user-combobox";
 
 export function BlacklistManager({
   guildId,
@@ -39,16 +32,26 @@ export function BlacklistManager({
 
   const [type, setType] = useState<"user" | "role">("user");
   const [userId, setUserId] = useState<string | null>(null);
-  const [roleId, setRoleId] = useState("");
+  const [roleId, setRoleId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  // value -> label map so the role trigger shows the name, not the id.
-  const roleItems = Object.fromEntries(roles.map((r) => [r.id, r.name]));
-  const roleName = (id: string) => roleItems[id] ?? id;
+  const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
   const userName = (id: string) => users.find((u) => u.id === id)?.name ?? id;
 
+  // Resolve a pasted user ID to a name + avatar via the bot (guarded route).
+  async function resolveUser(id: string): Promise<ComboEntity | null> {
+    try {
+      const res = await fetch(`/api/guilds/${guildId}/users/${id}`);
+      if (!res.ok) return null;
+      const data = (await res.json()) as { user: ComboEntity | null };
+      return data.user;
+    } catch {
+      return null;
+    }
+  }
+
   function add() {
-    const targetId = type === "user" ? userId?.trim() : roleId;
+    const targetId = type === "user" ? userId?.trim() : roleId?.trim();
     if (!targetId) {
       toast.error(type === "user" ? "Pick or paste a user." : "Pick a role.");
       return;
@@ -63,7 +66,7 @@ export function BlacklistManager({
         });
         toast.success("Added to the blacklist.");
         setUserId(null);
-        setRoleId("");
+        setRoleId(null);
         setReason("");
         router.refresh();
       } catch (err) {
@@ -114,11 +117,15 @@ export function BlacklistManager({
 
           {type === "user" ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="bl-user">User</Label>
-              <UserCombobox
-                users={users}
+              <Label>User</Label>
+              <EntityCombobox
+                entities={users}
                 value={userId}
                 onValueChange={setUserId}
+                allowPasteId
+                resolveId={resolveUser}
+                placeholder="Search users or paste a user ID…"
+                emptyText="No matching users. Paste a Discord user ID to block someone who isn't listed."
               />
               <p className="text-xs text-muted-foreground">
                 Lists members who&apos;ve opened tickets here. Not listed? Enable
@@ -128,27 +135,16 @@ export function BlacklistManager({
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="bl-role">Role</Label>
-              <Select
-                items={roleItems}
+              <Label>Role</Label>
+              <EntityCombobox
+                entities={roles}
                 value={roleId}
-                onValueChange={(v) => setRoleId(v as string)}
-              >
-                <SelectTrigger id="bl-role" className="w-full">
-                  <SelectValue
-                    placeholder={
-                      roles.length ? "— Select a role —" : "No roles available"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={setRoleId}
+                placeholder={
+                  roles.length ? "Search roles…" : "No roles available"
+                }
+                emptyText="No matching roles."
+              />
             </div>
           )}
 
