@@ -101,6 +101,7 @@ export function MessagesForm({
         onChange={setValue}
         placeholders={active.placeholders}
         presets={presetsFor(tab)}
+        guildId={guildId}
       />
 
       <div className="flex justify-end">

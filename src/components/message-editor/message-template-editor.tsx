@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Code2, Hash, LayoutTemplate, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Code2, Hash, LayoutTemplate, Plus, Smile } from "lucide-react";
 import { toast } from "sonner";
+
+import { DiscordEmoji } from "@/components/discord-emoji";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -49,11 +51,17 @@ export const PLACEHOLDER_META: Record<string, string> = {
   transcript_url: "The shareable transcript link",
 };
 
+type GuildEmoji = { id: string; name: string; animated: boolean };
+
+const emojiMention = (e: GuildEmoji) =>
+  `<${e.animated ? "a" : ""}:${e.name}:${e.id}>`;
+
 export function MessageTemplateEditor({
   value,
   onChange,
   placeholders,
   presets,
+  guildId,
 }: {
   value: MessageTemplate;
   onChange: (next: MessageTemplate) => void;
@@ -61,6 +69,8 @@ export function MessageTemplateEditor({
   placeholders: string[];
   /** Optional starter templates offered via "Start from a template". */
   presets?: EmbedPreset[];
+  /** When set, offers an "Emoji" menu of the guild's custom emojis. */
+  guildId?: string;
 }) {
   // The last text field the user focused anywhere in the editor. The token
   // menu inserts into this so admins never type {tokens} by hand.
@@ -90,14 +100,15 @@ export function MessageTemplateEditor({
   };
 
   // Insert into whichever field was last focused; fall back to the content box.
-  const insertToken = (token: string) => {
+  const insertText = (text: string) => {
     const target = lastField.current ?? contentRef.current;
     if (target) {
-      insertAtCaret(target, `{${token}}`);
+      insertAtCaret(target, text);
     } else {
-      setContent(`${value.content ?? ""}{${token}}`);
+      setContent(`${value.content ?? ""}${text}`);
     }
   };
+  const insertToken = (token: string) => insertText(`{${token}}`);
 
   const onFocusCapture = (e: React.FocusEvent) => {
     const el = e.target;
@@ -119,6 +130,12 @@ export function MessageTemplateEditor({
               )}
               {placeholders.length > 0 && (
                 <TokenMenu tokens={placeholders} onInsert={insertToken} />
+              )}
+              {guildId && (
+                <EmojiInsertMenu
+                  guildId={guildId}
+                  onInsert={(mention) => insertText(mention)}
+                />
               )}
               <ImportExport value={value} onImport={onChange} />
             </div>
@@ -191,6 +208,13 @@ export function MessageTemplateEditor({
           <p className="mt-2 text-xs text-muted-foreground">
             Tokens like <code className="font-mono">{"{ticket}"}</code> are filled
             in when the message is sent.
+          </p>
+        )}
+        {guildId && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Custom emoji render in the message content, embed descriptions, and
+            field values — Discord shows them as plain text in titles and
+            footers.
           </p>
         )}
       </div>
@@ -266,6 +290,70 @@ function TokenMenu({
             )}
           </DropdownMenuItem>
         ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
+ * "Emoji" menu: inserts one of the guild's custom emojis (as its `<:name:id>`
+ * mention) into the last-focused field. Discord renders custom emoji in an
+ * embed's description and field values (and in message content) — the same
+ * places the live preview renders them.
+ */
+function EmojiInsertMenu({
+  guildId,
+  onInsert,
+}: {
+  guildId: string;
+  onInsert: (mention: string) => void;
+}) {
+  const [emojis, setEmojis] = useState<GuildEmoji[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/guilds/${guildId}/emojis`)
+      .then((r) => (r.ok ? r.json() : { emojis: [] }))
+      .then((d: { emojis?: GuildEmoji[] }) => {
+        if (!cancelled) setEmojis(d.emojis ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [guildId]);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button type="button" variant="outline" size="sm" />}
+      >
+        <Smile className="size-3.5" /> Emoji
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        {emojis.length === 0 ? (
+          <DropdownMenuItem disabled>
+            No custom emojis on this server
+          </DropdownMenuItem>
+        ) : (
+          <div className="flex flex-wrap gap-1 p-1">
+            {emojis.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                title={`:${e.name}:`}
+                onMouseDown={(ev) => ev.preventDefault()}
+                onClick={() => onInsert(emojiMention(e))}
+                className="rounded p-1 hover:bg-accent"
+              >
+                <DiscordEmoji
+                  emoji={emojiMention(e)}
+                  className="inline-block size-5"
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

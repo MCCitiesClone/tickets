@@ -14,6 +14,8 @@ export type EmbedPreset = {
 const BRAND = DEFAULT_PANEL_COLOR;
 const GREEN = 0x57f287;
 const RED = 0xed4245;
+const ORANGE = 0xfaa61a;
+const GREY = 0x99aab5;
 
 /**
  * Presets offered in every context. Neutral starting points that don't assume
@@ -43,6 +45,62 @@ export const SHARED_PRESETS: EmbedPreset[] = [
           description: "Supporting text goes here.",
           color: BRAND,
           footer: { text: "{server}" },
+        },
+      ],
+    },
+  },
+  {
+    label: "Info notice",
+    description: "A neutral, informational callout.",
+    template: {
+      embeds: [
+        {
+          title: "ℹ️ Heads up",
+          description: "Something worth knowing goes here.",
+          color: GREY,
+        },
+      ],
+    },
+  },
+  {
+    label: "Warning",
+    description: "An orange caution banner.",
+    template: {
+      embeds: [
+        {
+          title: "⚠️ Please note",
+          description: "Describe the caution or important condition here.",
+          color: ORANGE,
+        },
+      ],
+    },
+  },
+  {
+    label: "Success",
+    description: "A green confirmation banner.",
+    template: {
+      embeds: [
+        {
+          title: "✅ All set",
+          description: "Confirm what just happened here.",
+          color: GREEN,
+        },
+      ],
+    },
+  },
+  {
+    label: "Info list",
+    description: "A card with a few labelled fields.",
+    template: {
+      embeds: [
+        {
+          title: "Overview",
+          color: BRAND,
+          fields: [
+            { name: "First", value: "Detail", inline: true },
+            { name: "Second", value: "Detail", inline: true },
+            { name: "Third", value: "Detail" },
+          ],
         },
       ],
     },
@@ -89,6 +147,34 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
         ],
       },
     },
+    {
+      label: "Minimal welcome",
+      description: "A short, no-frills greeting.",
+      template: {
+        content: "Thanks for opening a ticket, {user} — we'll be right with you.",
+        embeds: [],
+      },
+    },
+    {
+      label: "Welcome with rules",
+      description: "Greets the opener and lists a few ground rules.",
+      template: {
+        embeds: [
+          {
+            title: "Thanks for reaching out 👋",
+            description:
+              "Hi {user}! While you wait, a few quick things to keep support smooth:",
+            color: BRAND,
+            fields: [
+              { name: "Be specific", value: "The more detail, the faster we can help." },
+              { name: "Be patient", value: "Staff are notified and will reply soon." },
+              { name: "Stay on topic", value: "One issue per ticket, please." },
+            ],
+            footer: { text: "Ticket #{number} • {server}" },
+          },
+        ],
+      },
+    },
   ],
   claimNotice: [
     {
@@ -103,6 +189,14 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
             color: GREEN,
           },
         ],
+      },
+    },
+    {
+      label: "Assigned (compact)",
+      description: "A single line of content, no embed.",
+      template: {
+        content: "🙋 {claimer} has claimed this ticket and is now assisting you.",
+        embeds: [],
       },
     },
   ],
@@ -125,6 +219,21 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
         ],
       },
     },
+    {
+      label: "Closed + thanks",
+      description: "A warmer close with a thank-you.",
+      template: {
+        embeds: [
+          {
+            title: "Thanks for contacting us 💙",
+            description:
+              "Your ticket in **{server}** is now closed. We hope we could help! Reply or open a new ticket any time.",
+            color: BRAND,
+            footer: { text: "A transcript is available on request." },
+          },
+        ],
+      },
+    },
   ],
   transcriptPost: [
     {
@@ -143,6 +252,15 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
             ],
           },
         ],
+      },
+    },
+    {
+      label: "Transcript (one line)",
+      description: "A single-line log entry with a link.",
+      template: {
+        content:
+          "📄 Ticket #{number} closed by {closer} — [transcript]({transcript_url})",
+        embeds: [],
       },
     },
   ],
@@ -175,6 +293,43 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
         ],
       },
     },
+    {
+      label: "On our way",
+      description: "Lets the member know someone is looking into it.",
+      template: {
+        content:
+          "👀 Thanks for your patience — a member of our team is looking into this now.",
+        embeds: [],
+      },
+    },
+    {
+      label: "Escalated",
+      description: "Tells the member their issue was escalated.",
+      template: {
+        embeds: [
+          {
+            title: "Escalated to our team",
+            description:
+              "We've escalated this to the relevant team. We'll update you here as soon as we hear back — thanks for waiting.",
+            color: ORANGE,
+          },
+        ],
+      },
+    },
+    {
+      label: "Closing soon",
+      description: "Warns the member the ticket will close if idle.",
+      template: {
+        embeds: [
+          {
+            title: "Anything else?",
+            description:
+              "We'll close this ticket soon if there's nothing further. Just reply here if you still need help!",
+            color: GREY,
+          },
+        ],
+      },
+    },
   ],
   panelWelcome: [
     {
@@ -188,6 +343,24 @@ export const PRESETS: Record<string, EmbedPreset[]> = {
               "Hi {user}, thanks for opening a ticket. A member of our team will be with you shortly — please describe your issue in as much detail as you can.",
             color: BRAND,
             footer: { text: "Ticket #{number} • {server}" },
+          },
+        ],
+      },
+    },
+    {
+      label: "Support checklist",
+      description: "Asks the opener for the details staff usually need.",
+      template: {
+        embeds: [
+          {
+            title: "Welcome to your ticket",
+            description: "To help us resolve this quickly, please include:",
+            color: BRAND,
+            fields: [
+              { name: "What happened?", value: "A short summary of the issue." },
+              { name: "When did it start?", value: "Date/time if you know it." },
+              { name: "Anything else?", value: "Screenshots or links help a lot." },
+            ],
           },
         ],
       },
