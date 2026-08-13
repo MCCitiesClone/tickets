@@ -3,7 +3,11 @@ import * as nodeEmoji from "node-emoji";
 
 import { env } from "@/lib/env";
 import { renderTemplateToJson } from "@/lib/message-embed";
-import { isTemplateEmpty, type MessageTemplate } from "@/db/schema";
+import {
+  DEFAULT_MULTI_PANEL_PLACEHOLDER,
+  isTemplateEmpty,
+  type MessageTemplate,
+} from "@/db/schema";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -453,6 +457,8 @@ type MultiPanelMessageInput = {
   largeImageUrl: string | null;
   smallImageUrl: string | null;
   useDropdown: boolean;
+  /** Placeholder for the dropdown (null/empty falls back to the default). */
+  dropdownPlaceholder?: string | null;
   /** Rich embed from the editor; when non-empty it replaces the simple embed. */
   messageTemplate?: MessageTemplate | null;
 };
@@ -479,7 +485,9 @@ function multiPanelPayload(
           {
             type: 3,
             custom_id: `multipanel_select:${mp.id}`,
-            placeholder: "Select a ticket type…",
+            placeholder: (
+              mp.dropdownPlaceholder || DEFAULT_MULTI_PANEL_PLACEHOLDER
+            ).slice(0, 150),
             options: panels.slice(0, 25).map((p) => {
               const emoji = resolveButtonEmoji(p.buttonEmoji);
               return {

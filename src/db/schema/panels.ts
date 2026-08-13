@@ -33,6 +33,9 @@ export type AccessRule = { roleId: string; action: "allow" | "deny" };
 /** Default embed colour (Discord blurple, 0x5865F2) as an integer. */
 export const DEFAULT_PANEL_COLOR = 0x5865f2;
 
+/** Fallback placeholder shown on a multi-panel's dropdown when none is set. */
+export const DEFAULT_MULTI_PANEL_PLACEHOLDER = "Select a ticket type…";
+
 /**
  * A ticket "panel" — a message posted in a channel containing a button that
  * members click to open a ticket. A guild can have many panels (e.g. one for
@@ -152,6 +155,8 @@ export const multiPanel = pgTable("multi_panel", {
   messageTemplate: jsonb("message_template").$type<MessageTemplate | null>(),
   /** Show the options as a dropdown (true) or buttons (false). */
   useDropdown: boolean("use_dropdown").notNull().default(false),
+  /** Placeholder text on the dropdown (null = built-in default). */
+  dropdownPlaceholder: text("dropdown_placeholder"),
   /** Ordered ids of the panels included in this multi-panel. */
   panelIds: jsonb("panel_ids").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),

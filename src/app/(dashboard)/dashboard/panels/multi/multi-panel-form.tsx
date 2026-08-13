@@ -15,6 +15,7 @@ import { DiscordEmoji } from "@/components/discord-emoji";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
 import { presetsFor } from "@/components/message-editor/presets";
 import {
+  DEFAULT_MULTI_PANEL_PLACEHOLDER,
   DEFAULT_PANEL_COLOR,
   isTemplateEmpty,
   type MessageTemplate,
@@ -90,6 +91,9 @@ export function MultiPanelForm({
   const [useDropdown, setUseDropdown] = useState(
     multiPanel?.useDropdown ?? false,
   );
+  const [dropdownPlaceholder, setDropdownPlaceholder] = useState(
+    multiPanel?.dropdownPlaceholder ?? "",
+  );
   const [largeImageUrl, setLargeImageUrl] = useState(
     multiPanel?.largeImageUrl ?? "",
   );
@@ -149,6 +153,7 @@ export function MultiPanelForm({
       smallImageUrl: smallImageUrl.trim() || null,
       messageTemplate: isTemplateEmpty(messageTemplate) ? null : messageTemplate,
       useDropdown,
+      dropdownPlaceholder: dropdownPlaceholder.trim() || null,
       panelIds,
     };
     startTransition(async () => {
@@ -299,6 +304,20 @@ export function MultiPanelForm({
             Show options as a dropdown menu (instead of buttons)
           </label>
 
+          {useDropdown && (
+            <Field
+              label="Dropdown placeholder"
+              hint="Prompt shown on the dropdown before a member picks an option."
+            >
+              <Input
+                value={dropdownPlaceholder}
+                onChange={(e) => setDropdownPlaceholder(e.target.value)}
+                placeholder={DEFAULT_MULTI_PANEL_PLACEHOLDER}
+                maxLength={150}
+              />
+            </Field>
+          )}
+
           <Field label="Preview" hint="How the options appear in Discord.">
             {selectedPanels.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -307,7 +326,7 @@ export function MultiPanelForm({
             ) : useDropdown ? (
               <div className="w-full max-w-sm overflow-hidden rounded-lg border text-sm">
                 <div className="border-b px-3 py-2 text-muted-foreground">
-                  Select a ticket type…
+                  {dropdownPlaceholder.trim() || DEFAULT_MULTI_PANEL_PLACEHOLDER}
                 </div>
                 {selectedPanels.map((p) => (
                   <div
