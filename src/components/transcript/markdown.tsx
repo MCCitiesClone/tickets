@@ -67,6 +67,19 @@ const MENTION_RULE: InlineRule = {
   },
 };
 
+// Spoiler ||text||
+const SPOILER_RULE: InlineRule = {
+  regex: /\|\|([\s\S]+?)\|\|/,
+  render: (m, mn, key, rules) => (
+    <span
+      key={key}
+      className="rounded bg-black/60 px-1 text-white/0 transition-colors hover:text-white/90"
+    >
+      {renderInline(m[1], mn, key, rules)}
+    </span>
+  ),
+};
+
 // [text](url)
 const MASKED_LINK_RULE: InlineRule = {
   regex: /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/,
@@ -115,6 +128,7 @@ const INLINE_RULES: InlineRule[] = [
   CODE_RULE,
   EMOJI_RULE,
   MENTION_RULE,
+  SPOILER_RULE,
   MASKED_LINK_RULE,
   ...STYLE_RULES,
   BARE_URL_RULE,
@@ -128,6 +142,7 @@ const INLINE_RULES_NO_LINKS: InlineRule[] = [
   CODE_RULE,
   EMOJI_RULE,
   MENTION_RULE,
+  SPOILER_RULE,
   ...STYLE_RULES,
 ];
 
@@ -198,6 +213,86 @@ function renderInline(
   );
 }
 
+/** Zero-width space, so an empty line still occupies a row. */
+const ZWSP = "​";
+
+/**
+ * Render one line of block-level Discord markdown: headings (`#`/`##`/`###`),
+ * subtext (`-#`), blockquotes (`>`), and unordered/ordered lists. Anything else
+ * is a plain paragraph line. Inline formatting is applied within each.
+ */
+function renderBlockLine(
+  line: string,
+  mentions: MentionMap,
+  key: string,
+): ReactNode {
+  const inline = (text: string) => renderInline(text, mentions, key) || ZWSP;
+
+  if (line.startsWith("> ")) {
+    return (
+      <div
+        key={key}
+        className="border-l-2 border-white/20 pl-3 text-white/80"
+      >
+        {inline(line.slice(2))}
+      </div>
+    );
+  }
+
+  // Subtext `-# ` — checked before list items so it isn't read as a bullet.
+  if (line.startsWith("-# ")) {
+    return (
+      <div key={key} className="text-xs text-white/50">
+        {inline(line.slice(3))}
+      </div>
+    );
+  }
+
+  const heading = /^(#{1,3}) +(.*)$/.exec(line);
+  if (heading) {
+    const level = heading[1].length;
+    const size =
+      level === 1 ? "text-xl" : level === 2 ? "text-lg" : "text-base";
+    return (
+      <div key={key} className={`${size} mt-1 font-bold text-white`}>
+        {inline(heading[2])}
+      </div>
+    );
+  }
+
+  const unordered = /^(\s*)[-*] +(.*)$/.exec(line);
+  if (unordered) {
+    const depth = Math.floor(unordered[1].length / 2);
+    return (
+      <div
+        key={key}
+        className="flex gap-2"
+        style={{ paddingLeft: `${depth * 1.25 + 0.5}rem` }}
+      >
+        <span className="text-white/60">•</span>
+        <span>{inline(unordered[2])}</span>
+      </div>
+    );
+  }
+
+  const ordered = /^(\s*)(\d+)\. +(.*)$/.exec(line);
+  if (ordered) {
+    const depth = Math.floor(ordered[1].length / 2);
+    return (
+      <div
+        key={key}
+        className="flex gap-2"
+        style={{ paddingLeft: `${depth * 1.25 + 0.5}rem` }}
+      >
+        <span className="text-white/60">{ordered[2]}.</span>
+        <span>{inline(ordered[3])}</span>
+      </div>
+    );
+  }
+
+  return <div key={key}>{inline(line)}</div>;
+}
+
 /**
  * Render a single line of Discord-flavored inline markdown (text styles, code,
  * custom emoji, mentions) without the block-level wrapper `MarkdownContent`
@@ -253,22 +348,9 @@ export function MarkdownContent({
         }
         return (
           <Fragment key={i}>
-            {segment.split("\n").map((line, j) => {
-              const quote = line.startsWith("> ");
-              const body = quote ? line.slice(2) : line;
-              return (
-                <div
-                  key={j}
-                  className={
-                    quote
-                      ? "border-l-2 border-white/20 pl-3 text-white/80"
-                      : undefined
-                  }
-                >
-                  {renderInline(body, map, `${i}-${j}`) || "​"}
-                </div>
-              );
-            })}
+            {segment
+              .split("\n")
+              .map((line, j) => renderBlockLine(line, map, `${i}-${j}`))}
           </Fragment>
         );
       })}
