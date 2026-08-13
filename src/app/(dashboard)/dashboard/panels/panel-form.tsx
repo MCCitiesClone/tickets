@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, CHANNEL_NONE, type Channel } from "@/components/channel-select";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
 import {
   DEFAULT_PANEL_COLOR,
@@ -342,8 +343,15 @@ export function PanelForm({
             <Field label="Label">
               <Input value={buttonLabel} onChange={(e) => setButtonLabel(e.target.value)} maxLength={80} />
             </Field>
-            <Field label="Emoji" hint="Paste an emoji, e.g. 📩">
-              <Input value={buttonEmoji} onChange={(e) => setButtonEmoji(e.target.value)} />
+            <Field
+              label="Emoji"
+              hint="Pick a server emoji, or paste a unicode emoji."
+            >
+              <EmojiPicker
+                guildId={guildId}
+                value={buttonEmoji}
+                onChange={setButtonEmoji}
+              />
             </Field>
             <Field label="Colour">
               <Select
