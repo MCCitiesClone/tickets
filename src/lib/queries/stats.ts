@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { panel, ticket, ticketMessage } from "@/db/schema";
+import { panel, ticket, ticketMessage, transcript } from "@/db/schema";
 
 /**
  * Aggregate analytics over `ticket` / `ticket_message` for the dashboard Stats
@@ -18,6 +18,8 @@ export type StatsSummary = {
   avgResolutionSeconds: number | null;
   avgFirstResponseSeconds: number | null;
   respondedCount: number;
+  avgRating: number | null;
+  ratingCount: number;
 };
 
 export type DailyPoint = { date: string; opened: number; closed: number };
@@ -84,7 +86,12 @@ async function resolveNames(
 async function getSummary(
   guildId: string,
   { from, to }: StatsRange,
-): Promise<Omit<StatsSummary, "avgFirstResponseSeconds" | "respondedCount">> {
+): Promise<
+  Omit<
+    StatsSummary,
+    "avgFirstResponseSeconds" | "respondedCount" | "avgRating" | "ratingCount"
+  >
+> {
   const [row] = await db
     .select({
       openedInRange: sql<number>`count(*) filter (where ${ticket.openedAt} >= ${from} and ${ticket.openedAt} < ${to})::int`,
@@ -125,6 +132,27 @@ async function getFirstResponse(
     | { avg: number | null; responded: number }
     | undefined;
   return { avg: row?.avg ?? null, responded: row?.responded ?? 0 };
+}
+
+async function getRating(
+  guildId: string,
+  { from, to }: StatsRange,
+): Promise<{ avg: number | null; count: number }> {
+  const [row] = await db
+    .select({
+      avg: sql<number | null>`avg(${transcript.rating})::float8`,
+      count: sql<number>`count(${transcript.rating})::int`,
+    })
+    .from(transcript)
+    .innerJoin(ticket, eq(ticket.id, transcript.ticketId))
+    .where(
+      and(
+        eq(ticket.guildId, guildId),
+        gte(transcript.createdAt, from),
+        lt(transcript.createdAt, to),
+      ),
+    );
+  return { avg: row?.avg ?? null, count: row?.count ?? 0 };
 }
 
 async function getDaily(
@@ -272,19 +300,23 @@ export async function getGuildStats(
   guildId: string,
   range: StatsRange,
 ): Promise<GuildStats> {
-  const [summary, firstResponse, daily, panels, staff] = await Promise.all([
-    getSummary(guildId, range),
-    getFirstResponse(guildId, range),
-    getDaily(guildId, range),
-    getPanels(guildId, range),
-    getStaff(guildId, range),
-  ]);
+  const [summary, firstResponse, rating, daily, panels, staff] =
+    await Promise.all([
+      getSummary(guildId, range),
+      getFirstResponse(guildId, range),
+      getRating(guildId, range),
+      getDaily(guildId, range),
+      getPanels(guildId, range),
+      getStaff(guildId, range),
+    ]);
 
   return {
     summary: {
       ...summary,
       avgFirstResponseSeconds: firstResponse.avg,
       respondedCount: firstResponse.responded,
+      avgRating: rating.avg,
+      ratingCount: rating.count,
     },
     daily,
     panels,

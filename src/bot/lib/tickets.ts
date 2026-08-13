@@ -51,6 +51,7 @@ import {
   getTicketByChannel,
   listDueCloseRequests,
   markTicketClosed,
+  saveTicketRating,
   setCloseRequest,
   setTicketClaimedBy,
   setTicketNotesThread,
@@ -271,6 +272,109 @@ export function buildCloseReasonModal(ticketId: string): ModalBuilder {
           .setMaxLength(1000),
       ),
     );
+}
+
+const FEEDBACK_STARS = [1, 2, 3, 4, 5];
+
+/** Rating prompt DMed to the opener on close when feedback is enabled. */
+function buildFeedbackPrompt(ticket: Ticket, guildName: string) {
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLOR.info)
+    .setTitle("How was your support experience?")
+    .setDescription(
+      `Ticket #${ticket.number} in **${guildName}** was closed. Tap a star to rate the support you received — 1 (poor) to 5 (great).`,
+    );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...FEEDBACK_STARS.map((n) =>
+      new ButtonBuilder()
+        .setCustomId(`rate:${ticket.id}:${n}`)
+        .setLabel(String(n))
+        .setEmoji("⭐")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  );
+  return { embeds: [embed], components: [row] };
+}
+
+/** Optional-comment modal shown after the opener picks a star. */
+function buildFeedbackModal(ticketId: string, score: number): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(`feedback:${ticketId}:${score}`)
+    .setTitle(`Rate: ${score}/5 ⭐`)
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("comment")
+          .setLabel("Any comments? (optional)")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
+          .setMaxLength(1000),
+      ),
+    );
+}
+
+/**
+ * Opener tapped a star on the feedback DM: verify it's their ticket, then open
+ * the optional-comment modal (which persists the rating on submit).
+ */
+export async function startTicketFeedback(
+  interaction: ButtonInteraction,
+  ticketId: string,
+  score: number,
+): Promise<void> {
+  if (!Number.isInteger(score) || score < 1 || score > 5) return;
+  const ticket = await getTicket(ticketId);
+  if (!ticket || ticket.openerId !== interaction.user.id) {
+    await interaction
+      .reply({
+        embeds: [noticeEmbed("This rating isn't for you.", EMBED_COLOR.danger)],
+        flags: MessageFlags.Ephemeral,
+      })
+      .catch(() => {});
+    return;
+  }
+  await interaction.showModal(buildFeedbackModal(ticketId, score));
+}
+
+/** Persist the opener's rating + optional comment and thank them. */
+export async function submitTicketFeedback(
+  interaction: ModalSubmitInteraction,
+  ticketId: string,
+  score: number,
+): Promise<void> {
+  if (!Number.isInteger(score) || score < 1 || score > 5) return;
+  const ticket = await getTicket(ticketId);
+  if (!ticket || ticket.openerId !== interaction.user.id) return;
+
+  const comment = interaction.fields.getTextInputValue("comment").trim();
+  const saved = await saveTicketRating(ticketId, score, comment || null);
+
+  await interaction
+    .reply({
+      embeds: [
+        noticeEmbed(
+          saved
+            ? `Thanks for rating your support ${score}/5 ⭐`
+            : "Thanks for your feedback!",
+          EMBED_COLOR.success,
+        ),
+      ],
+      flags: MessageFlags.Ephemeral,
+    })
+    .catch(() => {});
+
+  // Lock the prompt so it reads as answered and can't be re-submitted.
+  await interaction.message
+    ?.edit({
+      embeds: [
+        noticeEmbed(
+          `Thanks for your feedback — you rated ticket #${ticket.number} ${score}/5 ⭐`,
+          EMBED_COLOR.success,
+        ),
+      ],
+      components: [],
+    })
+    .catch(() => {});
 }
 
 /** Post an audit line to the configured log channel, if any (no pings). */
@@ -1391,6 +1495,17 @@ export async function performClose(
       await opener.send(payload);
     } catch (err) {
       console.error("Failed to DM transcript to opener:", err);
+    }
+  }
+
+  // Ask the opener to rate their experience, if enabled. A separate best-effort
+  // DM, so it works whether or not the transcript DM is turned on.
+  if (config.feedbackEnabled) {
+    try {
+      const opener = await guild.client.users.fetch(ticket.openerId);
+      await opener.send(buildFeedbackPrompt(ticket, guild.name));
+    } catch (err) {
+      console.error("Failed to DM feedback prompt to opener:", err);
     }
   }
 

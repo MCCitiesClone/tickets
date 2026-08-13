@@ -15,6 +15,8 @@ import {
   closeTicket,
   confirmCloseRequest,
   openTicketFromPanel,
+  startTicketFeedback,
+  submitTicketFeedback,
   submitTicketForm,
   unclaimTicket,
 } from "../lib/tickets";
@@ -126,6 +128,10 @@ export async function onInteractionCreate(
         await confirmCloseRequest(interaction, id);
       } else if (action === "close_cancel") {
         await cancelCloseRequest(interaction, id);
+      } else if (action === "rate") {
+        // `rate:<ticketId>:<score>` — sent to the opener's DMs.
+        const [, ticketId, score] = interaction.customId.split(":");
+        await startTicketFeedback(interaction, ticketId, Number(score));
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);
@@ -163,6 +169,10 @@ export async function onInteractionCreate(
         const reason =
           interaction.fields.getTextInputValue("reason") || undefined;
         await closeTicket(interaction, id, reason);
+      } else if (action === "feedback") {
+        // `feedback:<ticketId>:<score>` — comment modal from the rating DM.
+        const [, ticketId, score] = interaction.customId.split(":");
+        await submitTicketFeedback(interaction, ticketId, Number(score));
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);

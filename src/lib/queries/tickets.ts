@@ -314,6 +314,23 @@ export async function createTranscript(
   return row;
 }
 
+/**
+ * Store opener feedback on a ticket's transcript. Returns false if there's no
+ * transcript for the ticket (e.g. it wasn't captured). Last write wins.
+ */
+export async function saveTicketRating(
+  ticketId: string,
+  rating: number,
+  comment: string | null,
+): Promise<boolean> {
+  const [row] = await db
+    .update(transcript)
+    .set({ rating, feedbackComment: comment, ratedAt: new Date() })
+    .where(eq(transcript.ticketId, ticketId))
+    .returning({ id: transcript.id });
+  return Boolean(row);
+}
+
 /** The transcript for a ticket, if one has been created. */
 export async function getTranscriptForTicket(
   ticketId: string,

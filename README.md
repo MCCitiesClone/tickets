@@ -42,6 +42,8 @@ easy to run yourself and to own your own data.
   confirm, with an optional auto-close timer if nobody responds.
 - **Blacklist** — block specific users or roles from opening tickets, from the
   dashboard or `/blacklist`; enforced before a ticket channel is created.
+- **Ratings** — optionally DM the opener a 1–5 star rating prompt on close; the
+  score + comment land on the transcript and the average shows in stats.
 - **Stats & analytics** — headline numbers at a glance on the dashboard home,
   plus a dedicated Stats page with ticket volume over time, open/closed counts,
   average first-response and resolution times, per-panel and per-staff activity
@@ -166,6 +168,7 @@ Repository copies of the core setup guides:
 - [x] Archived attachments — transcripts keep images/files past Discord's expiring CDN ([#20](https://github.com/MCCitiesClone/tickets/issues/20))
 - [x] User & role blacklist — block abusers from opening tickets ([#2](https://github.com/MCCitiesClone/tickets/issues/2))
 - [x] Stats & analytics dashboard — volume, response/resolution times, per-staff ([#3](https://github.com/MCCitiesClone/tickets/issues/3))
+- [x] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -175,7 +178,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 
 **Medium priority**
 
-- [ ] Feedback / rating after ticket close ([#6](https://github.com/MCCitiesClone/tickets/issues/6))
 - [ ] Thread-based tickets — alternative to channels ([#7](https://github.com/MCCitiesClone/tickets/issues/7))
 - [ ] Ticket priority levels ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
 - [ ] Support hours & response-time expectations ([#9](https://github.com/MCCitiesClone/tickets/issues/9))

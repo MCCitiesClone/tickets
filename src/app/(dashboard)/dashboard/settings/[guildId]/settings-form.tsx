@@ -41,6 +41,9 @@ export function GuildSettingsForm({
   const [dmTranscriptOnClose, setDmTranscriptOnClose] = useState(
     config?.dmTranscriptOnClose ?? false,
   );
+  const [feedbackEnabled, setFeedbackEnabled] = useState(
+    config?.feedbackEnabled ?? false,
+  );
   const [logChannelId, setLogChannelId] = useState(
     config?.logChannelId ?? CHANNEL_NONE,
   );
@@ -92,6 +95,7 @@ export function GuildSettingsForm({
           autoCreateOverflow,
           transcriptChannelId: orNull(transcriptChannelId),
           dmTranscriptOnClose,
+          feedbackEnabled,
           logChannelId: orNull(logChannelId),
           staffRoleIds,
           welcomeMessage,
@@ -185,6 +189,15 @@ export function GuildSettingsForm({
               onCheckedChange={(v) => setDmTranscriptOnClose(v === true)}
             />
             <span>DM the transcript link to the opener when a ticket closes</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={feedbackEnabled}
+              onCheckedChange={(v) => setFeedbackEnabled(v === true)}
+            />
+            <span>
+              Ask the opener for a 1–5 star rating (DM) when a ticket closes
+            </span>
           </label>
         </div>
         <div className="flex flex-col gap-2">
