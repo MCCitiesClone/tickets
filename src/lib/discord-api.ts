@@ -160,7 +160,10 @@ export type GuildChannels = {
 // navigating between pages doesn't re-fetch. Invalidated when we create a
 // channel (see `invalidateGuildChannels` / `createGuildChannel`).
 const guildChannelsCache = ttlCache<GuildChannels>(5 * 60_000);
-const guildRolesCache = ttlCache<DiscordChannel[]>(5 * 60_000);
+/** A guild role for config pickers. `color` is Discord's integer (0 = none). */
+export type DiscordRole = { id: string; name: string; color: number };
+
+const guildRolesCache = ttlCache<DiscordRole[]>(5 * 60_000);
 
 /** Clear the cached channel list for a guild (e.g. after creating a channel). */
 export function invalidateGuildChannels(guildId: string) {
@@ -218,7 +221,7 @@ export const fetchGuildChannels = cache(
  * bot-managed roles). Cached per guild; returns an empty list on failure.
  */
 export const fetchGuildRoles = cache(
-  async (guildId: string): Promise<DiscordChannel[]> => {
+  async (guildId: string): Promise<DiscordRole[]> => {
     const cached = guildRolesCache.get(guildId);
     if (cached) return cached;
     try {
@@ -229,11 +232,12 @@ export const fetchGuildRoles = cache(
       const roles = (await res.json()) as {
         id: string;
         name: string;
+        color: number;
         managed: boolean;
       }[];
       const result = roles
         .filter((r) => r.id !== guildId && !r.managed)
-        .map(({ id, name }) => ({ id, name }));
+        .map(({ id, name, color }) => ({ id, name, color }));
       guildRolesCache.set(guildId, result);
       return result;
     } catch {
