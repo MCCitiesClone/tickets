@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/MCCitiesClone/tickets/compare/v0.12.0...v0.13.0) (2026-08-13)
+
+
+### Features
+
+* custom server emoji in the embed editor + more templates ([#55](https://github.com/MCCitiesClone/tickets/issues/55)) ([76e1bb1](https://github.com/MCCitiesClone/tickets/commit/76e1bb181d3691ea42fdf19578e5faabb90269a6))
+
 # [0.12.0](https://github.com/MCCitiesClone/tickets/compare/v0.11.1...v0.12.0) (2026-08-13)
 
 
