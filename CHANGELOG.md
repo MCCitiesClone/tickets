@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/MCCitiesClone/tickets/compare/v0.6.0...v0.7.0) (2026-08-13)
+
+
+### Features
+
+* post-close ratings & feedback ([#48](https://github.com/MCCitiesClone/tickets/issues/48)) ([b40fd00](https://github.com/MCCitiesClone/tickets/commit/b40fd009ffb37283771ff28e51f0a5bf1771e5c8)), closes [#6](https://github.com/MCCitiesClone/tickets/issues/6)
+
 # [0.6.0](https://github.com/MCCitiesClone/tickets/compare/v0.5.1...v0.6.0) (2026-08-12)
 
 
