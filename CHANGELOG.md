@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/MCCitiesClone/tickets/compare/v0.7.0...v0.8.0) (2026-08-13)
+
+
+### Features
+
+* auto-close tickets on inactivity ([#49](https://github.com/MCCitiesClone/tickets/issues/49)) ([ff5ac22](https://github.com/MCCitiesClone/tickets/commit/ff5ac228426c5e37c5cae8864d08d68b90b74efb)), closes [#4](https://github.com/MCCitiesClone/tickets/issues/4)
+
 # [0.7.0](https://github.com/MCCitiesClone/tickets/compare/v0.6.0...v0.7.0) (2026-08-13)
 
 
