@@ -26,6 +26,7 @@ const configSchema = z.object({
   autoCreateOverflow: z.boolean().optional(),
   transcriptChannelId: z.string().nullable().optional(),
   dmTranscriptOnClose: z.boolean().optional(),
+  feedbackEnabled: z.boolean().optional(),
   logChannelId: z.string().nullable().optional(),
   staffRoleIds: z.array(z.string()).optional(),
   welcomeMessage: z.string().max(2000).optional(),

@@ -64,6 +64,12 @@ export const guild = pgTable("guild", {
     .notNull()
     .default(false),
 
+  /**
+   * DM the opener a 1–5 star rating prompt when their ticket closes, storing the
+   * score + optional comment on the transcript (see `transcript.rating`).
+   */
+  feedbackEnabled: boolean("feedback_enabled").notNull().default(false),
+
   /** Channel for audit/log messages (open, close, claim, …). */
   logChannelId: text("log_channel_id"),
 

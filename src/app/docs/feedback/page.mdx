@@ -1,0 +1,36 @@
+export const metadata = {
+  title: "Ratings & feedback",
+  description:
+    "Ask the ticket opener to rate their support 1–5 stars when a ticket closes.",
+};
+
+# Ratings & feedback
+
+When enabled, the bot **DMs the ticket opener a 1–5 star rating prompt** as soon
+as their ticket closes. The score (and an optional comment) is stored on the
+transcript, shown on the transcript page, and rolled into the **average rating**
+on the [Stats](/docs/stats) page.
+
+## Enabling it
+
+In the dashboard **Settings**, turn on **"Ask the opener for a 1–5 star rating
+(DM) when a ticket closes."** It's per-server and off by default. The prompt is a
+separate DM, so it works whether or not "DM the transcript link" is enabled.
+
+## How it works
+
+1. A ticket closes (via `/close`, a close button, a confirmed close request, or
+   auto-close).
+2. The opener receives a DM with five star buttons.
+3. Tapping a star opens a short modal with an **optional comment**.
+4. On submit, the rating + comment are saved and the prompt is marked answered.
+
+Only the opener can answer their own prompt. If they have DMs disabled or no
+longer share a server with the bot, the prompt is silently skipped — closing is
+never blocked by feedback.
+
+## Where ratings show up
+
+- **Transcript page** — the score (and comment) appear in the ticket header.
+- **Stats** — the **Avg rating** card averages all ratings in the selected
+  window, alongside how many tickets were rated.

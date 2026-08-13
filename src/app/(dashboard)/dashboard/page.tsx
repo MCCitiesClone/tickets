@@ -281,7 +281,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard label="Opened" value={String(stats.summary.openedInRange)} />
             <StatCard label="Closed" value={String(stats.summary.closedInRange)} />
             <StatCard
@@ -297,6 +297,15 @@ export default async function DashboardPage() {
               label="Avg resolution"
               value={formatDuration(stats.summary.avgResolutionSeconds)}
               hint={`${stats.summary.closedInRange} closed`}
+            />
+            <StatCard
+              label="Avg rating"
+              value={
+                stats.summary.avgRating != null
+                  ? `${stats.summary.avgRating.toFixed(1)} ★`
+                  : "—"
+              }
+              hint={`${stats.summary.ratingCount} rated`}
             />
           </div>
 

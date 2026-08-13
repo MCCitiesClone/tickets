@@ -28,6 +28,7 @@ export const docsNav: DocSection[] = [
     title: "Features",
     links: [
       { title: "Ticket lifecycle", href: "/docs/tickets" },
+      { title: "Ratings & feedback", href: "/docs/feedback" },
       { title: "Stats & analytics", href: "/docs/stats" },
       { title: "Panels & forms", href: "/docs/panels" },
       { title: "Message templates", href: "/docs/messages" },

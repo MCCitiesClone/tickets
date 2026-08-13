@@ -192,6 +192,15 @@ export const transcript = pgTable("transcript", {
 
   messageCount: integer("message_count").notNull().default(0),
 
+  /**
+   * Opener feedback collected after close (when `guild.feedbackEnabled`): a 1–5
+   * star `rating` and an optional `feedbackComment`. Null until the opener rates
+   * via the DM prompt.
+   */
+  rating: integer("rating"),
+  feedbackComment: text("feedback_comment"),
+  ratedAt: timestamp("rated_at"),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

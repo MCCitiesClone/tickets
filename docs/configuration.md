@@ -34,6 +34,7 @@ page. Saving in the dashboard creates/updates the row.
 | `autoOverflowCategoryIds` | Bot-managed list of auto-created overflow categories (reused as tickets close). Not edited in the dashboard. |
 | `transcriptChannelId`  | Where closed-ticket transcript links are posted.                  |
 | `dmTranscriptOnClose`  | DM the opener the transcript link on close (default off).         |
+| `feedbackEnabled`      | DM the opener a 1–5 star rating prompt on close (default off).     |
 | `logChannelId`         | Channel for audit/log messages (open, close, claim, rename…).     |
 | `staffRoleIds`         | Role IDs granted access to every ticket channel.                  |
 | `welcomeMessage`       | Plain-text first message (used when no rich welcome template set).|

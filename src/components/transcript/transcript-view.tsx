@@ -72,6 +72,24 @@ export function TranscriptView({
                 <dd className="inline">{transcript.closeReason}</dd>
               </div>
             )}
+            {transcript.rating != null && (
+              <div className="col-span-2">
+                <dt className="inline text-white/40">Rating </dt>
+                <dd className="inline">
+                  <span className="text-yellow-400" aria-hidden>
+                    {"★".repeat(transcript.rating)}
+                    {"☆".repeat(5 - transcript.rating)}
+                  </span>{" "}
+                  <span className="text-white/60">{transcript.rating}/5</span>
+                  {transcript.feedbackComment && (
+                    <span className="text-white/70">
+                      {" "}
+                      — {transcript.feedbackComment}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
           </dl>
         </header>
 
