@@ -1,3 +1,10 @@
+# [0.19.0](https://github.com/MCCitiesClone/tickets/compare/v0.18.0...v0.19.0) (2026-08-22)
+
+
+### Features
+
+* Pterodactyl / Pelican egg for running the bot on a game panel ([#65](https://github.com/MCCitiesClone/tickets/issues/65)) ([4f9753d](https://github.com/MCCitiesClone/tickets/commit/4f9753db9c9d1d691e35f07331de77b749cc4557)), closes [#63](https://github.com/MCCitiesClone/tickets/issues/63)
+
 # [0.18.0](https://github.com/MCCitiesClone/tickets/compare/v0.17.0...v0.18.0) (2026-08-22)
 
 
