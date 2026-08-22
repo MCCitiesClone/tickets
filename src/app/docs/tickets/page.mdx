@@ -160,6 +160,22 @@ rendering the conversation with author avatars, timestamps, attachments,
 embeds, and edit/delete markers. The **Tickets** page in the dashboard lists a
 server's tickets with their transcript links.
 
+### My tickets
+
+Members don't need Manage Server rights to find their own transcripts. Signing
+in to the dashboard shows a **My tickets** page listing every ticket they opened
+*or replied in*, across all servers, with a link to each transcript once the
+ticket closes.
+
+Involvement is derived from the captured messages, not from channel permissions
+— an added member who never said anything isn't listed, and neither is anyone the
+bot merely mentioned. The listing is scoped by the signed-in user's Discord ID in
+the query itself, so it cannot surface someone else's tickets.
+
+This changes nothing about transcript URLs: they remain shareable and
+unguessable, with no sign-in required. The page only surfaces links a member is
+already entitled to.
+
 **Archived attachments:** Discord's file URLs are signed and expire, and closing
 a ticket deletes its channel — so the bot copies images and files sent in a
 ticket into its own storage and the transcript serves them from a token-scoped
