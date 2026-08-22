@@ -66,6 +66,8 @@ export function GuildSettingsForm({
   const [autoCloseExcludeClaimed, setAutoCloseExcludeClaimed] = useState(
     config?.autoCloseExcludeClaimed ?? false,
   );
+  const [autoCloseExcludeHighPriority, setAutoCloseExcludeHighPriority] =
+    useState(config?.autoCloseExcludeHighPriority ?? false);
 
   const [pending, startTransition] = useTransition();
 
@@ -113,6 +115,7 @@ export function GuildSettingsForm({
           autoCloseHours,
           autoCloseWarningHours,
           autoCloseExcludeClaimed,
+          autoCloseExcludeHighPriority,
         });
         toast.success("Settings saved.");
       } catch {
@@ -337,6 +340,13 @@ export function GuildSettingsForm({
             onCheckedChange={(v) => setAutoCloseExcludeClaimed(v === true)}
           />
           <span>Never auto-close claimed tickets</span>
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={autoCloseExcludeHighPriority}
+            onCheckedChange={(v) => setAutoCloseExcludeHighPriority(v === true)}
+          />
+          <span>Never auto-close high or urgent tickets</span>
         </label>
       </div>
 

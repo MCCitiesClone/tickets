@@ -16,6 +16,19 @@ import { panel } from "./panels";
 export const ticketStatus = pgEnum("ticket_status", ["open", "closed"]);
 
 /**
+ * Triage priority for a ticket. `normal` is the default every ticket opens at;
+ * staff move it with `/priority`. Ordered low → urgent — keep the enum member
+ * order in sync with `TICKET_PRIORITIES` in `src/lib/ticket-priority.ts`, which
+ * is the single source of truth for labels, colours, and sort rank.
+ */
+export const ticketPriority = pgEnum("ticket_priority", [
+  "low",
+  "normal",
+  "high",
+  "urgent",
+]);
+
+/**
  * A single support ticket. In this bot each ticket is backed by a dedicated
  * private Discord channel (channel-based model) created under the guild's
  * configured ticket category.
@@ -46,6 +59,9 @@ export const ticket = pgTable("ticket", {
   panelId: uuid("panel_id").references(() => panel.id, { onDelete: "set null" }),
 
   status: ticketStatus("status").notNull().default("open"),
+
+  /** Triage priority, set by staff via `/priority` (see `ticketPriority`). */
+  priority: ticketPriority("priority").notNull().default("normal"),
 
   /** Discord user ID of the staff member who claimed the ticket. */
   claimedBy: text("claimed_by"),
@@ -211,6 +227,8 @@ export const transcript = pgTable("transcript", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export type TicketPriority = (typeof ticketPriority.enumValues)[number];
 
 export type Ticket = typeof ticket.$inferSelect;
 export type NewTicket = typeof ticket.$inferInsert;

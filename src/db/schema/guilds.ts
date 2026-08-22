@@ -103,13 +103,22 @@ export const guild = pgTable("guild", {
   /**
    * Auto-close a ticket after this many hours with no human message (0 = off).
    * `autoCloseWarningHours` posts a heads-up that many hours before closing (0 =
-   * no warning); claimed tickets can be exempted via `autoCloseExcludeClaimed`.
+   * no warning); claimed tickets can be exempted via `autoCloseExcludeClaimed`,
+   * and escalated ones via `autoCloseExcludeHighPriority`.
    */
   autoCloseHours: integer("auto_close_hours").notNull().default(0),
   autoCloseWarningHours: integer("auto_close_warning_hours")
     .notNull()
     .default(0),
   autoCloseExcludeClaimed: boolean("auto_close_exclude_claimed")
+    .notNull()
+    .default(false),
+
+  /**
+   * Exempt high- and urgent-priority tickets from inactivity auto-close, so a
+   * ticket staff deliberately escalated is never closed out from under them.
+   */
+  autoCloseExcludeHighPriority: boolean("auto_close_exclude_high_priority")
     .notNull()
     .default(false),
 

@@ -120,6 +120,13 @@
       "when": 1786659499625,
       "tag": "0016_condemned_squadron_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787359154100,
+      "tag": "0017_brown_masked_marvel",
+      "breakpoints": true
     }
   ]
 }

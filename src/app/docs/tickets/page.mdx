@@ -48,6 +48,29 @@ release it with **Release** or `/unclaim`. Claiming records `claimedBy`, swaps
 the button between Claim and Release, and posts the claim notice (the guild
 [claim template](/docs/messages) or a built-in embed).
 
+## Priority
+
+Every ticket opens at **Normal** priority. Staff move it with
+`/priority <level>` — **Low**, **Normal**, **High**, or **Urgent**. Running
+`/priority` with no level shows the current one (privately) to anyone in the
+ticket.
+
+Setting a priority:
+
+- stores it on the ticket, so it shows in the dashboard's tickets list and in
+  the [open-queue-by-priority breakdown](/docs/stats#open-queue-by-priority);
+- badges the channel **topic** (e.g. `🔴 URGENT · Ticket #42 · …`) so the queue
+  is readable from the channel list — Normal carries no badge;
+- posts a notice in the channel and a line in the [audit log](#audit-log).
+
+Channel edits share Discord's aggressive rename rate limit, so a burst of
+priority changes on one ticket may take a moment to show on the topic. The
+stored priority updates immediately either way.
+
+Turn on **Never auto-close high or urgent tickets** in
+[Settings](/docs/configuration) to exempt escalated tickets from
+[auto-close](#auto-close).
+
 ## Managing members
 
 - `/add <user>` grants a member access to the ticket channel.
@@ -120,6 +143,8 @@ tickets that go quiet:
   Must be less than the close time.
 - **Never auto-close claimed tickets** — exempt tickets a staff member has
   claimed.
+- **Never auto-close high or urgent tickets** — exempt tickets staff escalated
+  with [`/priority`](#priority).
 
 A background sweep (every ~60s) checks open tickets against their guild's
 threshold; auto-closed tickets go through the same close path above (recorded as

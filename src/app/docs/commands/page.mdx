@@ -33,6 +33,7 @@ Run these inside a ticket channel.
 | `/add <user>`                        | `user` — required                                                       | Ticket participants | Grants a member access to the ticket channel.                         |
 | `/remove <user>`                     | `user` — required                                                       | Ticket participants | Revokes a member's access.                                            |
 | `/rename <name>`                     | `name` — required, ≤80 chars                                            | Staff             | Renames the channel prefix, keeping the ticket number (e.g. `bug-42`). |
+| `/priority [level]`                  | `level` — optional: Low, Normal, High, Urgent                            | Staff (set) / anyone (show) | Sets the ticket's triage priority, or shows it when `level` is omitted. |
 | `/switchpanel <panel>`               | `panel` — required, autocompletes panel names                           | Staff             | Moves the ticket to another panel (category, naming, roles).           |
 | `/notes`                             | —                                                                       | Staff             | Opens a private staff-only notes thread on the ticket.                 |
 | `/cannedresponse <name>`             | `name` — required, autocompletes saved responses                        | Staff             | Posts a saved [canned response](/docs/canned-responses) into the channel. |

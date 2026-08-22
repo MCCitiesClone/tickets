@@ -78,6 +78,16 @@ export function StatsExport({
     );
   }
 
+  function exportPriorities() {
+    download(
+      `tickets-by-priority${suffix}.csv`,
+      toCsv([
+        ["priority", "open_now", "opened_in_range"],
+        ...stats.priorities.map((p) => [p.priority, p.open, p.openedInRange]),
+      ]),
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -95,6 +105,9 @@ export function StatsExport({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportPanels}>
           Tickets by panel
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={exportPriorities}>
+          Tickets by priority
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
