@@ -18,13 +18,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, CHANNEL_NONE } from "@/components/channel-select";
-import type { Guild } from "@/db/schema";
+import type { Guild, Panel } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
 import { DAY_NAMES, type SupportInterval } from "@/lib/support-hours";
 
 /** Matches the server action's cap on the configured reason list. */
 const MAX_CLOSE_REASONS = 25;
+
+/** Sentinel for "no specific panel" — Select can't hold an empty value. */
+const PANEL_AUTO = "__auto";
 
 const DAY_ITEMS: Record<string, string> = Object.fromEntries(
   // Monday first: opening hours read more naturally that way.
@@ -61,12 +64,15 @@ export function GuildSettingsForm({
   categories,
   textChannels,
   roles,
+  panels = [],
 }: {
   guildId: string;
   config: Guild | null;
   categories: DiscordChannel[];
   textChannels: DiscordChannel[];
   roles: DiscordChannel[];
+  /** The guild's panels, for choosing where message reports land. */
+  panels?: Panel[];
 }) {
   const [ticketCategoryId, setTicketCategoryId] = useState(
     config?.ticketCategoryId ?? CHANNEL_NONE,
@@ -88,6 +94,9 @@ export function GuildSettingsForm({
   );
   const [logChannelId, setLogChannelId] = useState(
     config?.logChannelId ?? CHANNEL_NONE,
+  );
+  const [reportPanelId, setReportPanelId] = useState(
+    config?.reportPanelId ?? PANEL_AUTO,
   );
   const [statusBoardChannelId, setStatusBoardChannelId] = useState(
     config?.statusBoardChannelId ?? CHANNEL_NONE,
@@ -128,6 +137,11 @@ export function GuildSettingsForm({
   );
   const [autoCloseExcludeHighPriority, setAutoCloseExcludeHighPriority] =
     useState(config?.autoCloseExcludeHighPriority ?? false);
+
+  const panelItems: Record<string, string> = {
+    [PANEL_AUTO]: "Automatic",
+    ...Object.fromEntries(panels.map((p) => [p.id, p.title])),
+  };
 
   const [pending, startTransition] = useTransition();
 
@@ -170,6 +184,7 @@ export function GuildSettingsForm({
           onCallPingOnOpen,
           logChannelId: orNull(logChannelId),
           statusBoardChannelId: orNull(statusBoardChannelId),
+          reportPanelId: reportPanelId === PANEL_AUTO ? null : reportPanelId,
           staffRoleIds,
           welcomeMessage,
           ticketLimit,
@@ -293,6 +308,30 @@ export function GuildSettingsForm({
             onValueChange={setLogChannelId}
             allowNone
           />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="report-panel">Report panel</Label>
+          <Select
+            items={panelItems}
+            value={reportPanelId}
+            onValueChange={(v) => setReportPanelId(v as string)}
+          >
+            <SelectTrigger id="report-panel" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(panelItems).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Where the <strong>Report message to staff</strong> right-click
+            command sends reports. Left automatic, it uses your only panel — or
+            asks the reporter when there are several.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="status-board">Status board channel</Label>

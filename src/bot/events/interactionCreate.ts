@@ -6,8 +6,13 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 
-import { commandMap } from "../commands";
+import { commandMap, messageCommandMap } from "../commands";
 import { EMBED_COLOR, noticeEmbed } from "../lib/embeds";
+import { REPORT_SELECT_PREFIX } from "../lib/report-flow";
+import {
+  toReportedMessage,
+  type ReportedMessage,
+} from "../lib/report-message";
 import {
   buildCloseReasonModal,
   cancelCloseRequest,
@@ -22,6 +27,29 @@ import {
   submitTicketForm,
   unclaimTicket,
 } from "../lib/tickets";
+
+/**
+ * Re-fetch a reported message from the reference carried in a customId.
+ *
+ * The reference survives the round trip, the message itself might not — someone
+ * can delete it between reporting and confirming. Returning undefined lets the
+ * ticket still open, just without the quote.
+ */
+async function fetchReportedMessage(
+  interaction: ModalSubmitInteraction | StringSelectMenuInteraction,
+  channelId: string,
+  messageId: string,
+): Promise<ReportedMessage | undefined> {
+  try {
+    const channel = await interaction.client.channels.fetch(channelId);
+    if (!channel?.isTextBased()) return undefined;
+    const message = await channel.messages.fetch(messageId);
+    return toReportedMessage(message);
+  } catch (err) {
+    console.error("Reported message could not be re-fetched:", err);
+    return undefined;
+  }
+}
 
 async function reportInteractionError(
   interaction:
@@ -103,6 +131,28 @@ export async function onInteractionCreate(
     return;
   }
 
+  if (interaction.isMessageContextMenuCommand()) {
+    const command = messageCommandMap.get(interaction.commandName);
+    if (!command) return;
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error(`Error running "${interaction.commandName}":`, err);
+      await interaction
+        .reply({
+          embeds: [
+            noticeEmbed(
+              "Something went wrong handling that.",
+              EMBED_COLOR.danger,
+            ),
+          ],
+          flags: MessageFlags.Ephemeral,
+        })
+        .catch(() => {});
+    }
+    return;
+  }
+
   if (interaction.isAutocomplete()) {
     const command = commandMap.get(interaction.commandName);
     try {
@@ -152,6 +202,19 @@ export async function onInteractionCreate(
         // The selected option's value is the chosen panel's id.
         const panelId = interaction.values[0];
         if (panelId) await openTicketFromPanel(interaction, panelId);
+      } else if (action === REPORT_SELECT_PREFIX) {
+        // `report_panel:<channelId>:<messageId>` — the reported message the
+        // reporter picked a panel for.
+        const [, channelId, messageId] = interaction.customId.split(":");
+        const panelId = interaction.values[0];
+        const report = await fetchReportedMessage(
+          interaction,
+          channelId,
+          messageId,
+        );
+        if (panelId && report) {
+          await openTicketFromPanel(interaction, panelId, report);
+        }
       }
     } catch (err) {
       await reportInteractionError(interaction, err, interaction.customId);
@@ -170,7 +233,14 @@ export async function onInteractionCreate(
     const [action, id] = interaction.customId.split(":");
     try {
       if (action === "ticket_form") {
-        await submitTicketForm(interaction, id);
+        // `ticket_form:<panelId>[:<channelId>:<messageId>]` — the trailing pair
+        // is present only when the form was opened by a message report.
+        const [, , channelId, messageId] = interaction.customId.split(":");
+        const report =
+          channelId && messageId
+            ? await fetchReportedMessage(interaction, channelId, messageId)
+            : undefined;
+        await submitTicketForm(interaction, id, report);
       } else if (action === "close_reason_modal") {
         await closeTicket(interaction, id, readCloseReasonModal(interaction));
       } else if (action === "feedback") {

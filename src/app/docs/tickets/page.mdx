@@ -109,6 +109,39 @@ The next-opening time is written as a Discord dynamic timestamp, so each member
 reads it in **their own** timezone rather than the support team's.
 
 
+## Reporting a message
+
+Right-click any message → **Apps** → **Report message to staff** opens a ticket
+about it. It's the quickest route for a member who wants to report something
+offensive without having to describe where it was.
+
+The reported message is **copied into the ticket**, not just linked: author (as
+a mention, plus their name and ID at report time), when and where it was sent, a
+jump link, and the text quoted. Attachments and embeds are listed by name and
+count. That matters because the usual reason to report something is that it
+shouldn't stay up — by the time staff read the ticket the original may already be
+gone, and a link alone would point at nothing.
+
+Everything else behaves like opening a ticket from a panel: blacklists, access
+rules, cooldowns and per-user limits all apply, and the panel's form is asked if
+it has one. Reporting is not a way around any of that. Reporting your own
+message is refused.
+
+### Which panel a report opens
+
+A report has to land on a panel, since that's what decides the category, staff
+roles and access rules. Resolved in this order:
+
+1. The **Report panel** configured in [Settings](/docs/configuration).
+2. The server's only panel, if there's exactly one — so a simple server needs no
+   configuration at all.
+3. Otherwise the reporter is asked, with an ephemeral dropdown that nobody else
+   in the channel sees.
+
+Disabled panels are never offered, and a configured panel that's since been
+deleted or disabled falls back to the rules above rather than failing.
+
+
 ## Priority
 
 Every ticket opens at **Normal** priority. Staff move it with

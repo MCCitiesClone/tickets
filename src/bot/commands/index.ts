@@ -1,4 +1,4 @@
-import type { Command } from "../types";
+import type { Command, MessageCommand } from "../types";
 import { blacklistCommand } from "./blacklist";
 import { cannedResponseCommand } from "./cannedresponse";
 import { claimCommand, unclaimCommand } from "./claim";
@@ -11,6 +11,7 @@ import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
 import { priorityCommand } from "./priority";
 import { renameCommand } from "./rename";
+import { reportMessageCommand } from "./report-message";
 import { setupCommand } from "./setup";
 import { switchPanelCommand } from "./switchpanel";
 
@@ -43,3 +44,19 @@ export const commands: Command[] = [
 export const commandMap = new Map<string, Command>(
   commands.map((c) => [c.data.name, c]),
 );
+
+/**
+ * Message context-menu commands, kept separate from slash commands: Discord
+ * allows the two kinds to share a name, so one lookup map would be ambiguous.
+ */
+export const messageCommands: MessageCommand[] = [reportMessageCommand];
+
+export const messageCommandMap = new Map<string, MessageCommand>(
+  messageCommands.map((c) => [c.data.name, c]),
+);
+
+/** Everything registered with Discord, across both command kinds. */
+export const allCommandData = [
+  ...commands.map((c) => c.data.toJSON()),
+  ...messageCommands.map((c) => c.data.toJSON()),
+];

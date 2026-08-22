@@ -1,0 +1,1 @@
+ALTER TABLE "guild" ADD COLUMN "report_panel_id" uuid;

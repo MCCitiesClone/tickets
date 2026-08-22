@@ -186,6 +186,7 @@ Repository copies of the core setup guides:
 - [x] Shared form questions — define once, reuse across panels ([#24](https://github.com/MCCitiesClone/tickets/issues/24))
 - [x] Support hours — timezone-aware availability + out-of-hours notice ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
 - [x] Live status board — open tickets grouped by category, with waiting-on state ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
+- [x] Report a message — right-click → Apps opens a ticket quoting it ([#75](https://github.com/MCCitiesClone/tickets/issues/75))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 

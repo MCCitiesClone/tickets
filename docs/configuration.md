@@ -48,6 +48,7 @@ category is within 5 channels of it. Shared thresholds live in
 | `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
 | `ticketLimit`          | Max simultaneously-open tickets per user (`0` = unlimited; default `1`). |
 | `autoCloseHours` / `autoCloseWarningHours` / `autoCloseExcludeClaimed` / `autoCloseExcludeHighPriority` | Auto-close idle tickets after N hours (0 = off), warning M hours before; optionally skip claimed and high/urgent-priority tickets. |
+| `reportPanelId`        | Panel the "Report message to staff" context-menu command opens. Null = automatic. |
 | `statusBoardChannelId` / `statusBoardMessageId` | Live open-ticket board; the message ID is bot-managed and re-posted if deleted. |
 | `supportTimezone` / `supportHours` / `supportResponseHint` | Weekly availability in an IANA zone, plus a free-text response-time hint shown on open. |
 | `closeReasons`         | Suggested close reasons (max 25) offered on `/close`, `/closerequest`, and the close-with-reason dropdown. |

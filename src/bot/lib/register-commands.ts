@@ -24,10 +24,10 @@ import { REST, Routes } from "discord.js";
  */
 export async function registerCommands(guildId?: string): Promise<void> {
   const { env } = await import("@/lib/env");
-  const { commands } = await import("../commands");
+  const { allCommandData } = await import("../commands");
 
   const rest = new REST().setToken(env.DISCORD_TOKEN);
-  const body = commands.map((c) => c.data.toJSON());
+  const body = allCommandData;
 
   const globalRoute = Routes.applicationCommands(env.DISCORD_CLIENT_ID);
 
