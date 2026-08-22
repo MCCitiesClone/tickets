@@ -181,6 +181,7 @@ Repository copies of the core setup guides:
 - [x] Dynamic date/time placeholders — `{now}`, `{now:R}`, `{now+24h}` ([#27](https://github.com/MCCitiesClone/tickets/issues/27))
 - [x] Audit log — durable, filterable record of ticket and config changes ([#26](https://github.com/MCCitiesClone/tickets/issues/26))
 - [x] My tickets — members find transcripts for tickets they opened or replied in ([#22](https://github.com/MCCitiesClone/tickets/issues/22))
+- [x] Dropdown form questions — single or multi choice, up to 25 options ([#25](https://github.com/MCCitiesClone/tickets/issues/25))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -192,7 +193,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Improve onboarding & multi-server switching ([#21](https://github.com/MCCitiesClone/tickets/issues/21))
 - [x] Simplify the embed editor for non-technical users ([#23](https://github.com/MCCitiesClone/tickets/issues/23))
 - [ ] Reusable form questions shared across panels ([#24](https://github.com/MCCitiesClone/tickets/issues/24))
-- [ ] Richer form field types — select, checkbox, radio groups ([#25](https://github.com/MCCitiesClone/tickets/issues/25))
 - [ ] Ticket status board channels per category ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
 
 **Low priority / later**

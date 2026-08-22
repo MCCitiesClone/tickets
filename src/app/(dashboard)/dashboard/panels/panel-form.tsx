@@ -29,6 +29,7 @@ import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
 import {
   DEFAULT_PANEL_COLOR,
   isTemplateEmpty,
+  MAX_QUESTION_OPTIONS,
   type AccessRule,
   type MessageTemplate,
   type Panel,
@@ -50,11 +51,26 @@ const WELCOME_PLACEHOLDERS = [
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
 const MAX_QUESTIONS = 5;
 
+type OptionDraft = { label: string; description: string };
+
+/**
+ * Editing shape for a question. `options` and `multiple` are carried for every
+ * draft, not just dropdowns, so switching style back and forth doesn't discard
+ * what the admin already typed; only the relevant half is submitted.
+ */
 type QuestionDraft = {
   label: string;
-  style: "short" | "paragraph";
+  style: "short" | "paragraph" | "select";
   required: boolean;
   placeholder: string;
+  options: OptionDraft[];
+  multiple: boolean;
+};
+
+const QUESTION_STYLES: Record<QuestionDraft["style"], string> = {
+  short: "Short answer",
+  paragraph: "Paragraph",
+  select: "Dropdown",
 };
 
 const intToHex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
@@ -146,6 +162,14 @@ export function PanelForm({
       style: q.style,
       required: q.required,
       placeholder: q.placeholder ?? "",
+      options:
+        q.style === "select"
+          ? q.options.map((o) => ({
+              label: o.label,
+              description: o.description ?? "",
+            }))
+          : [],
+      multiple: q.style === "select" ? q.multiple : false,
     })) ?? [],
   );
 
@@ -188,9 +212,47 @@ export function PanelForm({
     if (questions.length >= MAX_QUESTIONS) return;
     setQuestions((p) => [
       ...p,
-      { label: "", style: "short", required: true, placeholder: "" },
+      {
+        label: "",
+        style: "short",
+        required: true,
+        placeholder: "",
+        options: [],
+        multiple: false,
+      },
     ]);
   }
+
+  function updateOption(qi: number, oi: number, patch: Partial<OptionDraft>) {
+    setQuestions((p) =>
+      p.map((q, idx) =>
+        idx === qi
+          ? {
+              ...q,
+              options: q.options.map((o, j) =>
+                j === oi ? { ...o, ...patch } : o,
+              ),
+            }
+          : q,
+      ),
+    );
+  }
+  const addOption = (qi: number) =>
+    setQuestions((p) =>
+      p.map((q, idx) =>
+        idx === qi && q.options.length < MAX_QUESTION_OPTIONS
+          ? { ...q, options: [...q.options, { label: "", description: "" }] }
+          : q,
+      ),
+    );
+  const removeOption = (qi: number, oi: number) =>
+    setQuestions((p) =>
+      p.map((q, idx) =>
+        idx === qi
+          ? { ...q, options: q.options.filter((_, j) => j !== oi) }
+          : q,
+      ),
+    );
   const updateQuestion = (i: number, patch: Partial<QuestionDraft>) =>
     setQuestions((p) => p.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
   const removeQuestion = (i: number) =>
@@ -211,8 +273,17 @@ export function PanelForm({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const cleanedQuestions = questions
-      .map((q) => ({ ...q, label: q.label.trim() }))
-      .filter((q) => q.label.length > 0);
+      .map((q) => ({
+        ...q,
+        label: q.label.trim(),
+        options: q.options
+          .map((o) => ({ ...o, label: o.label.trim() }))
+          .filter((o) => o.label.length > 0),
+      }))
+      .filter((q) => q.label.length > 0)
+      // A dropdown with nothing to choose from can't be rendered, so drop it
+      // rather than letting the server action reject the whole save.
+      .filter((q) => q.style !== "select" || q.options.length > 0);
 
     const payload = {
       guildId,
@@ -237,12 +308,27 @@ export function PanelForm({
       hideClose,
       hideCloseWithReason,
       accessControl: accessControl.filter((r) => r.roleId),
-      questions: cleanedQuestions.map((q) => ({
-        label: q.label,
-        style: q.style,
-        required: q.required,
-        placeholder: q.placeholder.trim() || undefined,
-      })),
+      questions: cleanedQuestions.map((q) => {
+        const base = {
+          label: q.label,
+          required: q.required,
+          placeholder: q.placeholder.trim() || undefined,
+        };
+        return q.style === "select"
+          ? {
+              ...base,
+              style: "select" as const,
+              multiple: q.multiple,
+              // The label doubles as the stored value: admins think in labels,
+              // and the answer is recorded by label anyway.
+              options: q.options.map((o) => ({
+                label: o.label,
+                value: o.label.slice(0, 100),
+                description: o.description.trim() || undefined,
+              })),
+            }
+          : { ...base, style: q.style };
+      }),
     };
 
     startTransition(async () => {
@@ -584,7 +670,7 @@ export function PanelForm({
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Select
-                  items={{ short: "Short answer", paragraph: "Paragraph" }}
+                  items={QUESTION_STYLES}
                   value={q.style}
                   onValueChange={(v) =>
                     updateQuestion(i, { style: v as QuestionDraft["style"] })
@@ -594,17 +680,91 @@ export function PanelForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="short">Short answer</SelectItem>
-                    <SelectItem value="paragraph">Paragraph</SelectItem>
+                    {Object.entries(QUESTION_STYLES).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Input
                   value={q.placeholder}
                   onChange={(e) => updateQuestion(i, { placeholder: e.target.value })}
-                  placeholder="Placeholder (optional)"
+                  placeholder={
+                    q.style === "select"
+                      ? "Hint under the label (optional)"
+                      : "Placeholder (optional)"
+                  }
                   maxLength={100}
                 />
               </div>
+
+              {q.style === "select" && (
+                <div className="flex flex-col gap-2 rounded-md border bg-background/60 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Choices ({q.options.length}/{MAX_QUESTION_OPTIONS})
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addOption(i)}
+                      disabled={q.options.length >= MAX_QUESTION_OPTIONS}
+                    >
+                      <Plus /> Add choice
+                    </Button>
+                  </div>
+
+                  {q.options.length === 0 ? (
+                    <p className="px-1 py-2 text-xs text-muted-foreground">
+                      A dropdown needs at least one choice, or it won&apos;t be
+                      asked.
+                    </p>
+                  ) : (
+                    q.options.map((o, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <Input
+                          value={o.label}
+                          onChange={(e) =>
+                            updateOption(i, oi, { label: e.target.value })
+                          }
+                          placeholder="Choice"
+                          maxLength={100}
+                        />
+                        <Input
+                          value={o.description}
+                          onChange={(e) =>
+                            updateOption(i, oi, { description: e.target.value })
+                          }
+                          placeholder="Description (optional)"
+                          maxLength={100}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeOption(i, oi)}
+                          aria-label="Remove choice"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+
+                  <label className="flex w-fit items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={q.multiple}
+                      onCheckedChange={(v) =>
+                        updateQuestion(i, { multiple: v === true })
+                      }
+                    />
+                    Allow more than one choice
+                  </label>
+                </div>
+              )}
+
               <label className="flex w-fit items-center gap-2 text-sm">
                 <Checkbox
                   checked={q.required}

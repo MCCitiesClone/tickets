@@ -12,20 +12,61 @@ import {
 import { guild } from "./guilds";
 import type { MessageTemplate } from "./message-template";
 
-/**
- * A question asked in the Discord modal when a member opens a ticket from a
- * panel. Maps to a modal text input (Discord allows up to 5 per modal).
- */
-export type PanelQuestion = {
+/** One choice in a dropdown question. */
+export type PanelQuestionOption = {
+  /** Shown in the dropdown and recorded as the answer. */
+  label: string;
+  /** Stable value stored on the option; the label is what's displayed. */
+  value: string;
+  /** Optional second line under the label. */
+  description?: string;
+};
+
+/** Fields every question has, whatever its style. */
+type PanelQuestionBase = {
   /** Stable id, used as the modal field's customId. */
   id: string;
   /** Field label (Discord caps at 45 chars). */
   label: string;
-  /** Single-line ("short") or multi-line ("paragraph") input. */
-  style: "short" | "paragraph";
   placeholder?: string;
   required: boolean;
 };
+
+/** A free-text question: single-line ("short") or multi-line ("paragraph"). */
+export type PanelTextQuestion = PanelQuestionBase & {
+  style: "short" | "paragraph";
+};
+
+/**
+ * A dropdown question. `multiple` decides the semantics: off is a single
+ * choice (a radio group), on lets the member pick several (a checkbox group).
+ * Discord has no checkbox or radio component available to modals in the
+ * supported discord.js version, so a select covers both.
+ */
+export type PanelSelectQuestion = PanelQuestionBase & {
+  style: "select";
+  /** Up to 25, matching Discord's per-select limit. */
+  options: PanelQuestionOption[];
+  multiple: boolean;
+};
+
+/**
+ * A question asked in the Discord modal when a member opens a ticket from a
+ * panel (Discord allows up to 5 per modal).
+ *
+ * `style` is the discriminant, and the two text styles keep the values they
+ * always had — so questions written before dropdowns existed are still valid
+ * without a migration.
+ */
+export type PanelQuestion = PanelTextQuestion | PanelSelectQuestion;
+
+/** Narrowing helper, since `style` is the discriminant. */
+export function isSelectQuestion(q: PanelQuestion): q is PanelSelectQuestion {
+  return q.style === "select";
+}
+
+/** Discord's cap on options in a single select menu. */
+export const MAX_QUESTION_OPTIONS = 25;
 
 /** An access-control rule: allow or deny a role from opening tickets. */
 export type AccessRule = { roleId: string; action: "allow" | "deny" };
