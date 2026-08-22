@@ -1,6 +1,7 @@
 import { BarChart3 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { PriorityBadge } from "@/components/priority-badge";
 import { getActiveGuild } from "@/lib/active-guild";
 import { formatDuration } from "@/lib/duration";
 import { getGuildStats } from "@/lib/queries/stats";
@@ -107,6 +108,28 @@ export default async function StatsPage({
           </div>
 
           <StatsCharts daily={stats.daily} panels={stats.panels} />
+
+          <Card>
+            <CardContent className="py-4">
+              <h2 className="mb-3 text-sm font-medium">Open queue by priority</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.priorities.map((p) => (
+                  <div
+                    key={p.priority}
+                    className="flex flex-col gap-1 rounded-md border p-3"
+                  >
+                    <PriorityBadge priority={p.priority} className="self-start" />
+                    <span className="text-2xl font-semibold tabular-nums">
+                      {p.open}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {p.openedInRange} opened in range
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent className="py-4">

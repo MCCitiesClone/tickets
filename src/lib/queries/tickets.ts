@@ -11,6 +11,7 @@ import {
   type NewTranscript,
   type Ticket,
   type TicketMessage,
+  type TicketPriority,
   type TranscriptAttachment,
   type Transcript,
 } from "@/db/schema";
@@ -143,6 +144,14 @@ export async function setTicketClaimedBy(
   claimedBy: string | null,
 ): Promise<void> {
   await db.update(ticket).set({ claimedBy }).where(eq(ticket.id, id));
+}
+
+/** Set a ticket's triage priority. */
+export async function setTicketPriority(
+  id: string,
+  priority: TicketPriority,
+): Promise<void> {
+  await db.update(ticket).set({ priority }).where(eq(ticket.id, id));
 }
 
 /** Re-associate a ticket with a different panel. */
@@ -338,6 +347,7 @@ export type AutoCloseCandidate = {
   autoCloseHours: number;
   autoCloseWarningHours: number;
   autoCloseExcludeClaimed: boolean;
+  autoCloseExcludeHighPriority: boolean;
 };
 
 /** Open tickets in guilds that have inactivity auto-close enabled. */
@@ -348,6 +358,7 @@ export async function listAutoCloseCandidates(): Promise<AutoCloseCandidate[]> {
       autoCloseHours: guild.autoCloseHours,
       autoCloseWarningHours: guild.autoCloseWarningHours,
       autoCloseExcludeClaimed: guild.autoCloseExcludeClaimed,
+      autoCloseExcludeHighPriority: guild.autoCloseExcludeHighPriority,
     })
     .from(ticket)
     .innerJoin(guild, eq(guild.guildId, ticket.guildId))
