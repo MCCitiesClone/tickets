@@ -1,3 +1,10 @@
+# [0.27.0](https://github.com/MCCitiesClone/tickets/compare/v0.26.0...v0.27.0) (2026-08-22)
+
+
+### Features
+
+* support hours and response-time expectations ([#74](https://github.com/MCCitiesClone/tickets/issues/74)) ([fe75c6d](https://github.com/MCCitiesClone/tickets/commit/fe75c6d4808b5386178721a7dde4ba84aa3b5ccf)), closes [#9](https://github.com/MCCitiesClone/tickets/issues/9)
+
 # [0.26.0](https://github.com/MCCitiesClone/tickets/compare/v0.25.0...v0.26.0) (2026-08-22)
 
 
