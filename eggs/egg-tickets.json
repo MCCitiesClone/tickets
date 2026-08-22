@@ -1,0 +1,153 @@
+{
+    "_comment": "Tickets \u2014 self-hosted Discord ticket bot. https://github.com/MCCitiesClone/tickets",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-08-22T00:00:00+00:00",
+    "name": "Tickets",
+    "author": "evan.dayton.sizemore@gmail.com",
+    "description": "Tickets \u2014 a self-hosted Discord ticket bot with panels, forms, transcripts, canned responses and a web dashboard. This egg runs the BOT process only; it needs an external PostgreSQL database, and the web dashboard is hosted separately (both point at the same DATABASE_URL). Migrations are applied automatically on start.",
+    "features": null,
+    "docker_images": {
+        "Node 22 (recommended)": "ghcr.io/parkervcp/yolks:nodejs_22",
+        "Node 24": "ghcr.io/parkervcp/yolks:nodejs_24"
+    },
+    "file_denylist": [],
+    "startup": "npm run db:migrate:run && npm run bot",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": \"Logged in as \"\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Tickets \u2014 Pterodactyl/Pelican installation script.\n#\n# Clones (or updates) the bot's source into the server directory and installs\n# dependencies. Runs in a throwaway Node container; /mnt/server becomes\n# /home/container at runtime.\nset -euo pipefail\n\napt-get update -qq\napt-get install -y --no-install-recommends git ca-certificates >/dev/null\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nREPO=\"${GIT_REPO:-https://github.com/MCCitiesClone/tickets.git}\"\nREF=\"${GIT_REF:-main}\"\n\n# Idempotent: a re-install updates in place instead of failing on a non-empty\n# directory, so server files (and the archived attachments below) survive.\nif [ -d .git ]; then\n    echo \"Updating existing checkout to ${REF}\u2026\"\n    git remote set-url origin \"${REPO}\"\nelse\n    echo \"Cloning ${REPO} (${REF})\u2026\"\n    git init -q .\n    git remote add origin \"${REPO}\"\nfi\n\ngit fetch --depth 1 origin \"${REF}\"\ngit reset --hard FETCH_HEAD\n# Keep installed dependencies, archived attachments, and any local .env the\n# operator added \u2014 a reinstall should update the code, not wipe the server.\ngit clean -fd -e node_modules -e .data -e .env\n\necho \"Installing dependencies\u2026\"\n# Dev dependencies included on purpose: the bot runs TypeScript directly with\n# tsx, exactly like the project's Docker `bot` image.\nnpm ci --include=dev --no-audit --no-fund\n\necho \"\"\necho \"Tickets installed.\"\necho \"Point DATABASE_URL at a PostgreSQL server before starting \u2014 the bot\"\necho \"applies its own migrations on boot.\"\n",
+            "container": "node:22-bookworm-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Database URL",
+            "description": "PostgreSQL connection string, e.g. postgres://user:pass@host:5432/tickets. The bot applies migrations here on every start. The web dashboard must use the SAME database.",
+            "env_variable": "DATABASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord bot token",
+            "description": "Bot token from the Discord Developer Portal (Bot -> Reset Token). Enable the MESSAGE CONTENT intent on that page \u2014 transcripts need it.",
+            "env_variable": "DISCORD_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord client ID",
+            "description": "Application (client) ID from the Discord Developer Portal. Used to register slash commands.",
+            "env_variable": "DISCORD_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord client secret",
+            "description": "OAuth2 client secret. The bot doesn't sign anyone in, but it shares one config schema with the dashboard, so it must be set.",
+            "env_variable": "DISCORD_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Auth secret",
+            "description": "Random 32+ character string, shared with the dashboard. Generate with: openssl rand -base64 32",
+            "env_variable": "BETTER_AUTH_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard URL",
+            "description": "Public URL of the web dashboard. Used to build the transcript links the bot posts.",
+            "env_variable": "BETTER_AUTH_URL",
+            "default_value": "http://localhost:3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dev guild ID",
+            "description": "Optional. Register slash commands to this one server for instant updates while testing. Leave empty to register globally (Discord can take up to an hour to propagate).",
+            "env_variable": "DISCORD_DEV_GUILD_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Attachment archive directory",
+            "description": "Where ticket attachments are copied off Discord's expiring CDN. Relative paths resolve inside the server directory. The dashboard must be able to read this same path to serve them.",
+            "env_variable": "ATTACHMENT_ARCHIVE_DIR",
+            "default_value": ".data/attachments",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Archive attachments",
+            "description": "Set to false to skip archiving and keep the original (expiring) Discord CDN URLs in transcripts.",
+            "env_variable": "ATTACHMENT_ARCHIVE_ENABLED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Max attachment size (bytes)",
+            "description": "Attachments larger than this are not archived. Default 26214400 (25 MiB).",
+            "env_variable": "ATTACHMENT_MAX_BYTES",
+            "default_value": "26214400",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "Source repository cloned at install. Change it to run a fork.",
+            "env_variable": "GIT_REPO",
+            "default_value": "https://github.com/MCCitiesClone/tickets.git",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git ref",
+            "description": "Branch or tag installed. Reinstall the server to move to a different ref.",
+            "env_variable": "GIT_REF",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        }
+    ]
+}
