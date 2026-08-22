@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/MCCitiesClone/tickets/compare/v0.23.0...v0.24.0) (2026-08-22)
+
+
+### Features
+
+* dropdown form questions on panels ([#71](https://github.com/MCCitiesClone/tickets/issues/71)) ([ee1c281](https://github.com/MCCitiesClone/tickets/commit/ee1c281bf16de67ea834d0fe63b0ab62933314c9)), closes [#25](https://github.com/MCCitiesClone/tickets/issues/25)
+
 # [0.23.0](https://github.com/MCCitiesClone/tickets/compare/v0.22.0...v0.23.0) (2026-08-22)
 
 
