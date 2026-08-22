@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DiscordEmoji } from "@/components/discord-emoji";
+import { EmojiAutocomplete } from "@/components/emoji-autocomplete";
 
 type GuildEmoji = { id: string; name: string; animated: boolean };
 
@@ -51,58 +52,60 @@ export function EmojiPicker({
   }, [guildId]);
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative flex-1">
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="📩 or pick a server emoji →"
-          disabled={disabled}
-          className="pr-8"
-        />
-        {value && (
-          <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2">
-            <DiscordEmoji emoji={value} className="inline-block size-4" />
-          </span>
-        )}
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={disabled}
-              aria-label="Pick a server emoji"
-            >
-              <Smile className="size-4" />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="end" className="max-h-64 w-52 overflow-y-auto">
+    <EmojiAutocomplete guildId={guildId}>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="📩, type :name, or pick a server emoji →"
+            disabled={disabled}
+            className="pr-8"
+          />
           {value && (
-            <DropdownMenuItem onClick={() => onChange("")}>
-              Clear emoji
-            </DropdownMenuItem>
+            <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2">
+              <DiscordEmoji emoji={value} className="inline-block size-4" />
+            </span>
           )}
-          {emojis.length === 0 ? (
-            <DropdownMenuItem disabled>
-              No custom emojis on this server
-            </DropdownMenuItem>
-          ) : (
-            emojis.map((e) => (
-              <DropdownMenuItem key={e.id} onClick={() => onChange(mention(e))}>
-                <DiscordEmoji
-                  emoji={mention(e)}
-                  className="inline-block size-4"
-                />
-                <span className="truncate">{e.name}</span>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={disabled}
+                aria-label="Pick a server emoji"
+              >
+                <Smile className="size-4" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="max-h-64 w-52 overflow-y-auto">
+            {value && (
+              <DropdownMenuItem onClick={() => onChange("")}>
+                Clear emoji
               </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+            )}
+            {emojis.length === 0 ? (
+              <DropdownMenuItem disabled>
+                No custom emojis on this server
+              </DropdownMenuItem>
+            ) : (
+              emojis.map((e) => (
+                <DropdownMenuItem key={e.id} onClick={() => onChange(mention(e))}>
+                  <DiscordEmoji
+                    emoji={mention(e)}
+                    className="inline-block size-4"
+                  />
+                  <span className="truncate">{e.name}</span>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </EmojiAutocomplete>
   );
 }

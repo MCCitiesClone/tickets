@@ -10,13 +10,30 @@ export function insertAtCaret(
   el: HTMLInputElement | HTMLTextAreaElement,
   text: string,
 ) {
+  replaceRange(
+    el,
+    el.selectionStart ?? el.value.length,
+    el.selectionEnd ?? el.value.length,
+    text,
+  );
+}
+
+/**
+ * Swap `[start, end)` of a controlled input/textarea for `text`, leaving the
+ * caret just after it. Same native-setter trick as `insertAtCaret` — it's what
+ * lets the `:emoji` autocomplete rewrite a field it doesn't own.
+ */
+export function replaceRange(
+  el: HTMLInputElement | HTMLTextAreaElement,
+  start: number,
+  end: number,
+  text: string,
+) {
   const proto =
     el instanceof HTMLTextAreaElement
       ? HTMLTextAreaElement.prototype
       : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-  const start = el.selectionStart ?? el.value.length;
-  const end = el.selectionEnd ?? el.value.length;
   const next = el.value.slice(0, start) + text + el.value.slice(end);
   setter?.call(el, next);
   el.dispatchEvent(new Event("input", { bubbles: true }));

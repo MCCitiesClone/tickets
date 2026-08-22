@@ -177,6 +177,7 @@ Repository copies of the core setup guides:
 - [x] Category capacity — dashboard usage bars + log-channel warning near Discord's 50-per-category cap ([#30](https://github.com/MCCitiesClone/tickets/issues/30))
 - [x] On-call staff — roster + DM the person holding the pager when a ticket opens ([#29](https://github.com/MCCitiesClone/tickets/issues/29))
 - [x] Pterodactyl / Pelican egg for running the bot on a game panel ([#63](https://github.com/MCCitiesClone/tickets/issues/63))
+- [x] Discord-style `:emoji` autocomplete across the message editor ([#62](https://github.com/MCCitiesClone/tickets/issues/62))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
