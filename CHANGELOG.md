@@ -1,3 +1,10 @@
+# [0.25.0](https://github.com/MCCitiesClone/tickets/compare/v0.24.0...v0.25.0) (2026-08-22)
+
+
+### Features
+
+* suggested close reasons ([#72](https://github.com/MCCitiesClone/tickets/issues/72)) ([9c9014f](https://github.com/MCCitiesClone/tickets/commit/9c9014f76ad79184a85c264b2d2bd909adddf42a)), closes [#32](https://github.com/MCCitiesClone/tickets/issues/32)
+
 # [0.24.0](https://github.com/MCCitiesClone/tickets/compare/v0.23.0...v0.24.0) (2026-08-22)
 
 
