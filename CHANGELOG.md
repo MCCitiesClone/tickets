@@ -1,3 +1,10 @@
+# [0.28.0](https://github.com/MCCitiesClone/tickets/compare/v0.27.0...v0.28.0) (2026-08-22)
+
+
+### Features
+
+* live status board with ticket waiting-on state ([#76](https://github.com/MCCitiesClone/tickets/issues/76)) ([514dd4f](https://github.com/MCCitiesClone/tickets/commit/514dd4feadc23a2e1fdb13ea28f5ab10efa2c9e6)), closes [#28](https://github.com/MCCitiesClone/tickets/issues/28)
+
 # [0.27.0](https://github.com/MCCitiesClone/tickets/compare/v0.26.0...v0.27.0) (2026-08-22)
 
 
