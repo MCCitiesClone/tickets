@@ -40,12 +40,7 @@ import {
   CATEGORY_WARN_AT,
   categoryRemaining,
 } from "@/lib/category-capacity";
-import {
-  DEFAULT_TICKET_PRIORITY,
-  isEscalatedPriority,
-  priorityMeta,
-  TICKET_PRIORITIES,
-} from "@/lib/ticket-priority";
+import { isEscalatedPriority, priorityMeta } from "@/lib/ticket-priority";
 import { renderTemplate } from "./message-template";
 import {
   appendAutoOverflowCategory,
@@ -78,6 +73,12 @@ import { findBlacklistMatch } from "@/lib/queries/blacklist";
 import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
+import {
+  channelName,
+  isCategoryFullError,
+  sanitizePrefix,
+  topicForPriority,
+} from "./ticket-format";
 import { notifyOnCallStaff } from "./on-call";
 import { isStaffMember } from "./staff";
 import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
@@ -154,19 +155,6 @@ const TICKET_MEMBER_PERMS = [
   PermissionFlagsBits.AttachFiles,
   PermissionFlagsBits.EmbedLinks,
 ];
-
-/** Turn a naming scheme into a valid Discord channel name. */
-function channelName(scheme: string, number: number, username: string): string {
-  return (
-    scheme
-      .replaceAll("{number}", String(number))
-      .replaceAll("{username}", username)
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 90) || `ticket-${number}`
-  );
-}
 
 async function replyError(interaction: Interaction, content: string) {
   const payload = {
@@ -566,21 +554,6 @@ export async function submitTicketForm(
     answer: interaction.fields.getTextInputValue(q.id) || "—",
   }));
   await openTicket(interaction, panel, answers);
-}
-
-/**
- * Discord JSON error code for "Maximum number of channels in category reached".
- * Used as a reactive backstop to our proactive channel counting.
- */
-const CATEGORY_FULL_ERROR_CODE = 30030;
-
-function isCategoryFullError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const { code, message } = err as { code?: number; message?: string };
-  return (
-    code === CATEGORY_FULL_ERROR_CODE ||
-    /maximum number of channels/i.test(message ?? "")
-  );
 }
 
 /** Number of channels currently nested under a category (0 if it's gone). */
@@ -1040,30 +1013,6 @@ export const unclaimTicket = (
   ticketId?: string,
 ): Promise<void> => setClaim(interaction, ticketId, false);
 
-/** Discord caps a channel topic at 1024 characters. */
-const TOPIC_MAX_LENGTH = 1024;
-
-/**
- * The badge a non-default priority prepends to a ticket channel's topic, e.g.
- * `🔴 URGENT · Ticket #42 · opened by …`. Matching it lets a re-prioritise
- * replace the old badge instead of stacking a new one in front of it.
- */
-const TOPIC_PRIORITY_BADGE = new RegExp(
-  `^(?:${TICKET_PRIORITIES.map((p) => `${p.emoji} ${p.label.toUpperCase()}`).join(
-    "|",
-  )}) · `,
-);
-
-/** Re-badge a channel topic for `priority` (the default priority = no badge). */
-function topicForPriority(topic: string, priority: TicketPriority): string {
-  const base = topic.replace(TOPIC_PRIORITY_BADGE, "");
-  if (priority === DEFAULT_TICKET_PRIORITY) return base;
-  const { emoji, label } = priorityMeta(priority);
-  const badge = `${emoji} ${label.toUpperCase()}`;
-  // A topic-less ticket gets the bare badge — no dangling separator.
-  return (base ? `${badge} · ${base}` : badge).slice(0, TOPIC_MAX_LENGTH);
-}
-
 /**
  * Set (or, with no `priority`, report) the ticket's triage priority. Staff only.
  *
@@ -1206,15 +1155,6 @@ export async function setTicketMember(
     console.error("Failed to update ticket member:", err);
     await replyError(interaction, "I couldn't update that member's access.");
   }
-}
-
-/** Sanitize a staff-supplied prefix into a Discord-safe channel-name segment. */
-function sanitizePrefix(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
 }
 
 /**

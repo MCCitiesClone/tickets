@@ -223,6 +223,10 @@ export function EmojiAutocomplete({
       onKeyDownCapture={onKeyDown}
       // Arrow keys, Home/End and clicks move the caret without an input event.
       onKeyUpCapture={(e) => {
+        // While the menu is open it consumes ↑/↓ for navigation and stops the
+        // caret moving, so re-detecting here would only reset the highlight the
+        // keydown just moved. ←/→ still move the caret, so those re-detect.
+        if (open && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
         if (e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End") {
           detect(e.target);
         }
