@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { GuildMessageTemplates } from "@/db/schema";
 import { canManageGuild } from "@/lib/guild-access";
+import { isValidTimeZone } from "@/lib/support-hours";
 import { getGuild, upsertGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
 import { recordDashboardAudit } from "@/lib/audit-dashboard";
@@ -39,6 +40,26 @@ const configSchema = z.object({
   autoCloseExcludeHighPriority: z.boolean().optional(),
   namingScheme: z.string().min(1).max(100).optional(),
   closeReasons: z.array(z.string().trim().min(1).max(100)).max(25).optional(),
+  supportTimezone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    // Reject a zone this runtime can't resolve, rather than storing something
+    // every later calculation would throw on.
+    .refine(isValidTimeZone, "That isn't a recognised timezone.")
+    .optional(),
+  supportHours: z
+    .array(
+      z.object({
+        day: z.number().int().min(0).max(6),
+        start: z.string(),
+        end: z.string(),
+      }),
+    )
+    .max(50)
+    .optional(),
+  supportResponseHint: z.string().trim().max(200).nullable().optional(),
   messageTemplates: guildMessageTemplatesSchema.optional(),
 });
 

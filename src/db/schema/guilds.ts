@@ -8,6 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import type { SupportInterval } from "@/lib/support-hours";
 import type { GuildMessageTemplates } from "./message-template";
 
 /**
@@ -128,6 +129,29 @@ export const guild = pgTable("guild", {
   autoCloseExcludeHighPriority: boolean("auto_close_exclude_high_priority")
     .notNull()
     .default(false),
+
+  /**
+   * IANA timezone the support-hours schedule is expressed in, e.g.
+   * "Europe/London". Everything is stored as wall-clock time in this zone, so
+   * the schedule follows daylight saving rather than drifting by an hour.
+   */
+  supportTimezone: text("support_timezone").notNull().default("UTC"),
+
+  /**
+   * Weekly availability. Empty means always available — support hours are
+   * opt-in, and an unset schedule shouldn't flag every ticket as out-of-hours.
+   * See `src/lib/support-hours.ts`.
+   */
+  supportHours: jsonb("support_hours")
+    .$type<SupportInterval[]>()
+    .notNull()
+    .default([]),
+
+  /**
+   * Free-text expectation shown to the opener, e.g. "usually within 2 hours".
+   * Independent of the schedule: a server can set one without the other.
+   */
+  supportResponseHint: text("support_response_hint"),
 
   /**
    * Close reasons offered as suggestions when staff close a ticket — on the

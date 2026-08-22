@@ -48,6 +48,31 @@ release it with **Release** or `/unclaim`. Claiming records `claimedBy`, swaps
 the button between Claim and Release, and posts the claim notice (the guild
 [claim template](/docs/messages) or a built-in embed).
 
+## Support hours
+
+A server can tell members when its support team is around. When a ticket opens
+**outside** those hours, the bot posts a notice in the channel: that a reply may
+take longer, and when support is next available.
+
+Configure it in [Settings](/docs/configuration):
+
+- **Timezone** — an IANA name like `Europe/London`. Hours are stored as
+  wall-clock times in this zone, so they follow daylight saving instead of
+  drifting by an hour twice a year.
+- **Support hours** — any number of day + start + end spans. A span must end
+  after it starts; for an overnight shift add two, one ending at `23:59` and one
+  starting at `00:00` the next day.
+- **Expected response time** — free text like "usually within 2 hours", shown on
+  every new ticket whether or not you set hours.
+
+Leave the schedule empty to be always available: an unset schedule never flags a
+ticket as out-of-hours, so the feature stays opt-in. With neither hours nor a
+hint set, no notice is posted at all.
+
+The next-opening time is written as a Discord dynamic timestamp, so each member
+reads it in **their own** timezone rather than the support team's.
+
+
 ## Priority
 
 Every ticket opens at **Normal** priority. Staff move it with
