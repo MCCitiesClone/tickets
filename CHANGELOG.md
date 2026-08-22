@@ -1,3 +1,10 @@
+# [0.18.0](https://github.com/MCCitiesClone/tickets/compare/v0.17.0...v0.18.0) (2026-08-22)
+
+
+### Features
+
+* on-call staff roster with DM notification on ticket open ([#64](https://github.com/MCCitiesClone/tickets/issues/64)) ([9b78eb8](https://github.com/MCCitiesClone/tickets/commit/9b78eb8e3b6d7aedebf504b89ddc85ddbeb36c2c)), closes [#29](https://github.com/MCCitiesClone/tickets/issues/29)
+
 # [0.17.0](https://github.com/MCCitiesClone/tickets/compare/v0.16.0...v0.17.0) (2026-08-22)
 
 
