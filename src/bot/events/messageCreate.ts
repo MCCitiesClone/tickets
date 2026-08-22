@@ -1,6 +1,10 @@
 import type { Message } from "discord.js";
 
-import { markTicketActivity, upsertTicketMessages } from "@/lib/queries/tickets";
+import {
+  getTicket,
+  markTicketActivityBy,
+  upsertTicketMessages,
+} from "@/lib/queries/tickets";
 import { archiveMessageAttachments } from "../lib/attachment-archive";
 import { messageToRow } from "../lib/message-snapshot";
 import { getTrackedTicket } from "../lib/ticket-channels";
@@ -16,9 +20,14 @@ export async function onMessageCreate(message: Message): Promise<void> {
   try {
     await upsertTicketMessages([messageToRow(message, ticketId)]);
     // Human messages reset the inactivity clock (bot posts — welcome, warnings,
-    // canned responses — don't count, so an auto-close warning can't self-defer).
+    // canned responses — don't count, so an auto-close warning can't self-defer)
+    // and flip who owes the next reply.
     if (!message.author.bot) {
-      await markTicketActivity(ticketId, message.createdAt);
+      const ticket = await getTicket(ticketId);
+      // The opener writing means staff owe a reply; anyone else means they do.
+      const waitingOn =
+        ticket && message.author.id === ticket.openerId ? "staff" : "user";
+      await markTicketActivityBy(ticketId, message.createdAt, waitingOn);
     }
   } catch (err) {
     console.error("Failed to capture ticket message:", err);

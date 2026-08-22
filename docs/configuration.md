@@ -48,6 +48,7 @@ category is within 5 channels of it. Shared thresholds live in
 | `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
 | `ticketLimit`          | Max simultaneously-open tickets per user (`0` = unlimited; default `1`). |
 | `autoCloseHours` / `autoCloseWarningHours` / `autoCloseExcludeClaimed` / `autoCloseExcludeHighPriority` | Auto-close idle tickets after N hours (0 = off), warning M hours before; optionally skip claimed and high/urgent-priority tickets. |
+| `statusBoardChannelId` / `statusBoardMessageId` | Live open-ticket board; the message ID is bot-managed and re-posted if deleted. |
 | `supportTimezone` / `supportHours` / `supportResponseHint` | Weekly availability in an IANA zone, plus a free-text response-time hint shown on open. |
 | `closeReasons`         | Suggested close reasons (max 25) offered on `/close`, `/closerequest`, and the close-with-reason dropdown. |
 | `namingScheme`         | Channel name template. `{number}` / `{username}` are substituted. |
@@ -62,7 +63,8 @@ Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
   See `src/db/schema/panels.ts`.
 - `panel_cooldown` — per-user, per-panel cooldown expiry.
 - `ticket` — one row per ticket (number, channel, opener, status, priority,
-  claim, close request, form responses). See `src/db/schema/tickets.ts`.
+  waiting-on, claim, close request, form responses). See
+  `src/db/schema/tickets.ts`.
 - `ticket_message` — captured messages that make up a transcript.
 - `transcript` — the shareable transcript record (token, message count, reason).
 - `form_question` — guild-level library of reusable form questions; panels

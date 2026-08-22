@@ -131,6 +131,18 @@ export const guild = pgTable("guild", {
     .default(false),
 
   /**
+   * Channel where the live status board is posted — a read-only overview of
+   * every open ticket, grouped by category. Null disables the board.
+   */
+  statusBoardChannelId: text("status_board_channel_id"),
+
+  /**
+   * Bot-managed: the board message it edits in place. Cleared automatically if
+   * the message is deleted, so the next refresh posts a fresh one.
+   */
+  statusBoardMessageId: text("status_board_message_id"),
+
+  /**
    * IANA timezone the support-hours schedule is expressed in, e.g.
    * "Europe/London". Everything is stored as wall-clock time in this zone, so
    * the schedule follows daylight saving rather than drifting by an hour.

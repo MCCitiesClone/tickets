@@ -89,6 +89,9 @@ export function GuildSettingsForm({
   const [logChannelId, setLogChannelId] = useState(
     config?.logChannelId ?? CHANNEL_NONE,
   );
+  const [statusBoardChannelId, setStatusBoardChannelId] = useState(
+    config?.statusBoardChannelId ?? CHANNEL_NONE,
+  );
   const [onCallPingOnOpen, setOnCallPingOnOpen] = useState(
     config?.onCallPingOnOpen ?? true,
   );
@@ -166,6 +169,7 @@ export function GuildSettingsForm({
           feedbackEnabled,
           onCallPingOnOpen,
           logChannelId: orNull(logChannelId),
+          statusBoardChannelId: orNull(statusBoardChannelId),
           staffRoleIds,
           welcomeMessage,
           ticketLimit,
@@ -289,6 +293,24 @@ export function GuildSettingsForm({
             onValueChange={setLogChannelId}
             allowNone
           />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="status-board">Status board channel</Label>
+          <ChannelSelect
+            id="status-board"
+            guildId={guildId}
+            kind="text"
+            channels={textChannels}
+            categories={categories}
+            value={statusBoardChannelId}
+            onValueChange={setStatusBoardChannelId}
+            allowNone
+          />
+          <p className="text-xs text-muted-foreground">
+            The bot keeps one message here listing every open ticket, grouped by
+            category. Make it read-only for members. See{" "}
+            <strong>status board</strong> in the docs.
+          </p>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <Checkbox
               checked={onCallPingOnOpen}

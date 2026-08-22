@@ -1,7 +1,11 @@
 import type { Client } from "discord.js";
 
 import { registerCommands } from "../lib/register-commands";
-import { sweepDueCloseRequests, sweepInactiveTickets } from "../lib/tickets";
+import {
+  sweepDueCloseRequests,
+  sweepInactiveTickets,
+  sweepStatusBoards,
+} from "../lib/tickets";
 import { loadOpenTicketChannels } from "../lib/ticket-channels";
 
 /** How often to run the auto-close sweeps (close requests + inactivity). */
@@ -36,6 +40,7 @@ export async function onReady(client: Client<true>): Promise<void> {
   const sweep = () => {
     void sweepDueCloseRequests(client);
     void sweepInactiveTickets(client);
+    void sweepStatusBoards(client);
   };
   sweep();
   setInterval(sweep, SWEEP_MS);
