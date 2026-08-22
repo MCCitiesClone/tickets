@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ import { EmojiPicker } from "@/components/emoji-picker";
 import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
 import {
   DEFAULT_PANEL_COLOR,
+  type FormQuestion,
   isTemplateEmpty,
   MAX_QUESTION_OPTIONS,
   type AccessRule,
@@ -97,10 +99,13 @@ function Field({
 export function PanelForm({
   guildId,
   panel,
+  sharedQuestions = [],
 }: {
   guildId: string;
   /** When provided, the form edits this panel; otherwise it creates a new one. */
   panel?: Panel;
+  /** The guild's reusable question library, for the picker. */
+  sharedQuestions?: FormQuestion[];
 }) {
   const router = useRouter();
   const isEdit = Boolean(panel);
@@ -156,6 +161,9 @@ export function PanelForm({
     panel?.accessControl ?? [],
   );
 
+  const [sharedQuestionIds, setSharedQuestionIds] = useState<string[]>(
+    panel?.sharedQuestionIds ?? [],
+  );
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     panel?.questions.map((q) => ({
       label: q.label,
@@ -209,7 +217,7 @@ export function PanelForm({
   }, [guildId, panel]);
 
   function addQuestion() {
-    if (questions.length >= MAX_QUESTIONS) return;
+    if (totalQuestions >= MAX_QUESTIONS) return;
     setQuestions((p) => [
       ...p,
       {
@@ -267,6 +275,9 @@ export function PanelForm({
   const removeRule = (i: number) =>
     setAccessControl((p) => p.filter((_, idx) => idx !== i));
 
+  // Discord's five-field modal limit spans both lists.
+  const totalQuestions = sharedQuestionIds.length + questions.length;
+
   const postChannelId =
     channelId && channelId !== CHANNEL_NONE ? channelId : null;
 
@@ -308,6 +319,7 @@ export function PanelForm({
       hideClose,
       hideCloseWithReason,
       accessControl: accessControl.filter((r) => r.roleId),
+      sharedQuestionIds,
       questions: cleanedQuestions.map((q) => {
         const base = {
           label: q.label,
@@ -637,18 +649,71 @@ export function PanelForm({
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               Optionally ask up to {MAX_QUESTIONS} questions in a pop-up form when
-              a member opens a ticket.
+              a member opens a ticket. Shared questions are asked first, then this
+              panel&apos;s own.
             </p>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={addQuestion}
-              disabled={questions.length >= MAX_QUESTIONS}
+              disabled={totalQuestions >= MAX_QUESTIONS}
             >
               <Plus /> Add question
             </Button>
           </div>
+          {sharedQuestions.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Shared questions</Label>
+                <Link
+                  href="/dashboard/questions"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Manage library
+                </Link>
+              </div>
+              {sharedQuestions.map((q) => {
+                const checked = sharedQuestionIds.includes(q.id);
+                // Only block *adding* at the cap, so an over-full panel can
+                // still be pruned back down.
+                const atCap = totalQuestions >= MAX_QUESTIONS && !checked;
+                return (
+                  <label
+                    key={q.id}
+                    className="flex items-start gap-2 text-sm data-disabled:opacity-50"
+                    data-disabled={atCap || undefined}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      disabled={atCap}
+                      onCheckedChange={(v) =>
+                        setSharedQuestionIds((p) =>
+                          v === true
+                            ? [...p, q.id]
+                            : p.filter((id) => id !== q.id),
+                        )
+                      }
+                    />
+                    <span className="min-w-0">
+                      <span className="font-medium">{q.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {q.label}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+
+          {totalQuestions > MAX_QUESTIONS && (
+            <p className="rounded-md bg-orange-500/10 p-3 text-xs text-orange-700 dark:text-orange-400">
+              That&apos;s {totalQuestions} questions — Discord only shows{" "}
+              {MAX_QUESTIONS}. The extras won&apos;t be asked.
+            </p>
+          )}
+
           {questions.map((q, i) => (
             <div key={i} className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
               <div className="flex items-center gap-2">

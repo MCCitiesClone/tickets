@@ -91,6 +91,7 @@ const panelFields = {
   hideClose: z.boolean().optional().default(false),
   hideCloseWithReason: z.boolean().optional().default(false),
   accessControl: z.array(accessRuleSchema).max(25).optional().default([]),
+  sharedQuestionIds: z.array(z.string().min(1)).max(5).optional().default([]),
   questions: z.array(questionSchema).max(5).optional().default([]),
 };
 
@@ -137,6 +138,7 @@ function toRow(data: z.infer<typeof createSchema>) {
     hideClose: data.hideClose,
     hideCloseWithReason: data.hideCloseWithReason,
     accessControl: data.accessControl,
+    sharedQuestionIds: data.sharedQuestionIds,
     questions: data.questions.map((q, i): PanelQuestion => {
       const base = {
         id: `q${i}`,
