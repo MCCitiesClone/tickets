@@ -1,17 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 
 import type { MessageTemplate, TemplateEmbed } from "@/db/schema";
+import { applyPlaceholders } from "@/lib/placeholders";
 
-/** Substitute `{key}` tokens; unknown tokens are left untouched. */
-export function applyPlaceholders(
-  text: string | undefined,
-  vars: Record<string, string>,
-): string | undefined {
-  if (!text) return text;
-  return text.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in vars ? vars[key] : match,
-  );
-}
+export { applyPlaceholders };
 
 /** Substitute placeholders and drop the value if it ends up empty. */
 function sub(

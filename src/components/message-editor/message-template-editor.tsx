@@ -32,13 +32,19 @@ import {
 import { EmbedCard } from "./embed-card";
 import { CharCount, insertAtCaret } from "./editor-utils";
 import { fromDiscordJson, toDiscordJson } from "./discord-json";
+import { TIME_PLACEHOLDER_META } from "@/lib/placeholders";
 import { MessagePreview } from "./message-preview";
 import type { EmbedPreset } from "./presets";
 
 const MAX_EMBEDS = 10;
 
-/** Human-readable descriptions for every placeholder token, for the legend. */
+/**
+ * Human-readable descriptions for every placeholder token, for the legend.
+ * Date/time tokens are available in every substituted template, so their
+ * descriptions come from the shared placeholder module.
+ */
 export const PLACEHOLDER_META: Record<string, string> = {
+  ...TIME_PLACEHOLDER_META,
   ticket: "The ticket's number",
   number: "The ticket's number",
   username: "The opener's plain username (no mention)",

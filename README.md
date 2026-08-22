@@ -178,6 +178,7 @@ Repository copies of the core setup guides:
 - [x] On-call staff — roster + DM the person holding the pager when a ticket opens ([#29](https://github.com/MCCitiesClone/tickets/issues/29))
 - [x] Pterodactyl / Pelican egg for running the bot on a game panel ([#63](https://github.com/MCCitiesClone/tickets/issues/63))
 - [x] Discord-style `:emoji` autocomplete across the message editor ([#62](https://github.com/MCCitiesClone/tickets/issues/62))
+- [x] Dynamic date/time placeholders — `{now}`, `{now:R}`, `{now+24h}` ([#27](https://github.com/MCCitiesClone/tickets/issues/27))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -199,7 +200,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
 - [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
 - [ ] Docs: comparison page vs other ticket bots ([#19](https://github.com/MCCitiesClone/tickets/issues/19))
-- [ ] Dynamic date/time placeholders in messages ([#27](https://github.com/MCCitiesClone/tickets/issues/27))
 - [ ] Autocomplete close-request reasons ([#32](https://github.com/MCCitiesClone/tickets/issues/32))
 
 ## License

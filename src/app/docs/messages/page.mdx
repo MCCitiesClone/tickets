@@ -82,5 +82,35 @@ Token meanings:
 - `{reason}` — the close reason, if one was given.
 - `{transcript_url}` — the shareable transcript link.
 
+### Date and time
+
+These work in **every** substituted template, alongside the context-specific
+tokens above:
+
+| Token | Renders as |
+| --- | --- |
+| `{now}` / `{datetime}` | Full date and time |
+| `{date}` | Date only |
+| `{time}` | Time only |
+| `{now:R}` | Relative — "3 minutes ago", "in 2 hours" |
+
+They become Discord's **dynamic timestamps**, so everyone reading the message
+sees it in *their own* timezone and locale rather than the server's.
+
+Add a `±` offset for a time other than now — useful for "we'll follow up by…"
+or a close notice:
+
+```
+This ticket auto-closes {now+24h:R}.
+Please reply before {now+48h}.
+```
+
+Offsets take `s`, `m`, `h`, `d` or `w` (seconds through weeks). A `:` style may
+follow: `t` time, `T` time with seconds, `d` date, `D` long date, `f` date and
+time, `F` long date and time, `R` relative.
+
+> Multi-panel messages are posted directly rather than rendered per-ticket, so
+> they don't substitute tokens — the token menu is empty there on purpose.
+
 > The plain-text **Welcome message** in [guild settings](/docs/configuration) is
 > a simpler alternative used only when no rich Welcome template is configured.

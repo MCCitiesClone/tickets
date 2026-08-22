@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { TIME_PLACEHOLDERS } from "@/lib/placeholders";
 import { presetsFor } from "@/components/message-editor/presets";
 import { RoleMultiSelect, type Role } from "@/components/role-multi-select";
 import {
@@ -21,7 +22,14 @@ import type { CannedResponse, MessageTemplate } from "@/db/schema";
 import { EmptyState } from "../../page-shell";
 
 /** Placeholder tokens the bot fills for a canned response. */
-const PLACEHOLDERS = ["server", "channel", "ticket", "number", "opener"];
+const PLACEHOLDERS = [
+  "server",
+  "channel",
+  "ticket",
+  "number",
+  "opener",
+  ...TIME_PLACEHOLDERS,
+];
 
 const EMPTY_TEMPLATE: MessageTemplate = { embeds: [] };
 
