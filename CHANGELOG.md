@@ -1,3 +1,10 @@
+# [0.23.0](https://github.com/MCCitiesClone/tickets/compare/v0.22.0...v0.23.0) (2026-08-22)
+
+
+### Features
+
+* My tickets — members can find their own transcripts ([#70](https://github.com/MCCitiesClone/tickets/issues/70)) ([df9090d](https://github.com/MCCitiesClone/tickets/commit/df9090d889870af9ae78f98e87a6dcd6b5e75c0f)), closes [#22](https://github.com/MCCitiesClone/tickets/issues/22)
+
 # [0.22.0](https://github.com/MCCitiesClone/tickets/compare/v0.21.0...v0.22.0) (2026-08-22)
 
 
