@@ -1,3 +1,10 @@
+# [0.29.0](https://github.com/MCCitiesClone/tickets/compare/v0.28.0...v0.29.0) (2026-08-22)
+
+
+### Features
+
+* report a message to staff from its context menu ([#77](https://github.com/MCCitiesClone/tickets/issues/77)) ([828da09](https://github.com/MCCitiesClone/tickets/commit/828da09b8eb47a2048104889cb7e99ee1e26e898)), closes [#75](https://github.com/MCCitiesClone/tickets/issues/75)
+
 # [0.28.0](https://github.com/MCCitiesClone/tickets/compare/v0.27.0...v0.28.0) (2026-08-22)
 
 
