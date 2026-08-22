@@ -14,6 +14,7 @@ import {
   ScrollText,
   Settings,
   Ticket,
+  TicketCheck,
   TriangleAlert,
 } from "lucide-react";
 
@@ -196,6 +197,12 @@ export default async function DashboardPage() {
       title: "Blacklist",
       description: "Block users or roles from opening tickets.",
       icon: Ban,
+    },
+    {
+      href: "/dashboard/my-tickets",
+      title: "My tickets",
+      description: "Tickets you opened or took part in.",
+      icon: TicketCheck,
     },
     {
       href: "/dashboard/audit",

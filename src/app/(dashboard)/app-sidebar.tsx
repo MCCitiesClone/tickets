@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Ticket,
+  TicketCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +48,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "My tickets", href: "/dashboard/my-tickets", icon: TicketCheck },
   { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
   { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
   { title: "Stats", href: "/dashboard/stats", icon: BarChart3 },

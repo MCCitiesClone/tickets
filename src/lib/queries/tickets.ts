@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, gt, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, lte, ne, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   guild,
+  panel,
   ticket,
   ticketMessage,
   transcript,
@@ -37,6 +38,73 @@ export async function listGuildTickets(
     .orderBy(desc(ticket.openedAt))
     .limit(limit);
   return rows.map((r) => ({ ...r.ticket, transcriptToken: r.transcriptToken }));
+}
+
+/** A member's own ticket: enough to identify it, plus its transcript link. */
+export type MemberTicket = {
+  id: string;
+  guildId: string;
+  number: number;
+  status: Ticket["status"];
+  panelTitle: string | null;
+  openedAt: Date;
+  closedAt: Date | null;
+  transcriptToken: string | null;
+  /** True when the signed-in member opened it, rather than just taking part. */
+  opened: boolean;
+};
+
+/**
+ * Tickets a Discord user was involved in, across every guild: ones they opened,
+ * plus ones where they sent a message.
+ *
+ * Participation is derived from captured messages rather than from channel
+ * permission overwrites — overwrites live only on Discord and vanish with the
+ * channel, while `ticket_message` is the record that outlives the ticket. Bot
+ * messages are excluded so being *mentioned* by the bot isn't involvement.
+ *
+ * Scoped entirely by `userId`, so this can never surface someone else's ticket.
+ */
+export async function listTicketsForMember(
+  userId: string,
+  limit = 100,
+): Promise<MemberTicket[]> {
+  const participated = exists(
+    db
+      .select({ one: sql`1` })
+      .from(ticketMessage)
+      .where(
+        and(
+          eq(ticketMessage.ticketId, ticket.id),
+          eq(ticketMessage.authorId, userId),
+          eq(ticketMessage.authorBot, false),
+        ),
+      ),
+  );
+
+  const rows = await db
+    .select({
+      id: ticket.id,
+      guildId: ticket.guildId,
+      number: ticket.number,
+      status: ticket.status,
+      openerId: ticket.openerId,
+      panelTitle: panel.title,
+      openedAt: ticket.openedAt,
+      closedAt: ticket.closedAt,
+      transcriptToken: transcript.token,
+    })
+    .from(ticket)
+    .leftJoin(transcript, eq(transcript.ticketId, ticket.id))
+    .leftJoin(panel, eq(panel.id, ticket.panelId))
+    .where(or(eq(ticket.openerId, userId), participated))
+    .orderBy(desc(ticket.openedAt))
+    .limit(limit);
+
+  return rows.map(({ openerId, ...r }) => ({
+    ...r,
+    opened: openerId === userId,
+  }));
 }
 
 export async function getTicket(id: string): Promise<Ticket | null> {
