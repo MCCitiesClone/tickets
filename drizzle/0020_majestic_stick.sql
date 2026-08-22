@@ -1,0 +1,1 @@
+ALTER TABLE "guild" ADD COLUMN "close_reasons" jsonb DEFAULT '[]'::jsonb NOT NULL;

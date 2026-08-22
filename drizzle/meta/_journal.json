@@ -141,6 +141,13 @@
       "when": 1787367449103,
       "tag": "0019_breezy_drax",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787370149724,
+      "tag": "0020_majestic_stick",
+      "breakpoints": true
     }
   ]
 }

@@ -130,6 +130,16 @@ export const guild = pgTable("guild", {
     .default(false),
 
   /**
+   * Close reasons offered as suggestions when staff close a ticket — on the
+   * `/close` and `/closerequest` autocomplete and in the close-with-reason
+   * dropdown. Staff can always type something else instead.
+   */
+  closeReasons: jsonb("close_reasons")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+
+  /**
    * Naming scheme for ticket channels. `{number}` and `{username}` are
    * substituted, e.g. "ticket-{number}" -> "ticket-42".
    */

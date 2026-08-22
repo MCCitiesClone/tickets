@@ -11,10 +11,12 @@ import { EMBED_COLOR, noticeEmbed } from "../lib/embeds";
 import {
   buildCloseReasonModal,
   cancelCloseRequest,
+  closeReasonSuggestions,
   claimTicket,
   closeTicket,
   confirmCloseRequest,
   openTicketFromPanel,
+  readCloseReasonModal,
   startTicketFeedback,
   submitTicketFeedback,
   submitTicketForm,
@@ -119,7 +121,11 @@ export async function onInteractionCreate(
       } else if (action === "close_ticket") {
         await closeTicket(interaction, id);
       } else if (action === "close_reason") {
-        await interaction.showModal(buildCloseReasonModal(id));
+        // Suggestions are best-effort; an empty list just means no dropdown.
+        const suggestions = interaction.guildId
+          ? await closeReasonSuggestions(interaction.guildId)
+          : [];
+        await interaction.showModal(buildCloseReasonModal(id, suggestions));
       } else if (action === "claim_ticket") {
         await claimTicket(interaction, id);
       } else if (action === "unclaim_ticket") {
@@ -166,9 +172,7 @@ export async function onInteractionCreate(
       if (action === "ticket_form") {
         await submitTicketForm(interaction, id);
       } else if (action === "close_reason_modal") {
-        const reason =
-          interaction.fields.getTextInputValue("reason") || undefined;
-        await closeTicket(interaction, id, reason);
+        await closeTicket(interaction, id, readCloseReasonModal(interaction));
       } else if (action === "feedback") {
         // `feedback:<ticketId>:<score>` — comment modal from the rating DM.
         const [, ticketId, score] = interaction.customId.split(":");

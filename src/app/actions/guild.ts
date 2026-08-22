@@ -38,6 +38,7 @@ const configSchema = z.object({
   autoCloseExcludeClaimed: z.boolean().optional(),
   autoCloseExcludeHighPriority: z.boolean().optional(),
   namingScheme: z.string().min(1).max(100).optional(),
+  closeReasons: z.array(z.string().trim().min(1).max(100)).max(25).optional(),
   messageTemplates: guildMessageTemplatesSchema.optional(),
 });
 

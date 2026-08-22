@@ -1,6 +1,7 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 import type { Command } from "../types";
+import { autocompleteCloseReason } from "../lib/close-reason-autocomplete";
 import { requestClose } from "../lib/tickets";
 
 /** `/closerequest` — ask another member to confirm closing this ticket. */
@@ -23,6 +24,7 @@ export const closeRequestCommand: Command = {
         .setName("reason")
         .setDescription("The reason the ticket was closed")
         .setMaxLength(1000)
+        .setAutocomplete(true)
         .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
@@ -32,4 +34,5 @@ export const closeRequestCommand: Command = {
     const reason = interaction.options.getString("reason") ?? undefined;
     await requestClose(interaction, reason, closeDelay);
   },
+  autocomplete: autocompleteCloseReason,
 };

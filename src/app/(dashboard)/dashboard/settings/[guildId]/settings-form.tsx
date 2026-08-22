@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Plus, Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,9 @@ import { ChannelSelect, CHANNEL_NONE } from "@/components/channel-select";
 import type { Guild } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
+
+/** Matches the server action's cap on the configured reason list. */
+const MAX_CLOSE_REASONS = 25;
 
 export function GuildSettingsForm({
   guildId,
@@ -57,6 +62,9 @@ export function GuildSettingsForm({
     config?.welcomeMessage ?? "",
   );
   const [ticketLimit, setTicketLimit] = useState(config?.ticketLimit ?? 1);
+  const [closeReasons, setCloseReasons] = useState<string[]>(
+    config?.closeReasons ?? [],
+  );
   const [namingScheme, setNamingScheme] = useState(
     config?.namingScheme ?? "ticket-{number}",
   );
@@ -116,6 +124,7 @@ export function GuildSettingsForm({
           welcomeMessage,
           ticketLimit,
           namingScheme,
+          closeReasons: closeReasons.map((r) => r.trim()).filter(Boolean),
           autoCloseHours,
           autoCloseWarningHours,
           autoCloseExcludeClaimed,
@@ -310,6 +319,52 @@ export function GuildSettingsForm({
             substituted.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Close reasons</Label>
+        <p className="text-xs text-muted-foreground">
+          Suggested when staff close a ticket — offered by <code>/close</code>{" "}
+          and <code>/closerequest</code>, and in the close-with-reason dropdown.
+          Staff can always type something else. Reasons your staff use often are
+          suggested automatically, even if they&apos;re not listed here.
+        </p>
+        {closeReasons.map((reason, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              value={reason}
+              maxLength={100}
+              placeholder="e.g. Resolved — no further action needed"
+              onChange={(e) =>
+                setCloseReasons((p) =>
+                  p.map((r, idx) => (idx === i ? e.target.value : r)),
+                )
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Remove close reason"
+              onClick={() =>
+                setCloseReasons((p) => p.filter((_, idx) => idx !== i))
+              }
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-fit"
+          disabled={closeReasons.length >= MAX_CLOSE_REASONS}
+          onClick={() => setCloseReasons((p) => [...p, ""])}
+        >
+          <Plus className="size-4" />
+          Add reason
+        </Button>
       </div>
 
       <div className="flex flex-col gap-2">
