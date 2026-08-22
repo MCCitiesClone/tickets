@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/MCCitiesClone/tickets/compare/v0.20.0...v0.21.0) (2026-08-22)
+
+
+### Features
+
+* dynamic date/time placeholders in message templates ([#67](https://github.com/MCCitiesClone/tickets/issues/67)) ([017fa58](https://github.com/MCCitiesClone/tickets/commit/017fa58071fb88250c019a030974d39f2a7db22a)), closes [#27](https://github.com/MCCitiesClone/tickets/issues/27)
+
 # [0.20.0](https://github.com/MCCitiesClone/tickets/compare/v0.19.0...v0.20.0) (2026-08-22)
 
 
