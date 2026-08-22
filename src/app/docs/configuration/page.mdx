@@ -50,6 +50,24 @@ dashboard: sign in, open **Settings**, and pick a server you manage. You need
 | Naming scheme         | Channel-name template. `{number}` and `{username}` are substituted.              |
 | Message templates     | Rich embed messages for welcome / claim / close DM / transcript post.            |
 
+### Category capacity
+
+Discord caps a category at **50 channels**, and every open ticket is a channel.
+The Settings page shows a **Category capacity** card above the form: one bar per
+category tickets can land in — the server default, any panel overrides, and the
+configured and bot-created overflow chains — with its current channel count
+against the cap.
+
+Bars turn orange within 5 channels of the cap and red once it's reached. At the
+same threshold the bot posts a one-time warning to the [log
+channel](#per-server-guild-settings) naming the category and how much room is
+left; it warns again only after the category drops back below the threshold and
+fills up again.
+
+Counts come from Discord's channel list, which is cached for a few minutes, so
+the card can lag a burst of opens slightly. The bot's own check is always
+against live data.
+
 > **Staff** for a ticket means: a member with one of the configured staff roles,
 > or a member with the **Manage Channels** permission. Staff bypass per-user
 > ticket limits and panel cooldowns.

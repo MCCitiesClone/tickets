@@ -34,6 +34,11 @@ import {
   type Ticket,
 } from "@/db/schema";
 import { env } from "@/lib/env";
+import {
+  CATEGORY_CHANNEL_LIMIT,
+  CATEGORY_WARN_AT,
+  categoryRemaining,
+} from "@/lib/category-capacity";
 import { renderTemplate } from "./message-template";
 import {
   appendAutoOverflowCategory,
@@ -384,6 +389,7 @@ async function logAction(
   guild: DiscordGuild,
   config: Guild,
   content: string,
+  color: number = EMBED_COLOR.neutral,
 ): Promise<void> {
   if (!config.logChannelId) return;
   const channel = await guild.channels
@@ -392,7 +398,7 @@ async function logAction(
   if (channel?.isTextBased()) {
     await channel
       .send({
-        embeds: [noticeEmbed(content, EMBED_COLOR.neutral).setTimestamp()],
+        embeds: [noticeEmbed(content, color).setTimestamp()],
         allowedMentions: { parse: [] },
       })
       .catch(() => {});
@@ -554,9 +560,6 @@ export async function submitTicketForm(
   await openTicket(interaction, panel, answers);
 }
 
-/** Discord's hard cap on channels nested under a single category. */
-const CATEGORY_CHANNEL_LIMIT = 50;
-
 /**
  * Discord JSON error code for "Maximum number of channels in category reached".
  * Used as a reactive backstop to our proactive channel counting.
@@ -579,6 +582,54 @@ function categoryChildCount(guild: DiscordGuild, categoryId: string): number {
     return category.children.cache.size;
   }
   return guild.channels.cache.filter((c) => c.parentId === categoryId).size;
+}
+
+/**
+ * Ticket categories we've already warned about, keyed `guildId:categoryId`.
+ *
+ * Without this, every open into a near-full category would re-post the warning.
+ * An entry is dropped as soon as the category falls back under the threshold
+ * (tickets closed, channels deleted), so the warning fires once per crossing
+ * rather than once per process.
+ */
+const warnedFullCategories = new Set<string>();
+
+/**
+ * Post a heads-up to the log channel when the category a ticket just landed in
+ * is running out of room, so admins can add an overflow category before opens
+ * start spilling over. Best-effort and silent when no log channel is set.
+ */
+async function warnIfCategoryNearLimit(
+  guild: DiscordGuild,
+  config: Guild,
+  categoryId: string | null,
+): Promise<void> {
+  if (!categoryId) return;
+  const key = `${guild.id}:${categoryId}`;
+  const used = categoryChildCount(guild, categoryId);
+
+  if (used < CATEGORY_WARN_AT) {
+    warnedFullCategories.delete(key);
+    return;
+  }
+  if (warnedFullCategories.has(key)) return;
+  warnedFullCategories.add(key);
+
+  const remaining = categoryRemaining(used);
+  const room =
+    remaining === 0
+      ? "It's **full** — further tickets will spill into an overflow category."
+      : `Room for **${remaining}** more ticket${remaining === 1 ? "" : "s"}.`;
+  const advice = config.autoCreateOverflow
+    ? "Auto-overflow is on, so the bot will create a new category when it fills."
+    : "Auto-overflow is **off** — add an overflow category in the dashboard, or opens will start failing.";
+
+  await logAction(
+    guild,
+    config,
+    `⚠️ Ticket category <#${categoryId}> is at **${used}/${CATEGORY_CHANNEL_LIMIT}** channels. ${room} ${advice}`,
+    EMBED_COLOR.danger,
+  );
 }
 
 /**
@@ -831,6 +882,8 @@ export async function openTicket(
     config,
     `🎫 Ticket #${number} opened by <@${user.id}> — <#${channel.id}>`,
   );
+
+  await warnIfCategoryNearLimit(guild, config, channel.parentId);
 }
 
 /** Resolve the ticket for an interaction (by id or current channel) + config. */

@@ -32,6 +32,12 @@ page. Saving in the dashboard creates/updates the row.
 | `overflowCategoryIds`  | Fallback categories used (in order) when the primary is full (Discord caps a category at 50 channels). |
 | `autoCreateOverflow`   | Auto-create a new overflow category when every category is full (default on) so opens never fail. |
 | `autoOverflowCategoryIds` | Bot-managed list of auto-created overflow categories (reused as tickets close). Not edited in the dashboard. |
+
+Discord caps a category at 50 channels. The dashboard's **Category capacity**
+card on the settings page charts each ticket category's channel count against
+that cap, and the bot posts a one-time warning to the log channel once a
+category is within 5 channels of it. Shared thresholds live in
+`src/lib/category-capacity.ts`.
 | `transcriptChannelId`  | Where closed-ticket transcript links are posted.                  |
 | `dmTranscriptOnClose`  | DM the opener the transcript link on close (default off).         |
 | `feedbackEnabled`      | DM the opener a 1–5 star rating prompt on close (default off).     |

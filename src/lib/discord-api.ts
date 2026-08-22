@@ -156,6 +156,12 @@ export type DiscordChannel = {
   name: string;
   /** Parent category id (text channels only); null if uncategorized. */
   parentId?: string | null;
+  /**
+   * How many channels sit under this category (categories only). Counts every
+   * channel type, matching what Discord's 50-per-category cap counts — see
+   * `@/lib/category-capacity`.
+   */
+  childCount?: number;
 };
 export type GuildChannels = {
   categories: DiscordChannel[];
@@ -200,11 +206,22 @@ export const fetchGuildChannels = cache(
       }[];
       const byPosition = (a: { position: number }, b: { position: number }) =>
         a.position - b.position;
+      // Discord's per-category cap counts channels of every type, so count them
+      // all here rather than reusing the text-only list below.
+      const childCounts = new Map<string, number>();
+      for (const c of channels) {
+        if (!c.parent_id) continue;
+        childCounts.set(c.parent_id, (childCounts.get(c.parent_id) ?? 0) + 1);
+      }
       const result: GuildChannels = {
         categories: channels
           .filter((c) => c.type === CHANNEL_TYPE_CATEGORY)
           .sort(byPosition)
-          .map(({ id, name }) => ({ id, name })),
+          .map(({ id, name }) => ({
+            id,
+            name,
+            childCount: childCounts.get(id) ?? 0,
+          })),
         text: channels
           .filter((c) => c.type === CHANNEL_TYPE_TEXT)
           .sort(byPosition)
