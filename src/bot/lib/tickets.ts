@@ -32,6 +32,7 @@ import {
   type NewTicketMessage,
   type Panel,
   type Ticket,
+  type TicketPriority,
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import {
@@ -39,6 +40,12 @@ import {
   CATEGORY_WARN_AT,
   categoryRemaining,
 } from "@/lib/category-capacity";
+import {
+  DEFAULT_TICKET_PRIORITY,
+  isEscalatedPriority,
+  priorityMeta,
+  TICKET_PRIORITIES,
+} from "@/lib/ticket-priority";
 import { renderTemplate } from "./message-template";
 import {
   appendAutoOverflowCategory,
@@ -63,6 +70,7 @@ import {
   setTicketClaimedBy,
   setTicketNotesThread,
   setTicketPanel,
+  setTicketPriority,
   upsertTicketMessages,
 } from "@/lib/queries/tickets";
 import { getCannedResponse } from "@/lib/queries/canned-responses";
@@ -1011,6 +1019,115 @@ export const unclaimTicket = (
   ticketId?: string,
 ): Promise<void> => setClaim(interaction, ticketId, false);
 
+/** Discord caps a channel topic at 1024 characters. */
+const TOPIC_MAX_LENGTH = 1024;
+
+/**
+ * The badge a non-default priority prepends to a ticket channel's topic, e.g.
+ * `🔴 URGENT · Ticket #42 · opened by …`. Matching it lets a re-prioritise
+ * replace the old badge instead of stacking a new one in front of it.
+ */
+const TOPIC_PRIORITY_BADGE = new RegExp(
+  `^(?:${TICKET_PRIORITIES.map((p) => `${p.emoji} ${p.label.toUpperCase()}`).join(
+    "|",
+  )}) · `,
+);
+
+/** Re-badge a channel topic for `priority` (the default priority = no badge). */
+function topicForPriority(topic: string, priority: TicketPriority): string {
+  const base = topic.replace(TOPIC_PRIORITY_BADGE, "");
+  if (priority === DEFAULT_TICKET_PRIORITY) return base;
+  const { emoji, label } = priorityMeta(priority);
+  const badge = `${emoji} ${label.toUpperCase()}`;
+  // A topic-less ticket gets the bare badge — no dangling separator.
+  return (base ? `${badge} · ${base}` : badge).slice(0, TOPIC_MAX_LENGTH);
+}
+
+/**
+ * Set (or, with no `priority`, report) the ticket's triage priority. Staff only.
+ *
+ * Beyond the stored value the priority shows up as a badge on the channel topic
+ * so it's visible in the channel list, and — when the guild opts in — exempts
+ * escalated tickets from inactivity auto-close.
+ */
+export async function changeTicketPriority(
+  interaction: ChatInputCommandInteraction,
+  priority: TicketPriority | null,
+): Promise<void> {
+  const resolved = await resolveTicket(interaction, undefined);
+  if (!resolved) return;
+  const { ticket, config } = resolved;
+
+  // Reporting the current priority is read-only, so anyone in the ticket may.
+  if (!priority) {
+    const meta = priorityMeta(ticket.priority);
+    await interaction.reply({
+      embeds: [
+        noticeEmbed(
+          `${meta.emoji} This ticket's priority is **${meta.label}**.`,
+          meta.embedColor,
+        ),
+      ],
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (ticket.status === "closed") {
+    await replyError(interaction, "This ticket is closed.");
+    return;
+  }
+  if (!isStaff(interaction, config)) {
+    await replyError(interaction, "Only staff can set a ticket's priority.");
+    return;
+  }
+
+  const meta = priorityMeta(priority);
+  if (ticket.priority === priority) {
+    await interaction.reply({
+      embeds: [
+        noticeEmbed(
+          `This ticket is already **${meta.label}** priority.`,
+          meta.embedColor,
+        ),
+      ],
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Channel edits share Discord's heavily rate-limited rename bucket, so defer.
+  await interaction.deferReply();
+  await setTicketPriority(ticket.id, priority);
+
+  // Best-effort: the stored priority is what matters, the topic badge is a hint.
+  const channel = await interaction
+    .guild!.channels.fetch(ticket.channelId)
+    .catch(() => null);
+  if (channel && !channel.isThread() && "setTopic" in channel) {
+    await channel
+      .setTopic(topicForPriority(channel.topic ?? "", priority))
+      .catch((err) =>
+        console.error("Failed to update ticket topic for priority:", err),
+      );
+  }
+
+  const previous = priorityMeta(ticket.priority);
+  await interaction.editReply({
+    embeds: [
+      noticeEmbed(
+        `${meta.emoji} <@${interaction.user.id}> set this ticket's priority to **${meta.label}** (was ${previous.label}).`,
+        meta.embedColor,
+      ),
+    ],
+  });
+  await logAction(
+    interaction.guild!,
+    config,
+    `${meta.emoji} Ticket #${ticket.number} priority set to **${meta.label}** by <@${interaction.user.id}>`,
+  );
+}
+
 /** Add or remove a member's access to the current ticket channel. */
 export async function setTicketMember(
   interaction: ChatInputCommandInteraction,
@@ -1795,8 +1912,9 @@ const HOUR_MS = 3_600_000;
  * Auto-close tickets that have gone quiet. For each open ticket in a guild with
  * inactivity auto-close enabled: if it's been silent past the threshold, close
  * it; otherwise, once it enters the warning window, post a one-time heads-up.
- * Any human reply resets the clock (see `markTicketActivity`). Runs on the same
- * timer as the close-request sweep.
+ * Any human reply resets the clock (see `markTicketActivity`). Claimed and
+ * escalated tickets can be exempted per-guild. Runs on the same timer as the
+ * close-request sweep.
  */
 export async function sweepInactiveTickets(client: Client): Promise<void> {
   let candidates: Awaited<ReturnType<typeof listAutoCloseCandidates>>;
@@ -1813,9 +1931,12 @@ export async function sweepInactiveTickets(client: Client): Promise<void> {
     autoCloseHours,
     autoCloseWarningHours,
     autoCloseExcludeClaimed,
+    autoCloseExcludeHighPriority,
   } of candidates) {
     try {
       if (autoCloseExcludeClaimed && ticket.claimedBy) continue;
+      if (autoCloseExcludeHighPriority && isEscalatedPriority(ticket.priority))
+        continue;
 
       const lastActivity = (ticket.lastActivityAt ?? ticket.openedAt).getTime();
       const inactiveMs = now - lastActivity;

@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/MCCitiesClone/tickets/compare/v0.15.0...v0.16.0) (2026-08-22)
+
+
+### Features
+
+* ticket priority levels ([#60](https://github.com/MCCitiesClone/tickets/issues/60)) ([328650f](https://github.com/MCCitiesClone/tickets/commit/328650f046afb9cb76feb2bf5cbc3d2cf97c484a)), closes [#42](https://github.com/MCCitiesClone/tickets/issues/42) [#8](https://github.com/MCCitiesClone/tickets/issues/8)
+
 # [0.15.0](https://github.com/MCCitiesClone/tickets/compare/v0.14.2...v0.15.0) (2026-08-13)
 
 

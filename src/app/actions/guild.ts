@@ -34,6 +34,7 @@ const configSchema = z.object({
   autoCloseHours: z.number().int().min(0).max(8760).optional(),
   autoCloseWarningHours: z.number().int().min(0).max(8760).optional(),
   autoCloseExcludeClaimed: z.boolean().optional(),
+  autoCloseExcludeHighPriority: z.boolean().optional(),
   namingScheme: z.string().min(1).max(100).optional(),
   messageTemplates: guildMessageTemplatesSchema.optional(),
 });

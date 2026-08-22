@@ -1,7 +1,14 @@
 import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { panel, ticket, ticketMessage, transcript } from "@/db/schema";
+import {
+  panel,
+  ticket,
+  ticketMessage,
+  transcript,
+  type TicketPriority,
+} from "@/db/schema";
+import { TICKET_PRIORITIES } from "@/lib/ticket-priority";
 
 /**
  * Aggregate analytics over `ticket` / `ticket_message` for the dashboard Stats
@@ -24,6 +31,13 @@ export type StatsSummary = {
 
 export type DailyPoint = { date: string; opened: number; closed: number };
 export type PanelStat = { name: string; count: number };
+
+/** How many tickets of one priority are open right now vs. opened in range. */
+export type PriorityStat = {
+  priority: TicketPriority;
+  open: number;
+  openedInRange: number;
+};
 export type StaffStat = {
   id: string;
   name: string;
@@ -36,6 +50,7 @@ export type GuildStats = {
   summary: StatsSummary;
   daily: DailyPoint[];
   panels: PanelStat[];
+  priorities: PriorityStat[];
   staff: StaffStat[];
 };
 
@@ -222,6 +237,32 @@ async function getPanels(
   return rows;
 }
 
+/**
+ * Per-priority counts: the live open queue (unbounded by range, since that's
+ * what triage cares about) alongside how many were opened in the range. Always
+ * returns every priority, zero-filled, so the breakdown has a stable shape.
+ */
+async function getPriorities(
+  guildId: string,
+  { from, to }: StatsRange,
+): Promise<PriorityStat[]> {
+  const rows = await db
+    .select({
+      priority: ticket.priority,
+      open: sql<number>`count(*) filter (where ${ticket.status} = 'open')::int`,
+      openedInRange: sql<number>`count(*) filter (where ${ticket.openedAt} >= ${from} and ${ticket.openedAt} < ${to})::int`,
+    })
+    .from(ticket)
+    .where(eq(ticket.guildId, guildId))
+    .groupBy(ticket.priority);
+
+  const byPriority = new Map(rows.map((r) => [r.priority, r]));
+  return TICKET_PRIORITIES.map(
+    ({ value }) =>
+      byPriority.get(value) ?? { priority: value, open: 0, openedInRange: 0 },
+  );
+}
+
 async function getStaff(
   guildId: string,
   { from, to }: StatsRange,
@@ -300,13 +341,14 @@ export async function getGuildStats(
   guildId: string,
   range: StatsRange,
 ): Promise<GuildStats> {
-  const [summary, firstResponse, rating, daily, panels, staff] =
+  const [summary, firstResponse, rating, daily, panels, priorities, staff] =
     await Promise.all([
       getSummary(guildId, range),
       getFirstResponse(guildId, range),
       getRating(guildId, range),
       getDaily(guildId, range),
       getPanels(guildId, range),
+      getPriorities(guildId, range),
       getStaff(guildId, range),
     ]);
 
@@ -320,6 +362,7 @@ export async function getGuildStats(
     },
     daily,
     panels,
+    priorities,
     staff,
   };
 }

@@ -46,7 +46,7 @@ category is within 5 channels of it. Shared thresholds live in
 | `welcomeMessage`       | Plain-text first message (used when no rich welcome template set).|
 | `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
 | `ticketLimit`          | Max simultaneously-open tickets per user (`0` = unlimited; default `1`). |
-| `autoCloseHours` / `autoCloseWarningHours` / `autoCloseExcludeClaimed` | Auto-close idle tickets after N hours (0 = off), warning M hours before; optionally skip claimed tickets. |
+| `autoCloseHours` / `autoCloseWarningHours` / `autoCloseExcludeClaimed` / `autoCloseExcludeHighPriority` | Auto-close idle tickets after N hours (0 = off), warning M hours before; optionally skip claimed and high/urgent-priority tickets. |
 | `namingScheme`         | Channel name template. `{number}` / `{username}` are substituted. |
 | `ticketCounter`        | Atomic per-guild counter that assigns each ticket its number.     |
 
@@ -58,8 +58,8 @@ Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
 - `panel` / `multi_panel` — ticket panels and grouped panels (button messages).
   See `src/db/schema/panels.ts`.
 - `panel_cooldown` — per-user, per-panel cooldown expiry.
-- `ticket` — one row per ticket (number, channel, opener, status, claim, close
-  request, form responses). See `src/db/schema/tickets.ts`.
+- `ticket` — one row per ticket (number, channel, opener, status, priority,
+  claim, close request, form responses). See `src/db/schema/tickets.ts`.
 - `ticket_message` — captured messages that make up a transcript.
 - `transcript` — the shareable transcript record (token, message count, reason).
 - `blacklist` — per-guild list of users/roles blocked from opening tickets

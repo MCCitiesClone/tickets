@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText, Ticket as TicketIcon } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { PriorityBadge } from "@/components/priority-badge";
 import { getActiveGuild } from "@/lib/active-guild";
 import { listGuildTickets } from "@/lib/queries/tickets";
 import { requireSession } from "@/lib/session";
@@ -43,6 +44,7 @@ export default async function TicketsPage() {
                 <th className="px-4 py-2 font-medium">#</th>
                 <th className="px-4 py-2 font-medium">Opener</th>
                 <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 font-medium">Priority</th>
                 <th className="px-4 py-2 font-medium">Claimed by</th>
                 <th className="px-4 py-2 font-medium">Opened</th>
                 <th className="px-4 py-2 font-medium">Transcript</th>
@@ -63,6 +65,9 @@ export default async function TicketsPage() {
                     >
                       {t.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <PriorityBadge priority={t.priority} />
                   </td>
                   <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
                     {t.claimedBy ?? "—"}

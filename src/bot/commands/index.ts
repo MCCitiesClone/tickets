@@ -8,6 +8,7 @@ import { addCommand, removeCommand } from "./members";
 import { notesCommand } from "./notes";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
+import { priorityCommand } from "./priority";
 import { renameCommand } from "./rename";
 import { setupCommand } from "./setup";
 import { switchPanelCommand } from "./switchpanel";
@@ -29,6 +30,7 @@ export const commands: Command[] = [
   addCommand,
   removeCommand,
   renameCommand,
+  priorityCommand,
   switchPanelCommand,
   notesCommand,
   cannedResponseCommand,
