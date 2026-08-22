@@ -108,3 +108,23 @@ complete transcripts.
 Messages are persisted into `ticket_message` (captured live and swept on close)
 and served by the shareable transcript viewer at `/transcripts/<token>`. Still
 additive from here: canned responses and a per-user blacklist.
+
+## Tests
+
+`aube run test` runs the [vitest](https://vitest.dev) suite; `test:coverage`
+adds a coverage report. CI runs it on every pull request.
+
+Tests live beside the code they cover as `*.test.ts` / `*.test.tsx`. They default
+to the `node` environment; the ones that render components opt into jsdom with a
+`// @vitest-environment jsdom` docblock, so the fast majority never pay for a
+DOM. `SKIP_ENV_VALIDATION` is set for the whole run, since tests exercise logic
+rather than configuration.
+
+What's covered is the logic that can be reasoned about in isolation: placeholder
+substitution, template rendering for both the bot and the REST path, channel
+naming and topic badges, priority and category-capacity rules, transcript
+message snapshots and markdown rendering, the emoji autocomplete, and the
+command registry. Anything whose behaviour *is* its I/O — the query layer,
+server actions, route handlers, and the interaction handlers in
+`src/bot/lib/tickets.ts` — is not unit-tested; those need a database and a
+Discord gateway, and are covered by the build and by running the bot.

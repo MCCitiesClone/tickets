@@ -112,12 +112,20 @@ const BARE_URL_RULE: InlineRule = {
   ),
 };
 
+/**
+ * Emphasis content that neither starts nor ends with whitespace — either two or
+ * more characters, or a single one. Discord requires this for single-marker
+ * italics, so `2 * 3 * 4` stays arithmetic instead of turning into `2 3 4`.
+ * Written without lookbehind to keep older Safari happy.
+ */
+const TIGHT = "([^\\s][\\s\\S]*?[^\\s]|[^\\s])";
+
 const STYLE_RULES: InlineRule[] = [
   { regex: /\*\*([\s\S]+?)\*\*/, render: strong },
   { regex: /__([\s\S]+?)__/, render: underline },
   { regex: /~~([\s\S]+?)~~/, render: strike },
-  { regex: /\*([\s\S]+?)\*/, render: em },
-  { regex: /_([\s\S]+?)_/, render: em },
+  { regex: new RegExp(`\\*${TIGHT}\\*`), render: em },
+  { regex: new RegExp(`_${TIGHT}_`), render: em },
 ];
 
 /**

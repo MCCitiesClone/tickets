@@ -13,12 +13,13 @@ import { formatDuration } from "@/lib/duration";
 import type { GuildStats } from "@/lib/queries/stats";
 
 /** Quote a CSV field when it contains a comma, quote, or newline. */
-function csvCell(value: string | number | null): string {
+export function csvCell(value: string | number | null): string {
   const s = value == null ? "" : String(value);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-function toCsv(rows: (string | number | null)[][]): string {
+/** Join rows into CRLF-delimited CSV. Exported for tests. */
+export function toCsv(rows: (string | number | null)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
 }
 
