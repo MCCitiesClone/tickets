@@ -1,3 +1,10 @@
+# [0.26.0](https://github.com/MCCitiesClone/tickets/compare/v0.25.0...v0.26.0) (2026-08-22)
+
+
+### Features
+
+* shared form questions reusable across panels ([#73](https://github.com/MCCitiesClone/tickets/issues/73)) ([a075361](https://github.com/MCCitiesClone/tickets/commit/a0753610df961504a7013bad44f2844dee7b3381)), closes [#24](https://github.com/MCCitiesClone/tickets/issues/24)
+
 # [0.25.0](https://github.com/MCCitiesClone/tickets/compare/v0.24.0...v0.25.0) (2026-08-22)
 
 
