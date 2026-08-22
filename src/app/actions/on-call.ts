@@ -11,6 +11,7 @@ import {
   upsertOnCallEntry,
 } from "@/lib/queries/on-call";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 
 /**
  * On-call roster server actions. Each re-verifies the session and that the
@@ -64,6 +65,12 @@ export async function addOnCall(input: AddOnCallInput) {
     active: false,
     updatedBy: session.user.name ?? null,
   });
+  await recordDashboardAudit(
+    data.guildId,
+    "oncall.add",
+    `Added <@${data.userId}> to the on-call roster`,
+    { type: "user", id: data.userId },
+  );
   revalidatePath("/dashboard/on-call");
   return row;
 }
@@ -84,6 +91,16 @@ export async function setOnCallActive(input: SetOnCallActiveInput) {
     note: data.active ? (data.note?.trim() || null) : null,
     updatedBy: session.user.name ?? null,
   });
+  await recordDashboardAudit(
+    data.guildId,
+    "oncall.set",
+    `${data.active ? "Put" : "Took"} <@${data.userId}> ${data.active ? "on" : "off"} call`,
+    {
+      type: "user",
+      id: data.userId,
+      metadata: { active: data.active, note: row.note },
+    },
+  );
   revalidatePath("/dashboard/on-call");
   return row;
 }
@@ -94,5 +111,11 @@ export async function removeOnCall(guildId: string, userId: string) {
   const existing = await getOnCallEntry(guildId, userId);
   if (!existing) throw new Error("That member isn't on the roster.");
   await removeOnCallEntry(guildId, userId);
+  await recordDashboardAudit(
+    guildId,
+    "oncall.remove",
+    `Removed <@${userId}> from the on-call roster`,
+    { type: "user", id: userId },
+  );
   revalidatePath("/dashboard/on-call");
 }

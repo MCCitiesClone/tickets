@@ -20,6 +20,7 @@ import {
 } from "@/lib/queries/panels";
 import type { MessageTemplate, Panel } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 /**
@@ -140,6 +141,12 @@ export async function createPanel(input: CreatePanelInput) {
     }
   }
 
+  await recordDashboardAudit(
+    data.guildId,
+    "config.panel_create",
+    `Created panel "${panel.title}"`,
+    { type: "panel", id: panel.id, metadata: { channelId: data.channelId ?? null } },
+  );
   revalidatePath("/dashboard/panels");
   return panel;
 }
@@ -182,6 +189,12 @@ export async function updatePanel(input: UpdatePanelInput) {
     await setPanelMessage(updated.id, data.channelId, messageId);
   }
 
+  await recordDashboardAudit(
+    data.guildId,
+    "config.panel_update",
+    `Updated panel "${updated.title}"`,
+    { type: "panel", id: updated.id },
+  );
   revalidatePath("/dashboard/panels");
   return updated;
 }
@@ -212,6 +225,12 @@ export async function deletePanel(panelId: string) {
     await deleteMessage(panel.channelId, panel.messageId);
   }
   await deletePanelRow(panelId);
+  await recordDashboardAudit(
+    panel.guildId,
+    "config.panel_delete",
+    `Deleted panel "${panel.title}"`,
+    { type: "panel", id: panel.id },
+  );
   revalidatePath("/dashboard/panels");
 }
 

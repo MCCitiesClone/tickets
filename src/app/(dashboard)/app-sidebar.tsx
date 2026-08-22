@@ -13,6 +13,7 @@ import {
   MessageSquare,
   MessageSquareText,
   PanelsTopLeft,
+  ScrollText,
   Settings,
   Ticket,
 } from "lucide-react";
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
   },
   { title: "On call", href: "/dashboard/on-call", icon: BellRing },
   { title: "Blacklist", href: "/dashboard/blacklist", icon: Ban },
+  { title: "Audit log", href: "/dashboard/audit", icon: ScrollText },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

@@ -35,6 +35,8 @@ import {
   type TicketPriority,
 } from "@/db/schema";
 import { env } from "@/lib/env";
+import type { AuditAction } from "@/lib/audit";
+import { recordAuditEvent } from "@/lib/queries/audit";
 import {
   CATEGORY_CHANNEL_LIMIT,
   CATEGORY_WARN_AT,
@@ -380,13 +382,46 @@ export async function submitTicketFeedback(
     .catch(() => {});
 }
 
-/** Post an audit line to the configured log channel, if any (no pings). */
+/** Structured half of a logged action — the row kept in the audit trail. */
+type AuditDetail = {
+  action: AuditAction;
+  /** Discord user who acted; omit for the bot's own sweeps. */
+  actorId?: string | null;
+  actorName?: string | null;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * Record something that happened: post it to the configured log channel (if
+ * any) and append it to the guild's durable audit trail.
+ *
+ * The two go together on purpose — the log channel is the feed staff watch, the
+ * trail is what survives a channel purge and can be filtered in the dashboard.
+ * A guild with no log channel still gets the trail.
+ */
 async function logAction(
   guild: DiscordGuild,
   config: Guild,
   content: string,
-  color: number = EMBED_COLOR.neutral,
+  { color = EMBED_COLOR.neutral, audit }: { color?: number; audit?: AuditDetail } = {},
 ): Promise<void> {
+  if (audit) {
+    await recordAuditEvent({
+      guildId: guild.id,
+      // The bot writes on behalf of a member, except for its own sweeps.
+      source: audit.actorId ? "bot" : "system",
+      action: audit.action,
+      actorId: audit.actorId ?? null,
+      actorName: audit.actorName ?? null,
+      targetType: audit.targetType ?? null,
+      targetId: audit.targetId ?? null,
+      summary: content,
+      metadata: audit.metadata ?? {},
+    });
+  }
+
   if (!config.logChannelId) return;
   const channel = await guild.channels
     .fetch(config.logChannelId)
@@ -609,7 +644,15 @@ async function warnIfCategoryNearLimit(
     guild,
     config,
     `⚠️ Ticket category <#${categoryId}> is at **${used}/${CATEGORY_CHANNEL_LIMIT}** channels. ${room} ${advice}`,
-    EMBED_COLOR.danger,
+    {
+      color: EMBED_COLOR.danger,
+      audit: {
+        action: "system.category_full",
+        targetType: "category",
+        targetId: categoryId,
+        metadata: { used, limit: CATEGORY_CHANNEL_LIMIT, remaining },
+      },
+    },
   );
 }
 
@@ -862,6 +905,16 @@ export async function openTicket(
     guild,
     config,
     `🎫 Ticket #${number} opened by <@${user.id}> — <#${channel.id}>`,
+    {
+      audit: {
+        action: "ticket.open",
+        actorId: user.id,
+        actorName: user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number, panel: panel.title, channelId: channel.id },
+      },
+    },
   );
 
   // Reach whoever is holding the pager, so triage doesn't wait on a whole
@@ -881,7 +934,16 @@ export async function openTicket(
       guild,
       config,
       `🛎️ On-call notified for ticket #${number}: ${reached || "nobody"}${missed}`,
-      onCall.notified.length === 0 ? EMBED_COLOR.danger : EMBED_COLOR.neutral,
+      {
+        color:
+          onCall.notified.length === 0 ? EMBED_COLOR.danger : EMBED_COLOR.neutral,
+        audit: {
+          action: "ticket.oncall_notified",
+          targetType: "ticket",
+          targetId: ticket.id,
+          metadata: { notified: onCall.notified, failed: onCall.failed },
+        },
+      },
     );
   }
 
@@ -1000,6 +1062,16 @@ async function setClaim(
     interaction.guild!,
     config,
     `${claim ? "🙋" : "🙌"} Ticket #${ticket.number} ${claim ? "claimed" : "released"} by <@${userId}>`,
+    {
+      audit: {
+        action: claim ? "ticket.claim" : "ticket.unclaim",
+        actorId: userId,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number },
+      },
+    },
   );
 }
 
@@ -1095,6 +1167,16 @@ export async function changeTicketPriority(
     interaction.guild!,
     config,
     `${meta.emoji} Ticket #${ticket.number} priority set to **${meta.label}** by <@${interaction.user.id}>`,
+    {
+      audit: {
+        action: "ticket.priority",
+        actorId: interaction.user.id,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number, from: previous.value, to: priority },
+      },
+    },
   );
 }
 
@@ -1286,6 +1368,16 @@ export async function renameTicket(
     interaction.guild!,
     config,
     `✏️ Ticket #${ticket.number} renamed to \`${newName}\` by <@${interaction.user.id}>`,
+    {
+      audit: {
+        action: "ticket.rename",
+        actorId: interaction.user.id,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number, name: newName },
+      },
+    },
   );
 }
 
@@ -1387,6 +1479,16 @@ export async function switchTicketPanel(
     `🔀 Ticket #${ticket.number} switched to panel "${panel.title}"` +
       (renamedTo ? ` (renamed to \`${renamedTo}\`)` : "") +
       ` by <@${interaction.user.id}>`,
+    {
+      audit: {
+        action: "ticket.switch_panel",
+        actorId: interaction.user.id,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number, panel: panel.title, renamedTo },
+      },
+    },
   );
 }
 
@@ -1500,7 +1602,17 @@ export async function openStaffNotes(
   await logAction(
     guild,
     config,
-    `Staff notes opened for ticket #${ticket.number} by <@${interaction.user.id}>`,
+    `🗒️ Staff notes opened for ticket #${ticket.number} by <@${interaction.user.id}>`,
+    {
+      audit: {
+        action: "ticket.notes",
+        actorId: interaction.user.id,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number, threadId: thread.id },
+      },
+    },
   );
 }
 
@@ -1644,10 +1756,22 @@ export async function performClose(
 
   await markTicketClosed(ticket.id, closerId);
 
+  // An inactivity sweep closes as the bot; record that as automatic rather than
+  // attributing it to whoever the bot's user happens to be.
+  const autoClosed = closerId === guild.client.user?.id;
   await logAction(
     guild,
     config,
     `📪 Ticket #${ticket.number} closed by <@${closerId}>${reason ? ` — ${reason}` : ""}`,
+    {
+      audit: {
+        action: autoClosed ? "system.auto_close" : "ticket.close",
+        actorId: autoClosed ? null : closerId,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: { number: ticket.number, reason: reason ?? null },
+      },
+    },
   );
 
   if (channel && !channel.isThread() && channel.deletable) {
@@ -1722,7 +1846,7 @@ export async function requestClose(
 ): Promise<void> {
   const resolved = await resolveTicket(interaction, undefined);
   if (!resolved) return;
-  const { ticket } = resolved;
+  const { ticket, config } = resolved;
 
   if (ticket.status === "closed") {
     await replyError(interaction, "This ticket is already closed.");
@@ -1755,6 +1879,26 @@ export async function requestClose(
     components: [buildCloseRequestButtons(ticket.id)],
     allowedMentions: { users: pingOpener ? [ticket.openerId] : [] },
   });
+
+  await logAction(
+    interaction.guild!,
+    config,
+    `⏳ Close requested for ticket #${ticket.number} by <@${interaction.user.id}>${reason ? ` — ${reason}` : ""}`,
+    {
+      audit: {
+        action: "ticket.close_request",
+        actorId: interaction.user.id,
+        actorName: interaction.user.username,
+        targetType: "ticket",
+        targetId: ticket.id,
+        metadata: {
+          number: ticket.number,
+          reason: reason ?? null,
+          expiresAt: expiresAt?.toISOString() ?? null,
+        },
+      },
+    },
+  );
 }
 
 /** Confirm a pending close request — must be a different user than requested. */

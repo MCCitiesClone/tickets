@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries/blacklist";
 import { upsertGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 
 /**
  * Blacklist server actions. Each re-verifies the session and that the caller may
@@ -61,6 +62,12 @@ export async function addBlacklist(input: AddBlacklistInput) {
     reason: data.reason?.trim() ? data.reason.trim() : null,
     addedBy: session.user.name ?? null,
   });
+  await recordDashboardAudit(
+    data.guildId,
+    "blacklist.add",
+    `Blacklisted ${data.targetType} ${data.targetId}${row.reason ? ` — ${row.reason}` : ""}`,
+    { type: data.targetType, id: data.targetId, metadata: { reason: row.reason } },
+  );
   revalidatePath("/dashboard/blacklist");
   return row;
 }
@@ -72,5 +79,11 @@ export async function removeBlacklist(guildId: string, id: string) {
     throw new Error("Blacklist entry not found.");
   }
   await removeBlacklistEntry(id);
+  await recordDashboardAudit(
+    guildId,
+    "blacklist.remove",
+    `Removed ${existing.targetType} ${existing.targetId} from the blacklist`,
+    { type: existing.targetType, id: existing.targetId },
+  );
   revalidatePath("/dashboard/blacklist");
 }

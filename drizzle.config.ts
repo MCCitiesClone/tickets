@@ -12,7 +12,9 @@ if (!url) {
 
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./src/db/schema",
+  // The barrel, not the directory: a directory glob also picks up co-located
+  // `*.test.ts` files, which drizzle-kit then tries to parse as schema.
+  schema: "./src/db/schema/index.ts",
   out: "./drizzle",
   dbCredentials: { url },
   casing: "snake_case",

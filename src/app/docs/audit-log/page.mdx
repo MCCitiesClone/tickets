@@ -1,0 +1,62 @@
+export const metadata = {
+  title: "Audit log",
+  description:
+    "A durable, filterable record of every ticket and configuration change in the dashboard.",
+};
+
+# Audit log
+
+The dashboard's **Audit log** page is the durable record of everything that
+changes in a server: ticket activity from Discord, and configuration edits made
+in the dashboard that the bot never sees.
+
+It complements the [log channel](/docs/tickets#audit-log) rather than replacing
+it. The log channel stays exactly as it was — the at-a-glance feed staff already
+watch. The audit log is what survives a channel purge, covers dashboard edits,
+and can be filtered.
+
+## What's recorded
+
+| Group | Events |
+| --- | --- |
+| **Tickets** | Opened, closed, claimed, released, renamed, priority changed, panel switched, notes thread opened, close requested, on-call notified |
+| **Configuration** | Server settings saved; panels, multi-panels and canned responses created, updated or deleted |
+| **Moderation** | Blacklist entries added and removed; on-call roster changes |
+| **Automatic** | Inactivity auto-closes, and category capacity warnings |
+
+Each entry keeps who acted, what they acted on, a human-readable summary, and
+the time — plus structured detail (a ticket number, the changed setting names, a
+close reason) for later use.
+
+Dashboard changes are attributed to the acting user's **Discord** account, the
+same ID the bot records, so one person filters as one person no matter which
+side they made the change from.
+
+Settings saves record *which* fields changed, not their values: a setting can
+hold channel and role IDs, and there's no reason to mirror those into a second
+table.
+
+## Filtering
+
+Three filters, all reflected in the URL so a filtered view can be shared or
+bookmarked:
+
+- **Activity** — one of the groups above.
+- **Actor** — anyone who appears in the trail, including people who have since
+  left (the name is snapshotted when the entry is written).
+- **When** — the last 7, 30 or 90 days, or all time.
+
+Entries page 50 at a time, newest first.
+
+## Retention
+
+Entries are kept indefinitely and are removed only when the server itself is
+removed from the bot. There's no automatic pruning yet — a busy server
+accumulates roughly one row per ticket event.
+
+## Reading the entries
+
+Summaries are stored exactly as they're posted to the log channel, mentions and
+all, so the trail still reads correctly after a channel or role is renamed. The
+dashboard resolves those mentions to names when it renders them; an ID it can't
+resolve falls back to the raw snowflake rather than showing broken markup.
