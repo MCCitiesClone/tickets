@@ -1,0 +1,66 @@
+export const metadata = {
+  title: "On-call staff",
+  description:
+    "Designate staff who get DMed the moment a ticket opens, so triage doesn't wait on a whole support role.",
+};
+
+# On-call staff
+
+A support role notification only works if someone in the role happens to be
+looking. **On call** narrows that to the specific people holding the pager right
+now: when a ticket opens, the bot **DMs** each of them a link straight to the new
+channel.
+
+## Roster vs. on call
+
+The roster is the pool of staff who *can* take duty; the **on call** flag marks
+who's holding it right now. Keeping the two separate means a server sets its
+roster up once instead of re-adding people at every handover.
+
+- **On the roster, off call** — nothing happens on a new ticket.
+- **On the roster, on call** — DMed the moment a ticket opens, with an optional
+  note (e.g. "until 17:00 UTC") shown beside them on the roster.
+
+Anyone can be on call at once, including several people — they all get the DM.
+
+## From Discord
+
+| Command | Who | What it does |
+| --- | --- | --- |
+| `/oncall list` | Staff | Shows the roster: 🟢 on call, ⚪ on the roster. |
+| `/oncall claim [note]` | Staff | Takes the pager. Adds you to the roster if you're not on it. |
+| `/oncall release` | Staff | Hands off. You stay on the roster. |
+| `/oncall add <user>` | Manage Server | Adds someone to the roster, off call. |
+| `/oncall remove <user>` | Manage Server | Removes them from the roster entirely. |
+
+Every reply is ephemeral, so handovers don't clutter the channel. **Staff** here
+means the same thing as everywhere else in the bot: a member with one of the
+configured staff roles, or with **Manage Channels**.
+
+## From the dashboard
+
+The **On call** page manages the same roster: add staff (search members who've
+replied in a ticket, or paste a Discord user ID), toggle each one on or off call,
+attach a note, and remove them. It warns when the roster exists but nobody is
+holding the pager.
+
+## The notification
+
+Each on-call member gets a DM naming the ticket, its opener, the panel it came
+from, and an **Open ticket** button linking to the channel.
+
+It's a DM rather than a mention in the ticket, for two reasons: the ticket's
+welcome message is deliberately just the embed and its controls, and anything
+posted in the channel would also be captured into the
+[transcript](/docs/tickets#transcripts).
+
+Best-effort, as DMs always are — a member with DMs closed simply isn't reached.
+The bot records who it reached (and who it couldn't) in the
+[log channel](/docs/tickets#audit-log), so a silently unreachable pager is
+visible rather than invisible.
+
+## Turning it off
+
+**Settings → Notify on-call staff when a ticket opens** controls the DM. Off
+leaves the roster in place and fully browsable — the bot just doesn't notify —
+which is useful if you want on-call purely as a "who's around" board.

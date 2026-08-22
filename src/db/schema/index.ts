@@ -7,5 +7,6 @@ export * from "./blacklist";
 export * from "./canned-response";
 export * from "./guilds";
 export * from "./message-template";
+export * from "./on-call";
 export * from "./panels";
 export * from "./tickets";

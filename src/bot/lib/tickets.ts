@@ -78,6 +78,8 @@ import { findBlacklistMatch } from "@/lib/queries/blacklist";
 import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
+import { notifyOnCallStaff } from "./on-call";
+import { isStaffMember } from "./staff";
 import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
 
 type Interaction =
@@ -181,9 +183,7 @@ async function replyError(interaction: Interaction, content: string) {
 /** Whether the interacting member is support staff (staff role or manager). */
 function isStaff(interaction: Interaction, config: Guild): boolean {
   const member = interaction.inCachedGuild() ? interaction.member : null;
-  if (!member) return false;
-  if (member.permissions.has(PermissionFlagsBits.ManageChannels)) return true;
-  return config.staffRoleIds.some((r) => member.roles.cache.has(r));
+  return member ? isStaffMember(member, config) : false;
 }
 
 /** The ticket opener or any staff member may act on a ticket. */
@@ -890,6 +890,27 @@ export async function openTicket(
     config,
     `🎫 Ticket #${number} opened by <@${user.id}> — <#${channel.id}>`,
   );
+
+  // Reach whoever is holding the pager, so triage doesn't wait on a whole
+  // support role noticing the new channel.
+  const onCall = await notifyOnCallStaff(guild, config, {
+    number,
+    channelId: channel.id,
+    openerId: user.id,
+    panelTitle: panel.title || null,
+  });
+  if (onCall.notified.length > 0 || onCall.failed.length > 0) {
+    const reached = onCall.notified.map((id) => `<@${id}>`).join(", ");
+    const missed = onCall.failed.length
+      ? ` (couldn't DM ${onCall.failed.map((id) => `<@${id}>`).join(", ")})`
+      : "";
+    await logAction(
+      guild,
+      config,
+      `🛎️ On-call notified for ticket #${number}: ${reached || "nobody"}${missed}`,
+      onCall.notified.length === 0 ? EMBED_COLOR.danger : EMBED_COLOR.neutral,
+    );
+  }
 
   await warnIfCategoryNearLimit(guild, config, channel.parentId);
 }

@@ -73,6 +73,13 @@ export const guild = pgTable("guild", {
   /** Channel for audit/log messages (open, close, claim, …). */
   logChannelId: text("log_channel_id"),
 
+  /**
+   * Notify whoever is currently on call (see the `on_call` table) when a ticket
+   * opens. Off leaves the roster purely informational — `/oncall list` and the
+   * dashboard still work, the bot just doesn't ping.
+   */
+  onCallPingOnOpen: boolean("on_call_ping_on_open").notNull().default(true),
+
   /** Role IDs granted access to every ticket channel (support staff). */
   staffRoleIds: jsonb("staff_role_ids")
     .$type<string[]>()

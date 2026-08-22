@@ -6,6 +6,7 @@ import { closeCommand } from "./close";
 import { closeRequestCommand } from "./closerequest";
 import { addCommand, removeCommand } from "./members";
 import { notesCommand } from "./notes";
+import { onCallCommand } from "./oncall";
 import { panelCommand } from "./panel";
 import { pingCommand } from "./ping";
 import { priorityCommand } from "./priority";
@@ -34,6 +35,7 @@ export const commands: Command[] = [
   switchPanelCommand,
   notesCommand,
   cannedResponseCommand,
+  onCallCommand,
   blacklistCommand,
 ];
 
