@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, exists, gt, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gt,
+  isNotNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -465,6 +477,34 @@ export async function listAutoCloseCandidates(): Promise<AutoCloseCandidate[]> {
     .from(ticket)
     .innerJoin(guild, eq(guild.guildId, ticket.guildId))
     .where(and(eq(ticket.status, "open"), gt(guild.autoCloseHours, 0)));
+}
+
+/**
+ * Close reasons actually used in this guild lately, most recent first.
+ *
+ * Complements the admin-configured list: a reason staff keep typing becomes a
+ * suggestion without anyone having to add it. Reads the snapshot on
+ * `transcript`, which is where a close reason is persisted.
+ */
+export async function listRecentCloseReasons(
+  guildId: string,
+  limit = 25,
+): Promise<string[]> {
+  const rows = await db
+    .selectDistinctOn([transcript.closeReason], {
+      reason: transcript.closeReason,
+      createdAt: transcript.createdAt,
+    })
+    .from(transcript)
+    .where(
+      and(eq(transcript.guildId, guildId), isNotNull(transcript.closeReason)),
+    )
+    .orderBy(transcript.closeReason, desc(transcript.createdAt))
+    .limit(limit);
+
+  return rows
+    .flatMap((r) => (r.reason?.trim() ? [r.reason.trim()] : []))
+    .sort();
 }
 
 /** Count captured messages for a ticket. */

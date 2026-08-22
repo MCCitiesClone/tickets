@@ -129,6 +129,25 @@ bot:
 Steps 3–4 are best-effort — a failure there won't block the ticket from
 closing.
 
+### Suggested close reasons
+
+The same handful of reasons tend to get retyped, so the bot offers them back:
+
+- `/close` and `/closerequest` **autocomplete** the `reason` option.
+- **Close with reason** shows a **dropdown** of them above the text box. Picking
+  one is optional — what you type always wins.
+
+Suggestions come from two places, configured ones first:
+
+1. **Close reasons** in [Settings](/docs/configuration) — a curated list, up to
+   25.
+2. **Recently used** reasons from this server's transcripts, so a reason staff
+   keep typing becomes a suggestion on its own with no setup.
+
+Duplicates are removed case-insensitively, and nothing is ever forced: a reason
+that isn't on either list can always be typed.
+
+
 ## Auto-close
 
 Enable **auto-close on inactivity** in [Settings](/docs/configuration) to close

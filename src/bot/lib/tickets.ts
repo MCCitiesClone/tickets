@@ -59,6 +59,7 @@ import {
   getTicket,
   getTicketByChannel,
   listAutoCloseCandidates,
+  listRecentCloseReasons,
   listDueCloseRequests,
   markTicketAutoCloseWarned,
   markTicketClosed,
@@ -76,6 +77,13 @@ import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { buildTicketModal, readAnswer } from "./ticket-form";
+import {
+  buildCloseReasonModal,
+  mergeCloseReasons,
+  readCloseReasonModal,
+} from "./close-reasons";
+
+export { buildCloseReasonModal, readCloseReasonModal };
 import {
   channelName,
   isCategoryFullError,
@@ -264,20 +272,22 @@ function checkAccess(member: GuildMember, rules: AccessRule[]): boolean {
 }
 
 /** Build the "close with reason" modal. */
-export function buildCloseReasonModal(ticketId: string): ModalBuilder {
-  return new ModalBuilder()
-    .setCustomId(`close_reason_modal:${ticketId}`)
-    .setTitle("Close ticket")
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId("reason")
-          .setLabel("Reason")
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(false)
-          .setMaxLength(1000),
-      ),
-    );
+
+/** Suggested close reasons for a guild: configured first, then recently used. */
+export async function closeReasonSuggestions(
+  guildId: string,
+  config?: Guild | null,
+): Promise<string[]> {
+  try {
+    const [guildConfig, recent] = await Promise.all([
+      config ? Promise.resolve(config) : getGuild(guildId),
+      listRecentCloseReasons(guildId),
+    ]);
+    return mergeCloseReasons(guildConfig?.closeReasons ?? [], recent);
+  } catch (err) {
+    console.error("Failed to load close-reason suggestions:", err);
+    return [];
+  }
 }
 
 const FEEDBACK_STARS = [1, 2, 3, 4, 5];

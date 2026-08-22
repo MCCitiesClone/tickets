@@ -182,6 +182,7 @@ Repository copies of the core setup guides:
 - [x] Audit log — durable, filterable record of ticket and config changes ([#26](https://github.com/MCCitiesClone/tickets/issues/26))
 - [x] My tickets — members find transcripts for tickets they opened or replied in ([#22](https://github.com/MCCitiesClone/tickets/issues/22))
 - [x] Dropdown form questions — single or multi choice, up to 25 options ([#25](https://github.com/MCCitiesClone/tickets/issues/25))
+- [x] Suggested close reasons — autocomplete + dropdown, configured and recently used ([#32](https://github.com/MCCitiesClone/tickets/issues/32))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -200,7 +201,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Multi-language (i18n) support ([#10](https://github.com/MCCitiesClone/tickets/issues/10))
 - [ ] Extension / plugin system — deferred ([#12](https://github.com/MCCitiesClone/tickets/issues/12))
 - [ ] Docs: comparison page vs other ticket bots ([#19](https://github.com/MCCitiesClone/tickets/issues/19))
-- [ ] Autocomplete close-request reasons ([#32](https://github.com/MCCitiesClone/tickets/issues/32))
 
 ## License
 

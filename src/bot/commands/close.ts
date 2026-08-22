@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from "discord.js";
 
 import type { Command } from "../types";
+import { autocompleteCloseReason } from "../lib/close-reason-autocomplete";
 import { closeTicket } from "../lib/tickets";
 
 /** `/close [reason]` — close the ticket in the current channel (opener or staff). */
@@ -12,6 +13,8 @@ export const closeCommand: Command = {
       o
         .setName("reason")
         .setDescription("Optional reason, saved to the transcript")
+        .setMaxLength(1000)
+        .setAutocomplete(true)
         .setRequired(false),
     )
     .setDMPermission(false),
@@ -20,4 +23,5 @@ export const closeCommand: Command = {
     // Authorization + "is this a ticket channel?" are handled in closeTicket.
     await closeTicket(interaction, undefined, reason);
   },
+  autocomplete: autocompleteCloseReason,
 };
