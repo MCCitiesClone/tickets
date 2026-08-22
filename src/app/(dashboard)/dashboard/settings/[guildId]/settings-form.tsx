@@ -9,14 +9,51 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChannelSelect, CHANNEL_NONE } from "@/components/channel-select";
 import type { Guild } from "@/db/schema";
 import type { DiscordChannel } from "@/lib/discord-api";
 import { updateGuildConfig } from "@/app/actions/guild";
+import { DAY_NAMES, type SupportInterval } from "@/lib/support-hours";
 
 /** Matches the server action's cap on the configured reason list. */
 const MAX_CLOSE_REASONS = 25;
+
+const DAY_ITEMS: Record<string, string> = Object.fromEntries(
+  // Monday first: opening hours read more naturally that way.
+  [1, 2, 3, 4, 5, 6, 0].map((d) => [String(d), DAY_NAMES[d]]),
+);
+
+const WEEKDAYS_9_TO_5: SupportInterval[] = [1, 2, 3, 4, 5].map((day) => ({
+  day,
+  start: "09:00",
+  end: "17:00",
+}));
+
+/** A short list of common zones for the input's datalist; any IANA name works. */
+const TIMEZONES = [
+  "UTC",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Moscow",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+];
 
 export function GuildSettingsForm({
   guildId,
@@ -62,6 +99,15 @@ export function GuildSettingsForm({
     config?.welcomeMessage ?? "",
   );
   const [ticketLimit, setTicketLimit] = useState(config?.ticketLimit ?? 1);
+  const [supportTimezone, setSupportTimezone] = useState(
+    config?.supportTimezone ?? "UTC",
+  );
+  const [supportHours, setSupportHours] = useState<SupportInterval[]>(
+    config?.supportHours ?? [],
+  );
+  const [supportResponseHint, setSupportResponseHint] = useState(
+    config?.supportResponseHint ?? "",
+  );
   const [closeReasons, setCloseReasons] = useState<string[]>(
     config?.closeReasons ?? [],
   );
@@ -125,6 +171,9 @@ export function GuildSettingsForm({
           ticketLimit,
           namingScheme,
           closeReasons: closeReasons.map((r) => r.trim()).filter(Boolean),
+          supportTimezone: supportTimezone.trim() || "UTC",
+          supportHours,
+          supportResponseHint: supportResponseHint.trim() || null,
           autoCloseHours,
           autoCloseWarningHours,
           autoCloseExcludeClaimed,
@@ -319,6 +368,146 @@ export function GuildSettingsForm({
             substituted.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Support hours</Label>
+        <p className="text-xs text-muted-foreground">
+          When a ticket opens outside these hours, the opener is told support may
+          be slower and when it&apos;s next available. Leave empty to always be
+          available.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="support-tz">Timezone</Label>
+            <Input
+              id="support-tz"
+              list="tz-options"
+              value={supportTimezone}
+              maxLength={64}
+              placeholder="UTC"
+              onChange={(e) => setSupportTimezone(e.target.value)}
+            />
+            <datalist id="tz-options">
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz} />
+              ))}
+            </datalist>
+            <p className="text-xs text-muted-foreground">
+              An IANA name like <code>Europe/London</code>. Hours follow daylight
+              saving automatically.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="support-hint">Expected response time</Label>
+            <Input
+              id="support-hint"
+              value={supportResponseHint}
+              maxLength={200}
+              placeholder="e.g. usually within 2 hours"
+              onChange={(e) => setSupportResponseHint(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on every new ticket, in and out of hours. Optional.
+            </p>
+          </div>
+        </div>
+
+        {supportHours.length > 0 &&
+          supportHours.map((interval, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <Select
+                items={DAY_ITEMS}
+                value={String(interval.day)}
+                onValueChange={(v) =>
+                  setSupportHours((p) =>
+                    p.map((x, idx) =>
+                      idx === i ? { ...x, day: Number(v as string) } : x,
+                    ),
+                  )
+                }
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DAY_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="time"
+                className="w-32"
+                value={interval.start}
+                onChange={(e) =>
+                  setSupportHours((p) =>
+                    p.map((x, idx) =>
+                      idx === i ? { ...x, start: e.target.value } : x,
+                    ),
+                  )
+                }
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input
+                type="time"
+                className="w-32"
+                value={interval.end}
+                onChange={(e) =>
+                  setSupportHours((p) =>
+                    p.map((x, idx) =>
+                      idx === i ? { ...x, end: e.target.value } : x,
+                    ),
+                  )
+                }
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Remove support hours"
+                onClick={() =>
+                  setSupportHours((p) => p.filter((_, idx) => idx !== i))
+                }
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setSupportHours((p) => [
+                ...p,
+                { day: 1, start: "09:00", end: "17:00" },
+              ])
+            }
+          >
+            <Plus className="size-4" />
+            Add hours
+          </Button>
+          {supportHours.length === 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSupportHours(WEEKDAYS_9_TO_5)}
+            >
+              Use Mon–Fri, 9–5
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          A span must end after it starts. For an overnight shift, add two — one
+          ending at 23:59 and one starting at 00:00 the next day.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

@@ -77,6 +77,7 @@ import { findBlacklistMatch } from "@/lib/queries/blacklist";
 import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
+import { buildSupportNotice } from "./support-notice";
 import { buildTicketModal, readAnswer } from "./ticket-form";
 import {
   buildCloseReasonModal,
@@ -896,6 +897,15 @@ export async function openTicket(
     });
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
+  }
+
+  // Set expectations before anything else: a notice only appears when the guild
+  // configured support hours or a response-time hint.
+  const notice = buildSupportNotice(config);
+  if (notice) {
+    await channel
+      .send({ embeds: [notice] })
+      .catch((err) => console.error("Failed to post support notice:", err));
   }
 
   await logAction(
