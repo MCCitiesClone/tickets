@@ -10,6 +10,7 @@ import {
   type Client,
   EmbedBuilder,
   type Guild as DiscordGuild,
+  type MessageContextMenuCommandInteraction,
   type GuildMember,
   type GuildTextBasedChannel,
   MessageFlags,
@@ -79,6 +80,11 @@ import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { buildSupportNotice } from "./support-notice";
+import {
+  buildReportEmbed,
+  encodeReportRef,
+  type ReportedMessage,
+} from "./report-message";
 import { invalidateStatusBoard, refreshStatusBoard } from "./status-board";
 import { buildTicketModal, readAnswer } from "./ticket-form";
 import {
@@ -101,10 +107,16 @@ import { trackTicketChannel, untrackTicketChannel } from "./ticket-channels";
 type Interaction =
   | ButtonInteraction
   | ChatInputCommandInteraction
+  | MessageContextMenuCommandInteraction
   | ModalSubmitInteraction
   | StringSelectMenuInteraction;
+/**
+ * Interactions a ticket can be opened from: a panel button, a multi-panel
+ * dropdown, a submitted form, or the report-message context menu.
+ */
 type OpenInteraction =
   | ButtonInteraction
+  | MessageContextMenuCommandInteraction
   | ModalSubmitInteraction
   | StringSelectMenuInteraction;
 export type FormAnswer = { question: string; answer: string };
@@ -547,8 +559,12 @@ async function precheckOpen(
  * present a modal first; otherwise open the ticket immediately.
  */
 export async function openTicketFromPanel(
-  interaction: ButtonInteraction | StringSelectMenuInteraction,
+  interaction:
+    | ButtonInteraction
+    | MessageContextMenuCommandInteraction
+    | StringSelectMenuInteraction,
   panelId: string,
+  report?: ReportedMessage,
 ): Promise<void> {
   if (!interaction.inCachedGuild()) return;
 
@@ -564,11 +580,18 @@ export async function openTicketFromPanel(
   // Null when the panel has no askable questions — open straight away then.
   const modal = buildTicketModal(panel, await resolvePanelQuestions(panel));
   if (modal) {
+    // The report reference has to survive the modal round trip, and the customId
+    // is the only channel available for that.
+    if (report) {
+      modal.setCustomId(
+        `ticket_form:${panel.id}:${encodeReportRef(report)}`,
+      );
+    }
     await interaction.showModal(modal);
     return;
   }
 
-  await openTicket(interaction, panel, [], ctx);
+  await openTicket(interaction, panel, [], ctx, report);
 }
 
 /** Handle a submitted ticket form modal: collect answers, then open the ticket. */
@@ -576,6 +599,7 @@ export async function openTicketFromPanel(
 export async function submitTicketForm(
   interaction: ModalSubmitInteraction,
   panelId: string,
+  report?: ReportedMessage,
 ): Promise<void> {
   const panel = await getPanel(panelId);
   if (!panel) {
@@ -588,7 +612,7 @@ export async function submitTicketForm(
     question: q.label,
     answer: readAnswer(interaction, q),
   }));
-  await openTicket(interaction, panel, answers);
+  await openTicket(interaction, panel, answers, undefined, report);
 }
 
 /** Number of channels currently nested under a category (0 if it's gone). */
@@ -767,6 +791,8 @@ export async function openTicket(
   panel: Panel,
   answers: FormAnswer[],
   preresolved?: OpenContext,
+  /** A message this ticket reports, quoted into the channel after the welcome. */
+  report?: ReportedMessage,
 ): Promise<void> {
   if (!interaction.inCachedGuild()) return;
   const { guild, guildId, user } = interaction;
@@ -899,6 +925,13 @@ export async function openTicket(
     });
   } catch (err) {
     console.error("Failed to post ticket welcome message:", err);
+  }
+
+  // The reported message, snapshotted — the original may not survive the report.
+  if (report) {
+    await channel
+      .send({ embeds: [buildReportEmbed(report)] })
+      .catch((err) => console.error("Failed to post reported message:", err));
   }
 
   // Set expectations before anything else: a notice only appears when the guild

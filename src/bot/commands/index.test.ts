@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { commandMap, commands } from "./index";
+import {
+  allCommandData,
+  commandMap,
+  commands,
+  messageCommandMap,
+  messageCommands,
+} from "./index";
 
 /** Discord's constraints on an application command's registered shape. */
 const NAME = /^[-_'\p{L}\p{N}]{1,32}$/u;
@@ -96,6 +102,64 @@ describe("command registry", () => {
       "blacklist",
     ]) {
       expect(commandMap.has(name), `missing /${name}`).toBe(true);
+    }
+  });
+});
+
+describe("message context-menu commands", () => {
+  it("registers every message command in its lookup map", () => {
+    expect(messageCommandMap.size).toBe(messageCommands.length);
+  });
+
+  it("resolves each message command by its display name", () => {
+    for (const command of messageCommands) {
+      expect(messageCommandMap.get(command.data.name)).toBe(command);
+    }
+  });
+
+  it.each(messageCommands.map((c) => ({ name: c.data.name, command: c })))(
+    "%# serialises with the Message application-command type",
+    ({ command }) => {
+      // Type 3 is MESSAGE; getting this wrong makes it a user context menu.
+      expect(command.data.toJSON().type).toBe(3);
+    },
+  );
+
+  it.each(messageCommands.map((c) => ({ name: c.data.name, command: c })))(
+    "%# has an executable handler",
+    ({ command }) => {
+      expect(typeof command.execute).toBe("function");
+    },
+  );
+
+  it("offers the report entry", () => {
+    expect(messageCommandMap.has("Report message to staff")).toBe(true);
+  });
+});
+
+describe("allCommandData", () => {
+  it("covers both command kinds", () => {
+    expect(allCommandData).toHaveLength(
+      commands.length + messageCommands.length,
+    );
+  });
+
+  it("has no duplicate name within a command type", () => {
+    // Discord allows a slash command and a context menu to share a name, but
+    // not two of the same type.
+    const byType = new Map<number, string[]>();
+    for (const data of allCommandData) {
+      const type = data.type ?? 1;
+      byType.set(type, [...(byType.get(type) ?? []), data.name]);
+    }
+    for (const [type, names] of byType) {
+      expect(new Set(names).size, `type ${type}`).toBe(names.length);
+    }
+  });
+
+  it("serialises every entry without throwing", () => {
+    for (const data of allCommandData) {
+      expect(data.name.length).toBeGreaterThan(0);
     }
   });
 });

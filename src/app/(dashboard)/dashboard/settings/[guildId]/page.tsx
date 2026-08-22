@@ -56,6 +56,7 @@ export default async function GuildSettingsPage({
         categories={channels.categories}
         textChannels={channels.text}
         roles={roles}
+        panels={panels}
       />
     </div>
   );

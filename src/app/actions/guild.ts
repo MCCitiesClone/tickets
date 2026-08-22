@@ -31,6 +31,7 @@ const configSchema = z.object({
   feedbackEnabled: z.boolean().optional(),
   logChannelId: z.string().nullable().optional(),
   statusBoardChannelId: z.string().nullable().optional(),
+  reportPanelId: z.string().nullable().optional(),
   onCallPingOnOpen: z.boolean().optional(),
   staffRoleIds: z.array(z.string()).optional(),
   welcomeMessage: z.string().max(2000).optional(),

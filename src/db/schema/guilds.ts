@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 import type { SupportInterval } from "@/lib/support-hours";
@@ -129,6 +130,13 @@ export const guild = pgTable("guild", {
   autoCloseExcludeHighPriority: boolean("auto_close_exclude_high_priority")
     .notNull()
     .default(false),
+
+  /**
+   * Panel used when a member reports a message via the "Report message to
+   * staff" context-menu command. Null falls back to the guild's only panel, or
+   * asks the reporter to pick when there are several.
+   */
+  reportPanelId: uuid("report_panel_id"),
 
   /**
    * Channel where the live status board is posted — a read-only overview of
