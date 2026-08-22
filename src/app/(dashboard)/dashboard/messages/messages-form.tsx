@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { TIME_PLACEHOLDERS } from "@/lib/placeholders";
 import { presetsFor } from "@/components/message-editor/presets";
 import type {
   GuildMessageTemplates,
@@ -99,7 +100,7 @@ export function MessagesForm({
         key={tab}
         value={value}
         onChange={setValue}
-        placeholders={active.placeholders}
+        placeholders={[...active.placeholders, ...TIME_PLACEHOLDERS]}
         presets={presetsFor(tab)}
         guildId={guildId}
       />

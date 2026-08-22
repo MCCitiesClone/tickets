@@ -34,6 +34,7 @@ import {
   type Panel,
 } from "@/db/schema";
 import { MessageTemplateEditor } from "@/components/message-editor/message-template-editor";
+import { TIME_PLACEHOLDERS } from "@/lib/placeholders";
 import { presetsFor } from "@/components/message-editor/presets";
 import { createPanel, updatePanel } from "@/app/actions/panel";
 
@@ -43,6 +44,7 @@ const WELCOME_PLACEHOLDERS = [
   "user",
   "server",
   "channel",
+  ...TIME_PLACEHOLDERS,
 ];
 
 const COLORS = ["Primary", "Secondary", "Success", "Danger"] as const;
