@@ -18,7 +18,12 @@ import {
   setPanelMessage,
   updatePanel as updatePanelRow,
 } from "@/lib/queries/panels";
-import type { MessageTemplate, Panel } from "@/db/schema";
+import {
+  MAX_QUESTION_OPTIONS,
+  type MessageTemplate,
+  type Panel,
+  type PanelQuestion,
+} from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { recordDashboardAudit } from "@/lib/audit-dashboard";
 import { messageTemplateSchema } from "@/lib/validation/message-template";
@@ -28,12 +33,33 @@ import { messageTemplateSchema } from "@/lib/validation/message-template";
  * manage the target guild.
  */
 
-const questionSchema = z.object({
-  label: z.string().min(1).max(45),
-  style: z.enum(["short", "paragraph"]),
-  required: z.boolean(),
-  placeholder: z.string().max(100).optional(),
+const questionOptionSchema = z.object({
+  label: z.string().min(1).max(100),
+  value: z.string().min(1).max(100),
+  description: z.string().max(100).optional(),
 });
+
+/**
+ * A question is either free text or a dropdown, discriminated on `style`. The
+ * two text styles keep the values they always had, so panels saved before
+ * dropdowns existed still validate.
+ */
+const questionSchema = z.discriminatedUnion("style", [
+  z.object({
+    label: z.string().min(1).max(45),
+    style: z.enum(["short", "paragraph"]),
+    required: z.boolean(),
+    placeholder: z.string().max(100).optional(),
+  }),
+  z.object({
+    label: z.string().min(1).max(45),
+    style: z.literal("select"),
+    required: z.boolean(),
+    placeholder: z.string().max(100).optional(),
+    options: z.array(questionOptionSchema).min(1).max(MAX_QUESTION_OPTIONS),
+    multiple: z.boolean(),
+  }),
+]);
 
 const accessRuleSchema = z.object({
   roleId: z.string().min(1),
@@ -111,13 +137,17 @@ function toRow(data: z.infer<typeof createSchema>) {
     hideClose: data.hideClose,
     hideCloseWithReason: data.hideCloseWithReason,
     accessControl: data.accessControl,
-    questions: data.questions.map((q, i) => ({
-      id: `q${i}`,
-      label: q.label,
-      style: q.style,
-      required: q.required,
-      placeholder: q.placeholder,
-    })),
+    questions: data.questions.map((q, i): PanelQuestion => {
+      const base = {
+        id: `q${i}`,
+        label: q.label,
+        required: q.required,
+        placeholder: q.placeholder,
+      };
+      return q.style === "select"
+        ? { ...base, style: "select", options: q.options, multiple: q.multiple }
+        : { ...base, style: q.style };
+    }),
   };
 }
 

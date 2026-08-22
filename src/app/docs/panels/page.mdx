@@ -64,12 +64,38 @@ are saved on the ticket and shown in the welcome message.
 
 Each question has:
 
-| Property     | Notes                                            |
-| ------------ | ------------------------------------------------ |
-| Label        | The field prompt (Discord caps it at 45 chars).  |
-| Style        | `short` (single line) or `paragraph` (multiline). |
-| Placeholder  | Optional greyed-out hint text.                   |
-| Required     | Whether the member must answer.                  |
+| Property     | Notes                                                        |
+| ------------ | ------------------------------------------------------------ |
+| Label        | The field prompt (Discord caps it at 45 chars).               |
+| Style        | **Short answer**, **Paragraph**, or **Dropdown**.             |
+| Placeholder  | Hint text — greyed-out inside a text field, shown under the label for a dropdown. |
+| Required     | Whether the member must answer.                               |
+
+### Dropdown questions
+
+A **dropdown** question asks the member to pick from a list you define instead
+of typing. Add up to **25** choices, each with a label and an optional
+description shown underneath it.
+
+**Allow more than one choice** switches between the two shapes people usually
+want:
+
+- **Off** — exactly one choice, like a set of radio buttons.
+- **On** — any number of choices, like a set of checkboxes.
+
+The answer is recorded and shown as the **choice's label**, so a transcript
+reads the way the member saw it. Several choices are joined with commas.
+
+A dropdown with no choices can't be asked and is dropped when you save. If a
+panel's *only* question ends up like that, the ticket opens immediately with no
+form rather than showing an empty modal.
+
+> **On checkboxes, radio groups and file uploads:** Discord's standalone
+> checkbox, radio-group and file-upload components aren't available to modals in
+> the discord.js version this bot runs, so there's no separate question style for
+> them. A single-choice dropdown covers radio groups and a multi-choice dropdown
+> covers checkbox groups; files are best sent as attachments once the ticket
+> channel is open.
 
 ## Multi-panels
 

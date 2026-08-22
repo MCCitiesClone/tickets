@@ -75,6 +75,7 @@ import { findBlacklistMatch } from "@/lib/queries/blacklist";
 import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
+import { buildTicketModal, readAnswer } from "./ticket-form";
 import {
   channelName,
   isCategoryFullError,
@@ -526,26 +527,6 @@ async function precheckOpen(
 }
 
 /** Build the Discord modal (form) for a panel's questions. */
-function buildTicketModal(panel: Panel): ModalBuilder {
-  const modal = new ModalBuilder()
-    .setCustomId(`ticket_form:${panel.id}`)
-    .setTitle(panel.title.slice(0, 45) || "Open a ticket");
-
-  for (const q of panel.questions.slice(0, 5)) {
-    const input = new TextInputBuilder()
-      .setCustomId(q.id)
-      .setLabel(q.label.slice(0, 45))
-      .setStyle(
-        q.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short,
-      )
-      .setRequired(q.required);
-    if (q.placeholder) input.setPlaceholder(q.placeholder.slice(0, 100));
-    modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(input),
-    );
-  }
-  return modal;
-}
 
 /**
  * Entry point for the panel "open ticket" button. If the panel has questions,
@@ -566,8 +547,10 @@ export async function openTicketFromPanel(
   const ctx = await precheckOpen(interaction, panel);
   if (!ctx) return;
 
-  if (panel.questions.length > 0) {
-    await interaction.showModal(buildTicketModal(panel));
+  // Null when the panel has no askable questions — open straight away then.
+  const modal = buildTicketModal(panel);
+  if (modal) {
+    await interaction.showModal(modal);
     return;
   }
 
@@ -575,6 +558,7 @@ export async function openTicketFromPanel(
 }
 
 /** Handle a submitted ticket form modal: collect answers, then open the ticket. */
+
 export async function submitTicketForm(
   interaction: ModalSubmitInteraction,
   panelId: string,
@@ -586,7 +570,7 @@ export async function submitTicketForm(
   }
   const answers: FormAnswer[] = panel.questions.map((q) => ({
     question: q.label,
-    answer: interaction.fields.getTextInputValue(q.id) || "—",
+    answer: readAnswer(interaction, q),
   }));
   await openTicket(interaction, panel, answers);
 }
