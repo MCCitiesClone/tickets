@@ -174,6 +174,7 @@ Repository copies of the core setup guides:
 - [x] Auto-close tickets on inactivity ([#4](https://github.com/MCCitiesClone/tickets/issues/4))
 - [x] Custom emoji in multi-panel dropdown options ([#14](https://github.com/MCCitiesClone/tickets/issues/14))
 - [x] Ticket priority levels — `/priority`, topic badge, stats breakdown ([#8](https://github.com/MCCitiesClone/tickets/issues/8))
+- [x] Category capacity — dashboard usage bars + log-channel warning near Discord's 50-per-category cap ([#30](https://github.com/MCCitiesClone/tickets/issues/30))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -190,7 +191,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Audit log view in the dashboard ([#26](https://github.com/MCCitiesClone/tickets/issues/26))
 - [ ] Ticket status board channels per category ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
 - [ ] On-call support — ping on-call staff on open ([#29](https://github.com/MCCitiesClone/tickets/issues/29))
-- [ ] Warn near Discord's 50-channel-per-category limit ([#30](https://github.com/MCCitiesClone/tickets/issues/30))
 
 **Low priority / later**
 

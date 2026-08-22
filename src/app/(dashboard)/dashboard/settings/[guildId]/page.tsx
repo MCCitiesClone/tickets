@@ -4,8 +4,10 @@ import { ChevronLeft } from "lucide-react";
 
 import { fetchGuildChannels, fetchGuildRoles } from "@/lib/discord-api";
 import { canManageGuild, getManageableGuilds } from "@/lib/guild-access";
+import { listGuildPanels } from "@/lib/queries/panels";
 import { getGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { CategoryCapacity } from "./category-capacity";
 import { GuildSettingsForm } from "./settings-form";
 
 export default async function GuildSettingsPage({
@@ -19,10 +21,11 @@ export default async function GuildSettingsPage({
   // Authorization: only servers the user manages and the bot is in.
   if (!(await canManageGuild(guildId))) notFound();
 
-  const [config, channels, roles, { guilds }] = await Promise.all([
+  const [config, channels, roles, panels, { guilds }] = await Promise.all([
     getGuild(guildId),
     fetchGuildChannels(guildId),
     fetchGuildRoles(guildId),
+    listGuildPanels(guildId),
     getManageableGuilds(),
   ]);
 
@@ -40,6 +43,12 @@ export default async function GuildSettingsPage({
         <h1 className="text-2xl font-semibold">{guildName}</h1>
         <p className="text-muted-foreground">Ticket configuration</p>
       </div>
+
+      <CategoryCapacity
+        config={config}
+        panels={panels}
+        categories={channels.categories}
+      />
 
       <GuildSettingsForm
         guildId={guildId}
