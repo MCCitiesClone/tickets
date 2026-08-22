@@ -1,3 +1,10 @@
+# [0.22.0](https://github.com/MCCitiesClone/tickets/compare/v0.21.0...v0.22.0) (2026-08-22)
+
+
+### Features
+
+* audit log view in the dashboard ([#69](https://github.com/MCCitiesClone/tickets/issues/69)) ([f7ce848](https://github.com/MCCitiesClone/tickets/commit/f7ce848d8facba88a4668db476ee04e31a72c74e)), closes [#26](https://github.com/MCCitiesClone/tickets/issues/26)
+
 # [0.21.0](https://github.com/MCCitiesClone/tickets/compare/v0.20.0...v0.21.0) (2026-08-22)
 
 
