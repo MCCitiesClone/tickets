@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Ban,
+  BellRing,
   BookOpen,
   CheckCircle2,
   Circle,
@@ -182,6 +183,12 @@ export default async function DashboardPage() {
       title: "Canned responses",
       description: "Saved, reusable staff replies.",
       icon: MessageSquareText,
+    },
+    {
+      href: "/dashboard/on-call",
+      title: "On call",
+      description: "Staff DMed the moment a ticket opens.",
+      icon: BellRing,
     },
     {
       href: "/dashboard/blacklist",

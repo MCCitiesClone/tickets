@@ -47,6 +47,9 @@ export function GuildSettingsForm({
   const [logChannelId, setLogChannelId] = useState(
     config?.logChannelId ?? CHANNEL_NONE,
   );
+  const [onCallPingOnOpen, setOnCallPingOnOpen] = useState(
+    config?.onCallPingOnOpen ?? true,
+  );
   const [staffRoleIds, setStaffRoleIds] = useState<string[]>(
     config?.staffRoleIds ?? [],
   );
@@ -107,6 +110,7 @@ export function GuildSettingsForm({
           transcriptChannelId: orNull(transcriptChannelId),
           dmTranscriptOnClose,
           feedbackEnabled,
+          onCallPingOnOpen,
           logChannelId: orNull(logChannelId),
           staffRoleIds,
           welcomeMessage,
@@ -227,6 +231,17 @@ export function GuildSettingsForm({
             onValueChange={setLogChannelId}
             allowNone
           />
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={onCallPingOnOpen}
+              onCheckedChange={(v) => setOnCallPingOnOpen(v === true)}
+            />
+            <span>Notify on-call staff when a ticket opens</span>
+          </label>
+          <p className="text-xs text-muted-foreground">
+            DMs whoever is on call. Manage the roster on the{" "}
+            <strong>On call</strong> page, or with <code>/oncall</code>.
+          </p>
         </div>
       </div>
 

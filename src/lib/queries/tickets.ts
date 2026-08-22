@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lte, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -313,6 +313,40 @@ export async function listGuildTicketOpeners(
       name: byId.get(o.id)?.name ?? o.id,
       avatarUrl: byId.get(o.id)?.avatarUrl ?? null,
     }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Distinct staff seen working tickets in this guild: non-bot message authors who
+ * weren't the ticket's opener, resolved to their most recent captured display
+ * name + avatar. DB-only (no privileged member intent), which makes it a
+ * practical source for a "who can go on call" picker.
+ *
+ * Sorted by name. Someone who has never replied in a ticket won't appear — the
+ * pickers that use this also accept a pasted user ID.
+ */
+export async function listGuildTicketStaff(
+  guildId: string,
+): Promise<TicketOpener[]> {
+  const rows = await db
+    .selectDistinctOn([ticketMessage.authorId], {
+      id: ticketMessage.authorId,
+      name: ticketMessage.authorTag,
+      avatarUrl: ticketMessage.authorAvatarUrl,
+    })
+    .from(ticketMessage)
+    .innerJoin(ticket, eq(ticket.id, ticketMessage.ticketId))
+    .where(
+      and(
+        eq(ticket.guildId, guildId),
+        eq(ticketMessage.authorBot, false),
+        ne(ticketMessage.authorId, ticket.openerId),
+      ),
+    )
+    .orderBy(ticketMessage.authorId, desc(ticketMessage.createdAt));
+
+  return rows
+    .map((r) => ({ id: r.id, name: r.name, avatarUrl: r.avatarUrl }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

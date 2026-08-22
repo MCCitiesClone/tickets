@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Ban,
   BarChart3,
+  BellRing,
   BookOpen,
   LayoutDashboard,
   LogOut,
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
     href: "/dashboard/canned-responses",
     icon: MessageSquareText,
   },
+  { title: "On call", href: "/dashboard/on-call", icon: BellRing },
   { title: "Blacklist", href: "/dashboard/blacklist", icon: Ban },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

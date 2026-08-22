@@ -42,6 +42,7 @@ category is within 5 channels of it. Shared thresholds live in
 | `dmTranscriptOnClose`  | DM the opener the transcript link on close (default off).         |
 | `feedbackEnabled`      | DM the opener a 1–5 star rating prompt on close (default off).     |
 | `logChannelId`         | Channel for audit/log messages (open, close, claim, rename…).     |
+| `onCallPingOnOpen`     | DM the on-call roster when a ticket opens (default on). See the `on_call` table.  |
 | `staffRoleIds`         | Role IDs granted access to every ticket channel.                  |
 | `welcomeMessage`       | Plain-text first message (used when no rich welcome template set).|
 | `messageTemplates`     | Rich embed templates: welcome, claim, close DM, transcript post.  |
@@ -62,6 +63,8 @@ Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
   claim, close request, form responses). See `src/db/schema/tickets.ts`.
 - `ticket_message` — captured messages that make up a transcript.
 - `transcript` — the shareable transcript record (token, message count, reason).
+- `on_call` — per-guild on-call roster; `active` marks who's holding the pager
+  and gets DMed when a ticket opens (managed from the dashboard or `/oncall`).
 - `blacklist` — per-guild list of users/roles blocked from opening tickets
   (enforced in the open-ticket precheck; managed from the dashboard or
   `/blacklist`). See `src/db/schema/blacklist.ts`.
