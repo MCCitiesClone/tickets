@@ -5,6 +5,7 @@ import { Code2, Hash, LayoutTemplate, Plus, Smile } from "lucide-react";
 import { toast } from "sonner";
 
 import { DiscordEmoji } from "@/components/discord-emoji";
+import { EmojiAutocomplete } from "@/components/emoji-autocomplete";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -118,107 +119,109 @@ export function MessageTemplateEditor({
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2" onFocusCapture={onFocusCapture}>
-      {/* Editor */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label>Message content</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              {presets && presets.length > 0 && (
-                <PresetMenu presets={presets} onApply={onChange} />
+    <EmojiAutocomplete guildId={guildId}>
+      <div className="grid gap-6 lg:grid-cols-2" onFocusCapture={onFocusCapture}>
+        {/* Editor */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label>Message content</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {presets && presets.length > 0 && (
+                  <PresetMenu presets={presets} onApply={onChange} />
+                )}
+                {placeholders.length > 0 && (
+                  <TokenMenu tokens={placeholders} onInsert={insertToken} />
+                )}
+                {guildId && (
+                  <EmojiInsertMenu
+                    guildId={guildId}
+                    onInsert={(mention) => insertText(mention)}
+                  />
+                )}
+                <ImportExport value={value} onImport={onChange} />
+              </div>
+            </div>
+            <Textarea
+              ref={contentRef}
+              rows={3}
+              value={value.content ?? ""}
+              maxLength={2000}
+              placeholder="Optional text shown above the embeds."
+              onChange={(e) => setContent(e.target.value)}
+            />
+            <div className="flex items-center justify-between gap-2">
+              {placeholders.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {placeholders.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        if (contentRef.current)
+                          insertAtCaret(contentRef.current, `{${p}}`);
+                        else setContent(`${value.content ?? ""}{${p}}`);
+                      }}
+                      className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted/70"
+                      title={PLACEHOLDER_META[p] ?? `Insert {${p}}`}
+                    >
+                      {`{${p}}`}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span />
               )}
-              {placeholders.length > 0 && (
-                <TokenMenu tokens={placeholders} onInsert={insertToken} />
-              )}
-              {guildId && (
-                <EmojiInsertMenu
-                  guildId={guildId}
-                  onInsert={(mention) => insertText(mention)}
-                />
-              )}
-              <ImportExport value={value} onImport={onChange} />
+              <CharCount value={value.content ?? ""} max={2000} />
             </div>
           </div>
-          <Textarea
-            ref={contentRef}
-            rows={3}
-            value={value.content ?? ""}
-            maxLength={2000}
-            placeholder="Optional text shown above the embeds."
-            onChange={(e) => setContent(e.target.value)}
-          />
-          <div className="flex items-center justify-between gap-2">
-            {placeholders.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {placeholders.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      if (contentRef.current)
-                        insertAtCaret(contentRef.current, `{${p}}`);
-                      else setContent(`${value.content ?? ""}{${p}}`);
-                    }}
-                    className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted/70"
-                    title={PLACEHOLDER_META[p] ?? `Insert {${p}}`}
-                  >
-                    {`{${p}}`}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <span />
-            )}
-            <CharCount value={value.content ?? ""} max={2000} />
-          </div>
+
+          {value.embeds.map((embed, i) => (
+            <EmbedCard
+              key={i}
+              embed={embed}
+              index={i}
+              total={value.embeds.length}
+              onChange={(next) => setEmbed(i, next)}
+              onRemove={() => removeEmbed(i)}
+              onMove={(dir) => moveEmbed(i, dir)}
+            />
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={value.embeds.length >= MAX_EMBEDS}
+            onClick={addEmbed}
+          >
+            <Plus className="size-4" /> Add embed ({value.embeds.length}/
+            {MAX_EMBEDS})
+          </Button>
         </div>
 
-        {value.embeds.map((embed, i) => (
-          <EmbedCard
-            key={i}
-            embed={embed}
-            index={i}
-            total={value.embeds.length}
-            onChange={(next) => setEmbed(i, next)}
-            onRemove={() => removeEmbed(i)}
-            onMove={(dir) => moveEmbed(i, dir)}
-          />
-        ))}
-
-        <Button
-          type="button"
-          variant="outline"
-          disabled={value.embeds.length >= MAX_EMBEDS}
-          onClick={addEmbed}
-        >
-          <Plus className="size-4" /> Add embed ({value.embeds.length}/
-          {MAX_EMBEDS})
-        </Button>
+        {/* Preview */}
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <Label className="mb-2 block text-xs text-muted-foreground">
+            Preview
+          </Label>
+          <MessagePreview template={value} />
+          {placeholders.length > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Tokens like <code className="font-mono">{"{ticket}"}</code> are filled
+              in when the message is sent.
+            </p>
+          )}
+          {guildId && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Custom emoji and markdown render in the message content, embed
+              titles, descriptions, and fields — Discord shows author and footer
+              text plain.
+            </p>
+          )}
+        </div>
       </div>
-
-      {/* Preview */}
-      <div className="lg:sticky lg:top-4 lg:self-start">
-        <Label className="mb-2 block text-xs text-muted-foreground">
-          Preview
-        </Label>
-        <MessagePreview template={value} />
-        {placeholders.length > 0 && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tokens like <code className="font-mono">{"{ticket}"}</code> are filled
-            in when the message is sent.
-          </p>
-        )}
-        {guildId && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Custom emoji and markdown render in the message content, embed
-            titles, descriptions, and fields — Discord shows author and footer
-            text plain.
-          </p>
-        )}
-      </div>
-    </div>
+    </EmojiAutocomplete>
   );
 }
 
