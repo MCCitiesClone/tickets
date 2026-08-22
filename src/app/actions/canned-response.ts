@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries/canned-responses";
 import { upsertGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 /**
@@ -82,6 +83,12 @@ export async function createCannedResponse(input: CreateCannedResponseInput) {
     accessRoleIds: data.accessRoleIds,
     template,
   });
+  await recordDashboardAudit(
+    data.guildId,
+    "config.canned_create",
+    `Created canned response "${row.name}"`,
+    { type: "canned_response", id: row.id },
+  );
   revalidatePath("/dashboard/canned-responses");
   return row;
 }
@@ -109,6 +116,14 @@ export async function updateCannedResponse(input: UpdateCannedResponseInput) {
     template,
   });
   if (!row) throw new Error("Canned response not found.");
+  await recordDashboardAudit(
+    data.guildId,
+    "config.canned_update",
+    existing.name === row.name
+      ? `Updated canned response "${row.name}"`
+      : `Renamed canned response "${existing.name}" to "${row.name}"`,
+    { type: "canned_response", id: row.id },
+  );
   revalidatePath("/dashboard/canned-responses");
   return row;
 }
@@ -120,5 +135,11 @@ export async function deleteCannedResponse(guildId: string, id: string) {
     throw new Error("Canned response not found.");
   }
   await deleteRow(id);
+  await recordDashboardAudit(
+    guildId,
+    "config.canned_delete",
+    `Deleted canned response "${existing.name}"`,
+    { type: "canned_response", id },
+  );
   revalidatePath("/dashboard/canned-responses");
 }

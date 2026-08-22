@@ -7,6 +7,7 @@ import type { GuildMessageTemplates } from "@/db/schema";
 import { canManageGuild } from "@/lib/guild-access";
 import { getGuild, upsertGuild } from "@/lib/queries/guild";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 import { guildMessageTemplatesSchema } from "@/lib/validation/message-template";
 
 /**
@@ -60,6 +61,14 @@ export async function updateGuildConfig(input: GuildConfigInput) {
     ...(messageTemplates
       ? { messageTemplates: messageTemplates as GuildMessageTemplates }
       : {}),
+  });
+
+  await recordDashboardAudit(guildId, "config.guild", "Server settings saved", {
+    type: "guild",
+    id: guildId,
+    // Field names only — the values can contain channel and role IDs an admin
+    // may not want mirrored into a second table.
+    metadata: { fields: Object.keys(values) },
   });
 
   revalidatePath(`/dashboard/settings/${guildId}`);

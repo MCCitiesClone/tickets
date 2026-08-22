@@ -20,6 +20,7 @@ import {
 } from "@/lib/queries/panels";
 import { isTemplateEmpty, type MessageTemplate, type MultiPanel } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { recordDashboardAudit } from "@/lib/audit-dashboard";
 import { messageTemplateSchema } from "@/lib/validation/message-template";
 
 const fields = {
@@ -126,6 +127,12 @@ export async function createMultiPanel(input: CreateMultiPanelInput) {
     throw err;
   }
 
+  await recordDashboardAudit(
+    data.guildId,
+    "config.multipanel_create",
+    `Created multi-panel "${mp.title}"`,
+    { type: "multi_panel", id: mp.id, metadata: { panels: data.panelIds.length } },
+  );
   revalidatePath("/dashboard/panels");
   return mp;
 }
@@ -171,6 +178,12 @@ export async function updateMultiPanel(input: UpdateMultiPanelInput) {
     await setMultiPanelMessage(updated.id, data.channelId, messageId);
   }
 
+  await recordDashboardAudit(
+    data.guildId,
+    "config.multipanel_update",
+    `Updated multi-panel "${updated.title}"`,
+    { type: "multi_panel", id: updated.id, metadata: { panels: data.panelIds.length } },
+  );
   revalidatePath("/dashboard/panels");
   return updated;
 }
@@ -191,6 +204,12 @@ export async function deleteMultiPanel(multiPanelId: string) {
     await deleteMessage(mp.channelId, mp.messageId);
   }
   await deleteRow(multiPanelId);
+  await recordDashboardAudit(
+    mp.guildId,
+    "config.multipanel_delete",
+    `Deleted multi-panel "${mp.title}"`,
+    { type: "multi_panel", id: mp.id },
+  );
   revalidatePath("/dashboard/panels");
 }
 

@@ -134,6 +134,13 @@
       "when": 1787361118714,
       "tag": "0018_chief_hannibal_king",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787367449103,
+      "tag": "0019_breezy_drax",
+      "breakpoints": true
     }
   ]
 }

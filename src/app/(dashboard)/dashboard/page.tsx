@@ -11,6 +11,7 @@ import {
   MessageSquare,
   MessageSquareText,
   PanelsTopLeft,
+  ScrollText,
   Settings,
   Ticket,
   TriangleAlert,
@@ -195,6 +196,12 @@ export default async function DashboardPage() {
       title: "Blacklist",
       description: "Block users or roles from opening tickets.",
       icon: Ban,
+    },
+    {
+      href: "/dashboard/audit",
+      title: "Audit log",
+      description: "Every ticket and configuration change.",
+      icon: ScrollText,
     },
     {
       href: "/dashboard/messages",
