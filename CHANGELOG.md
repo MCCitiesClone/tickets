@@ -1,3 +1,10 @@
+# [0.20.0](https://github.com/MCCitiesClone/tickets/compare/v0.19.0...v0.20.0) (2026-08-22)
+
+
+### Features
+
+* Discord-style :emoji autocomplete in the message editor ([#66](https://github.com/MCCitiesClone/tickets/issues/66)) ([700da51](https://github.com/MCCitiesClone/tickets/commit/700da5155b5ca89067d09c1b55305748d32bde42)), closes [#62](https://github.com/MCCitiesClone/tickets/issues/62)
+
 # [0.19.0](https://github.com/MCCitiesClone/tickets/compare/v0.18.0...v0.19.0) (2026-08-22)
 
 
