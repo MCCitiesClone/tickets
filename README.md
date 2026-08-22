@@ -185,6 +185,7 @@ Repository copies of the core setup guides:
 - [x] Suggested close reasons — autocomplete + dropdown, configured and recently used ([#32](https://github.com/MCCitiesClone/tickets/issues/32))
 - [x] Shared form questions — define once, reuse across panels ([#24](https://github.com/MCCitiesClone/tickets/issues/24))
 - [x] Support hours — timezone-aware availability + out-of-hours notice ([#9](https://github.com/MCCitiesClone/tickets/issues/9))
+- [x] Live status board — open tickets grouped by category, with waiting-on state ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
 
 Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues):
 
@@ -194,7 +195,6 @@ Planned — tracked in [issues](https://github.com/MCCitiesClone/tickets/issues)
 - [ ] Applications module — application forms that convert to tickets ([#11](https://github.com/MCCitiesClone/tickets/issues/11))
 - [ ] Improve onboarding & multi-server switching ([#21](https://github.com/MCCitiesClone/tickets/issues/21))
 - [x] Simplify the embed editor for non-technical users ([#23](https://github.com/MCCitiesClone/tickets/issues/23))
-- [ ] Ticket status board channels per category ([#28](https://github.com/MCCitiesClone/tickets/issues/28))
 
 **Low priority / later**
 

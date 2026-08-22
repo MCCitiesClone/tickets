@@ -16,6 +16,13 @@ import { panel } from "./panels";
 export const ticketStatus = pgEnum("ticket_status", ["open", "closed"]);
 
 /**
+ * Which side a ticket is waiting on, inferred from who spoke last: the opener
+ * writing means staff owe a reply, staff writing means the opener does. A fresh
+ * ticket waits on staff.
+ */
+export const ticketWaitingOn = pgEnum("ticket_waiting_on", ["staff", "user"]);
+
+/**
  * Triage priority for a ticket. `normal` is the default every ticket opens at;
  * staff move it with `/priority`. Ordered low → urgent — keep the enum member
  * order in sync with `TICKET_PRIORITIES` in `src/lib/ticket-priority.ts`, which
@@ -62,6 +69,9 @@ export const ticket = pgTable("ticket", {
 
   /** Triage priority, set by staff via `/priority` (see `ticketPriority`). */
   priority: ticketPriority("priority").notNull().default("normal"),
+
+  /** Who owes the next reply — kept current by the message listener. */
+  waitingOn: ticketWaitingOn("waiting_on").notNull().default("staff"),
 
   /** Discord user ID of the staff member who claimed the ticket. */
   claimedBy: text("claimed_by"),
@@ -229,6 +239,7 @@ export const transcript = pgTable("transcript", {
 });
 
 export type TicketPriority = (typeof ticketPriority.enumValues)[number];
+export type TicketWaitingOn = (typeof ticketWaitingOn.enumValues)[number];
 
 export type Ticket = typeof ticket.$inferSelect;
 export type NewTicket = typeof ticket.$inferInsert;

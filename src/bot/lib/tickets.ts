@@ -61,6 +61,7 @@ import {
   getTicketByChannel,
   listAutoCloseCandidates,
   listRecentCloseReasons,
+  listStatusBoardGuilds,
   listDueCloseRequests,
   markTicketAutoCloseWarned,
   markTicketClosed,
@@ -78,6 +79,7 @@ import { archiveTicketAttachments } from "./attachment-archive";
 import { EMBED_COLOR, noticeEmbed } from "./embeds";
 import { messageToRow } from "./message-snapshot";
 import { buildSupportNotice } from "./support-notice";
+import { invalidateStatusBoard, refreshStatusBoard } from "./status-board";
 import { buildTicketModal, readAnswer } from "./ticket-form";
 import {
   buildCloseReasonModal,
@@ -955,6 +957,10 @@ export async function openTicket(
   }
 
   await warnIfCategoryNearLimit(guild, config, channel.parentId);
+
+  // A new ticket is the change an operator most wants to see appear.
+  invalidateStatusBoard(guildId);
+  void refreshStatusBoard(guild, config);
 }
 
 /** Resolve the ticket for an interaction (by id or current channel) + config. */
@@ -1781,6 +1787,9 @@ export async function performClose(
     },
   );
 
+  invalidateStatusBoard(guild.id);
+  void refreshStatusBoard(guild, config);
+
   if (channel && !channel.isThread() && channel.deletable) {
     await channel.delete(`Ticket #${ticket.number} closed`).catch(() => {});
   }
@@ -2015,6 +2024,27 @@ export async function sweepDueCloseRequests(client: Client): Promise<void> {
     } catch (err) {
       console.error(`Auto-close failed for ticket ${ticket.id}:`, err);
     }
+  }
+}
+
+/**
+ * Refresh every configured status board. Runs on the same timer as the
+ * auto-close sweeps; the board itself skips guilds whose content is unchanged,
+ * so a quiet server costs no Discord calls.
+ */
+export async function sweepStatusBoards(client: Client): Promise<void> {
+  let guilds: Awaited<ReturnType<typeof listStatusBoardGuilds>>;
+  try {
+    guilds = await listStatusBoardGuilds();
+  } catch (err) {
+    console.error("Failed to list status-board guilds:", err);
+    return;
+  }
+
+  for (const config of guilds) {
+    const guild = client.guilds.cache.get(config.guildId);
+    if (!guild) continue; // bot no longer in that server
+    await refreshStatusBoard(guild, config);
   }
 }
 

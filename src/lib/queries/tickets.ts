@@ -24,7 +24,9 @@ import {
   type NewTranscript,
   type Ticket,
   type TicketMessage,
+  type Guild,
   type TicketPriority,
+  type TicketWaitingOn,
   type TranscriptAttachment,
   type Transcript,
 } from "@/db/schema";
@@ -444,6 +446,24 @@ export async function markTicketActivity(
     .where(eq(ticket.id, ticketId));
 }
 
+/**
+ * Record human activity *and* who now owes a reply, in one write.
+ *
+ * Folded into the same statement as the activity bump because the message
+ * listener runs on every human message in every open ticket — two round trips
+ * where one will do is a cost paid per message, forever.
+ */
+export async function markTicketActivityBy(
+  ticketId: string,
+  at: Date,
+  waitingOn: TicketWaitingOn,
+): Promise<void> {
+  await db
+    .update(ticket)
+    .set({ lastActivityAt: at, autoCloseWarnedAt: null, waitingOn })
+    .where(eq(ticket.id, ticketId));
+}
+
 /** Record that the inactivity auto-close warning was posted. */
 export async function markTicketAutoCloseWarned(
   ticketId: string,
@@ -505,6 +525,54 @@ export async function listRecentCloseReasons(
   return rows
     .flatMap((r) => (r.reason?.trim() ? [r.reason.trim()] : []))
     .sort();
+}
+
+/** An open ticket as the status board renders it. */
+export type BoardTicket = {
+  id: string;
+  number: number;
+  channelId: string;
+  openerId: string;
+  claimedBy: string | null;
+  priority: Ticket["priority"];
+  waitingOn: TicketWaitingOn;
+  openedAt: Date;
+};
+
+/** Every open ticket in a guild, most recently opened first. */
+export async function listOpenTicketsForBoard(
+  guildId: string,
+): Promise<BoardTicket[]> {
+  return db
+    .select({
+      id: ticket.id,
+      number: ticket.number,
+      channelId: ticket.channelId,
+      openerId: ticket.openerId,
+      claimedBy: ticket.claimedBy,
+      priority: ticket.priority,
+      waitingOn: ticket.waitingOn,
+      openedAt: ticket.openedAt,
+    })
+    .from(ticket)
+    .where(and(eq(ticket.guildId, guildId), eq(ticket.status, "open")))
+    .orderBy(desc(ticket.openedAt));
+}
+
+/** Guilds with a status board configured, for the refresh sweep. */
+export async function listStatusBoardGuilds(): Promise<Guild[]> {
+  return db.select().from(guild).where(isNotNull(guild.statusBoardChannelId));
+}
+
+/** Remember (or clear) the board message the bot edits in place. */
+export async function setStatusBoardMessage(
+  guildId: string,
+  messageId: string | null,
+): Promise<void> {
+  await db
+    .update(guild)
+    .set({ statusBoardMessageId: messageId })
+    .where(eq(guild.guildId, guildId));
 }
 
 /** Count captured messages for a ticket. */

@@ -48,6 +48,42 @@ release it with **Release** or `/unclaim`. Claiming records `claimedBy`, swaps
 the button between Claim and Release, and posts the claim notice (the guild
 [claim template](/docs/messages) or a built-in embed).
 
+## Status board
+
+Point **Status board channel** in [Settings](/docs/configuration) at a channel
+and the bot keeps a single message there listing every open ticket, grouped by
+the category it sits in. Make the channel read-only for members — the bot only
+needs to post and edit.
+
+Each line shows the ticket's priority, a link to its channel, who opened it, who
+claimed it (or *unclaimed*), which side is waiting, and how long it's been open
+as a relative timestamp.
+
+### Waiting on
+
+Every open ticket tracks who owes the next reply, inferred from who spoke last:
+
+- **⏳ Waiting on staff** — the opener wrote last, or the ticket is brand new.
+- **💬 Waiting on user** — anyone else wrote last.
+
+Only human messages count; the bot's own posts don't flip it, so a welcome
+message or auto-close warning never makes a ticket look answered.
+
+### How it stays current
+
+The board refreshes on the same ~60s timer as the auto-close sweeps, and again
+immediately when a ticket opens or closes — the two changes an operator most
+wants to see land.
+
+It's a single message edited in place rather than one per ticket, and a refresh
+that would change nothing is skipped entirely, so a quiet server costs no Discord
+calls at all. Delete the message and the next refresh posts a fresh one.
+
+Very large queues are summarised rather than truncated: a category with more
+than 20 open tickets shows the newest 20 and "…and *n* more", and the footer
+always counts every open ticket, including ones not listed.
+
+
 ## Support hours
 
 A server can tell members when its support team is around. When a ticket opens

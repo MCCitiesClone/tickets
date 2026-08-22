@@ -30,6 +30,7 @@ const configSchema = z.object({
   dmTranscriptOnClose: z.boolean().optional(),
   feedbackEnabled: z.boolean().optional(),
   logChannelId: z.string().nullable().optional(),
+  statusBoardChannelId: z.string().nullable().optional(),
   onCallPingOnOpen: z.boolean().optional(),
   staffRoleIds: z.array(z.string()).optional(),
   welcomeMessage: z.string().max(2000).optional(),
