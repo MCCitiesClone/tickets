@@ -1,3 +1,10 @@
+# [0.17.0](https://github.com/MCCitiesClone/tickets/compare/v0.16.0...v0.17.0) (2026-08-22)
+
+
+### Features
+
+* warn when a ticket category nears Discord's 50-channel limit ([#61](https://github.com/MCCitiesClone/tickets/issues/61)) ([375e712](https://github.com/MCCitiesClone/tickets/commit/375e71249fbea51f713e27f1cb974d21ec5f817b)), closes [#30](https://github.com/MCCitiesClone/tickets/issues/30)
+
 # [0.16.0](https://github.com/MCCitiesClone/tickets/compare/v0.15.0...v0.16.0) (2026-08-22)
 
 
