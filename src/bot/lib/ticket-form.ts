@@ -60,7 +60,10 @@ export function readAnswer(
  * fields — which a panel whose only question is an optionless dropdown would
  * otherwise produce. The caller opens the ticket directly in that case.
  */
-export function buildTicketModal(panel: Panel): ModalBuilder | null {
+export function buildTicketModal(
+  panel: Pick<Panel, "id" | "title">,
+  questions: PanelQuestion[],
+): ModalBuilder | null {
   const modal = new ModalBuilder()
     .setCustomId(`ticket_form:${panel.id}`)
     .setTitle(panel.title.slice(0, 45) || "Open a ticket");
@@ -70,7 +73,7 @@ export function buildTicketModal(panel: Panel): ModalBuilder | null {
   // Every field goes inside a Label. discord.js deprecates bare action rows in
   // modals in favour of Label, and Label is the only wrapper that accepts a
   // select menu — so both question styles take the same path.
-  for (const q of panel.questions.slice(0, MAX_QUESTIONS)) {
+  for (const q of questions.slice(0, MAX_QUESTIONS)) {
     const label = new LabelBuilder().setLabel(q.label.slice(0, 45));
 
     if (isSelectQuestion(q)) {

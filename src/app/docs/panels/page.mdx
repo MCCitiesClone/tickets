@@ -71,6 +71,24 @@ Each question has:
 | Placeholder  | Hint text — greyed-out inside a text field, shown under the label for a dropdown. |
 | Required     | Whether the member must answer.                               |
 
+### Shared questions
+
+Questions that belong on several panels can be defined once under **Shared
+questions** in the dashboard and then ticked on each panel, instead of being
+retyped. Editing one there updates every panel using it.
+
+Each library entry has a **name** (how you recognise it in the list) separate
+from its **label** (what members are actually asked), so "Order number" can ask
+"What's your order number?".
+
+A panel asks its shared questions **first**, in the order the library lists
+them, then its own. Discord's five-field limit spans both: if the combined list
+is longer, the extras aren't asked, and the panel editor warns you.
+
+Deleting a shared question doesn't break the panels using it — they simply stop
+asking it. The panel list on the library page shows which panels use each
+question before you delete one.
+
 ### Dropdown questions
 
 A **dropdown** question asks the member to pick from a list you define instead

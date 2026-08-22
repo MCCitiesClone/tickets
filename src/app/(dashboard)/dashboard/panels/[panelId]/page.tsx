@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { canManageGuild } from "@/lib/guild-access";
+import { listFormQuestions } from "@/lib/queries/form-questions";
 import { getPanel } from "@/lib/queries/panels";
 import { requireSession } from "@/lib/session";
 import { PanelForm } from "../panel-form";
@@ -18,6 +19,8 @@ export default async function EditPanelPage({
   const panel = await getPanel(panelId);
   if (!panel || !(await canManageGuild(panel.guildId))) notFound();
 
+  const sharedQuestions = await listFormQuestions(panel.guildId);
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div>
@@ -30,7 +33,11 @@ export default async function EditPanelPage({
         <h1 className="text-2xl font-semibold">Edit panel</h1>
       </div>
 
-      <PanelForm guildId={panel.guildId} panel={panel} />
+      <PanelForm
+        guildId={panel.guildId}
+        panel={panel}
+        sharedQuestions={sharedQuestions}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   BellRing,
   BookOpen,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   type LucideIcon,
   MessageSquare,
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { title: "Panels", href: "/dashboard/panels", icon: PanelsTopLeft },
   { title: "Tickets", href: "/dashboard/tickets", icon: Ticket },
   { title: "Stats", href: "/dashboard/stats", icon: BarChart3 },
+  { title: "Shared questions", href: "/dashboard/questions", icon: ListChecks },
   { title: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   {
     title: "Canned responses",

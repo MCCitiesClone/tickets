@@ -158,7 +158,20 @@ export const panel = pgTable("panel", {
     .notNull()
     .default(false),
 
-  /** Questions asked in a modal when opening a ticket (max 5, may be empty). */
+  /**
+   * Shared questions from the guild's library, in the order they're asked.
+   * These come before the panel's own `questions`; see
+   * `resolvePanelQuestions`.
+   */
+  sharedQuestionIds: jsonb("shared_question_ids")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+
+  /**
+   * Panel-specific questions, asked after any shared ones. Discord allows five
+   * fields in a modal in total, across both lists.
+   */
   questions: jsonb("questions")
     .$type<PanelQuestion[]>()
     .notNull()

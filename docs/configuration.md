@@ -64,6 +64,8 @@ Reads/writes go through the shared data layer in `src/lib/queries/guild.ts`
   claim, close request, form responses). See `src/db/schema/tickets.ts`.
 - `ticket_message` — captured messages that make up a transcript.
 - `transcript` — the shareable transcript record (token, message count, reason).
+- `form_question` — guild-level library of reusable form questions; panels
+  reference them via `panel.shared_question_ids`.
 - `audit_log` — durable trail of ticket and configuration changes, shown on the
   dashboard's Audit log page. Written by the bot and by the server actions.
 - `on_call` — per-guild on-call roster; `active` marks who's holding the pager

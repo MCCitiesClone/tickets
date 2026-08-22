@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ComponentType } from "discord.js";
 import type { ModalSubmitInteraction } from "discord.js";
 
-import type { Panel, PanelQuestion } from "@/db/schema";
+import type { PanelQuestion } from "@/db/schema";
 import { MAX_QUESTIONS, buildTicketModal, readAnswer } from "./ticket-form";
 
-const panel = (questions: PanelQuestion[], title = "Support"): Panel =>
-  ({ id: "p1", title, questions }) as Panel;
+const panel = (title = "Support") => ({ id: "p1", title });
 
 const text = (o: Partial<PanelQuestion> = {}): PanelQuestion =>
   ({ id: "q0", label: "Why?", style: "short", required: true, ...o }) as PanelQuestion;
@@ -26,8 +25,8 @@ const select = (o: Record<string, unknown> = {}): PanelQuestion =>
   }) as PanelQuestion;
 
 /** The JSON discord.js will actually send. Asserts the modal isn't null. */
-const json = (p: Panel) =>
-  buildTicketModal(p)!.toJSON() as unknown as {
+const json = (questions: PanelQuestion[], title?: string) =>
+  buildTicketModal(panel(title), questions)!.toJSON() as unknown as {
     custom_id: string;
     title: string;
     components: {
@@ -40,22 +39,22 @@ const json = (p: Panel) =>
 
 describe("buildTicketModal", () => {
   it("encodes the panel id so the submit handler can route it", () => {
-    expect(json(panel([text()])).custom_id).toBe("ticket_form:p1");
+    expect(json([text()]).custom_id).toBe("ticket_form:p1");
   });
 
   it("titles the modal with the panel, falling back when it's blank", () => {
-    expect(json(panel([text()], "Billing")).title).toBe("Billing");
-    expect(json(panel([text()], "")).title).toBe("Open a ticket");
+    expect(json([text()], "Billing").title).toBe("Billing");
+    expect(json([text()], "").title).toBe("Open a ticket");
   });
 
   it("truncates an over-long title to Discord's 45 characters", () => {
-    expect(json(panel([text()], "x".repeat(80))).title).toHaveLength(45);
+    expect(json([text()], "x".repeat(80)).title).toHaveLength(45);
   });
 
   it("wraps every field in a Label, not a bare action row", () => {
     // discord.js deprecates action rows in modals; Label is also the only
     // wrapper that accepts a select menu.
-    const components = json(panel([text(), select()])).components;
+    const components = json([text(), select()]).components;
     expect(components.map((c) => c.type)).toEqual([
       ComponentType.Label,
       ComponentType.Label,
@@ -63,7 +62,7 @@ describe("buildTicketModal", () => {
   });
 
   it("builds a text question as a text input", () => {
-    const [field] = json(panel([text({ placeholder: "Briefly…" })])).components;
+    const [field] = json([text({ placeholder: "Briefly…" })]).components;
     expect(field.label).toBe("Why?");
     expect(field.component).toMatchObject({
       type: ComponentType.TextInput,
@@ -75,12 +74,12 @@ describe("buildTicketModal", () => {
   });
 
   it("uses the paragraph style for a paragraph question", () => {
-    const [field] = json(panel([text({ style: "paragraph" })])).components;
+    const [field] = json([text({ style: "paragraph" })]).components;
     expect(field.component.style).toBe(2);
   });
 
   it("builds a dropdown question as a string select", () => {
-    const [field] = json(panel([select()])).components;
+    const [field] = json([select()]).components;
     expect(field.component).toMatchObject({
       type: ComponentType.StringSelect,
       custom_id: "q1",
@@ -95,17 +94,17 @@ describe("buildTicketModal", () => {
 
   it("puts a dropdown's placeholder on the label as a description", () => {
     // A select has no placeholder of its own in this position.
-    const [field] = json(panel([select({ placeholder: "Pick one" })])).components;
+    const [field] = json([select({ placeholder: "Pick one" })]).components;
     expect(field.description).toBe("Pick one");
   });
 
   it("allows every option to be picked when multiple is on", () => {
-    const [field] = json(panel([select({ multiple: true })])).components;
+    const [field] = json([select({ multiple: true })]).components;
     expect(field.component.max_values).toBe(2);
   });
 
   it("lets an optional dropdown be left empty", () => {
-    const [field] = json(panel([select({ required: false })])).components;
+    const [field] = json([select({ required: false })]).components;
     expect(field.component.min_values).toBe(0);
     expect(field.component.required).toBe(false);
   });
@@ -113,11 +112,11 @@ describe("buildTicketModal", () => {
   it("returns null when a dropdown with no options was the only question", () => {
     // Discord rejects both a zero-option select and a zero-field modal, so
     // there is nothing valid to show — the caller opens the ticket directly.
-    expect(buildTicketModal(panel([select({ options: [] })]))).toBeNull();
+    expect(buildTicketModal(panel(), [select({ options: [] })])).toBeNull();
   });
 
   it("keeps other questions when one dropdown is skipped", () => {
-    const components = json(panel([select({ options: [] }), text()])).components;
+    const components = json([select({ options: [] }), text()]).components;
     expect(components).toHaveLength(1);
     expect(components[0].component.custom_id).toBe("q0");
   });
@@ -127,20 +126,18 @@ describe("buildTicketModal", () => {
       label: `Option ${i}`,
       value: `o${i}`,
     }));
-    const [field] = json(panel([select({ options })])).components;
+    const [field] = json([select({ options })]).components;
     expect(field.component.options).toHaveLength(25);
   });
 
   it("truncates option labels and descriptions to 100 characters", () => {
-    const [field] = json(
-      panel([
-        select({
-          options: [
-            { label: "x".repeat(200), value: "v", description: "y".repeat(200) },
-          ],
-        }),
-      ]),
-    ).components;
+    const [field] = json([
+      select({
+        options: [
+          { label: "x".repeat(200), value: "v", description: "y".repeat(200) },
+        ],
+      }),
+    ]).components;
     const [option] = field.component.options as {
       label: string;
       description: string;
@@ -150,7 +147,7 @@ describe("buildTicketModal", () => {
   });
 
   it("truncates a field label to Discord's 45 characters", () => {
-    const [field] = json(panel([text({ label: "x".repeat(80) })])).components;
+    const [field] = json([text({ label: "x".repeat(80) })]).components;
     expect(field.label).toHaveLength(45);
   });
 
@@ -158,11 +155,11 @@ describe("buildTicketModal", () => {
     const questions = Array.from({ length: 8 }, (_, i) =>
       text({ id: `q${i}`, label: `Q${i}` }),
     );
-    expect(json(panel(questions)).components).toHaveLength(MAX_QUESTIONS);
+    expect(json(questions).components).toHaveLength(MAX_QUESTIONS);
   });
 
   it("returns null for a panel with no questions", () => {
-    expect(buildTicketModal(panel([]))).toBeNull();
+    expect(buildTicketModal(panel(), [])).toBeNull();
   });
 });
 

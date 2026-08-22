@@ -50,6 +50,7 @@ import {
   nextTicketNumber,
 } from "@/lib/queries/guild";
 import { getPanel, isOnCooldown, startCooldown } from "@/lib/queries/panels";
+import { resolvePanelQuestions } from "@/lib/queries/form-questions";
 import {
   clearCloseRequest,
   countOpenTicketsForUser,
@@ -558,7 +559,7 @@ export async function openTicketFromPanel(
   if (!ctx) return;
 
   // Null when the panel has no askable questions — open straight away then.
-  const modal = buildTicketModal(panel);
+  const modal = buildTicketModal(panel, await resolvePanelQuestions(panel));
   if (modal) {
     await interaction.showModal(modal);
     return;
@@ -578,7 +579,9 @@ export async function submitTicketForm(
     await replyError(interaction, "This panel no longer exists.");
     return;
   }
-  const answers: FormAnswer[] = panel.questions.map((q) => ({
+  // Resolved the same way the modal was built, so the field IDs line up.
+  const questions = await resolvePanelQuestions(panel);
+  const answers: FormAnswer[] = questions.map((q) => ({
     question: q.label,
     answer: readAnswer(interaction, q),
   }));

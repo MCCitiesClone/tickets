@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 import { getActiveGuild } from "@/lib/active-guild";
+import { listFormQuestions } from "@/lib/queries/form-questions";
 import { requireSession } from "@/lib/session";
 import { EmptyState } from "../../../page-shell";
 import { PanelForm } from "../panel-form";
@@ -9,6 +10,7 @@ import { PanelForm } from "../panel-form";
 export default async function NewPanelPage() {
   await requireSession();
   const { active } = await getActiveGuild();
+  const sharedQuestions = active ? await listFormQuestions(active.id) : [];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -23,7 +25,7 @@ export default async function NewPanelPage() {
       </div>
 
       {active ? (
-        <PanelForm guildId={active.id} />
+        <PanelForm guildId={active.id} sharedQuestions={sharedQuestions} />
       ) : (
         <EmptyState
           title="No server selected"

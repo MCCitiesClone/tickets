@@ -148,6 +148,13 @@
       "when": 1787370149724,
       "tag": "0020_majestic_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787370811855,
+      "tag": "0021_glossy_menace",
+      "breakpoints": true
     }
   ]
 }
