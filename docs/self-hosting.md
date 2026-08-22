@@ -100,6 +100,28 @@ terminate TLS there. Set `BETTER_AUTH_URL` to the public HTTPS URL and add the
 matching OAuth redirect (`https://your-domain/api/auth/callback/discord`) in the
 Discord Developer Portal.
 
+## Pterodactyl / Pelican
+
+The repo ships a game-panel **egg** at
+[`eggs/egg-tickets.json`](../eggs/egg-tickets.json).
+One file works on both panels — Pelican reads the same `PTDL_v2` format.
+
+Import it under **Admin → Eggs → Import Egg**, create a server from it, fill in
+the variables, and start. The install script clones the repo and runs `npm ci`;
+the bot applies its own migrations on every boot, and pressing **Reinstall**
+updates it (keeping `node_modules`, archived attachments, and any `.env`).
+
+Two things the egg deliberately doesn't provide:
+
+- **PostgreSQL** — point `DATABASE_URL` at a database you already host. Panel
+  "Databases" provision MySQL, which this project doesn't support.
+- **The web dashboard** — host it separately against the *same* `DATABASE_URL`.
+  The bot alone has no configuration UI.
+
+The allocation the panel assigns goes unused; the bot only makes outbound
+connections. Full variable reference:
+[`eggs/README.md`](../eggs/README.md).
+
 ## Running without Docker
 
 You can run the three pieces manually:
